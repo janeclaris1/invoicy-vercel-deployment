@@ -1,5 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const Invoice = require('../models/Invoice');
+const Invoice = require('../models/invoice');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const parseInvoiceFromText = async (req, res) => {
     const { text } = req.body || {};

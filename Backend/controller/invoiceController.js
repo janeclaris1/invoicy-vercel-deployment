@@ -1,4 +1,4 @@
-const Invoice = require("../models/Invoice");
+const Invoice = require("../models/invoice");
 const User = require("../models/User");
 
 // @desc    Create a new invoice
