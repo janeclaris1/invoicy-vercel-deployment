@@ -129,17 +129,32 @@
     color: #f8fafc !important;
   }
 
+  /* Dashboard stat cards: always visible text (no white-on-white on hover in light mode) */
+  html:not(.dark) .dashboard-stat-label,
+  html:not(.dark) .dashboard-stat-card:hover .dashboard-stat-label {
+    color: #475569 !important;
+  }
+  html:not(.dark) .dashboard-stat-value,
+  html:not(.dark) .dashboard-stat-card:hover .dashboard-stat-value {
+    color: #0f172a !important;
+  }
+  html.dark .dashboard-stat-label,
+  html.dark .dashboard-stat-card:hover .dashboard-stat-label {
+    color: #94a3b8 !important;
+  }
+  html.dark .dashboard-stat-value,
+  html.dark .dashboard-stat-card:hover .dashboard-stat-value {
+    color: #f8fafc !important;
+  }
+
   /* Print styles - hide layout elements when printing */
   @media print {
     /* Hide sidebar, navbar, and other layout elements */
     aside,
     header:not(#report-content),
     nav,
-    .print\\:hidden,
     .no-print,
-    button[class*="print"],
-    .print-hidden,
-    [class*="print-hidden"] {
+    button[class*="print"] {
       display: none !important;
       visibility: hidden !important;
     }

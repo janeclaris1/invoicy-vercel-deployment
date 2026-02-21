@@ -203,20 +203,20 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - explicit text colors so hover never makes text white in light mode */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statsData.map((stat, index) => (
           <div
-        key={index}
-        className="bg-white p-4 rounded-xl border border-slate-200 shadow-lg shadow-gray-200">
+            key={index}
+            className="dashboard-stat-card bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg shadow-gray-200 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-shadow transition-colors">
             <div className="flex items-center">
               <div
-              className={`flex-shrink-0 w-12 h-12 ${colorClasses[stat.color].bg} rounded-lg flex items-center justify-center`}>
+                className={`flex-shrink-0 w-12 h-12 ${colorClasses[stat.color].bg} rounded-lg flex items-center justify-center`}>
                 <stat.icon className={`w-6 h-6 ${colorClasses[stat.color].text}`} />
               </div>
-              <div className="ml-4 minin-w-0">
-                <div className="text-sm font-medium text-slate-500 truncate">{stat.label}</div>
-                <div className="text-2xl font-bold text-slate-900 break-words">{stat.value}</div>
+              <div className="ml-4 min-w-0">
+                <div className="dashboard-stat-label text-sm font-medium truncate">{stat.label}</div>
+                <div className="dashboard-stat-value text-2xl font-bold break-words">{stat.value}</div>
               </div>
             </div>
           </div>
