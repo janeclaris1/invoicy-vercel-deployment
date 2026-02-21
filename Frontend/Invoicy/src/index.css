@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Times New Roman", Times, serif;
+  --breakpoint-3xl: 1920px;
+  --color-primary: #ff9324;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-display);
+  }
+
+  body {
+    background-color: #fcfbfc;
+    color: #111827;
+  }
+
+  html.dark body {
+    background-color: #0b1220;
+    color: #ffffff;
+  }
+
+  html.dark,
+  html.dark body {
+    color: #ffffff;
+  }
+
+  html.dark .text-gray-900,
+  html.dark .text-gray-800,
+  html.dark .text-gray-700,
+  html.dark .text-gray-600,
+  html.dark .text-gray-500,
+  html.dark .text-slate-900,
+  html.dark .text-slate-800,
+  html.dark .text-slate-700,
+  html.dark .text-slate-600,
+  html.dark .text-slate-500,
+  html.dark .text-slate-400,
+  html.dark .text-gray-400 {
+    color: #ffffff !important;
+  }
+
+  html.dark h1,
+  html.dark h2,
+  html.dark h3,
+  html.dark h4,
+  html.dark h5,
+  html.dark h6 {
+    color: #ffffff !important;
+  }
+
+  html.dark .bg-white,
+  html.dark .bg-white\/80,
+  html.dark .bg-white\/90,
+  html.dark .bg-gray-50,
+  html.dark .bg-gray-100,
+  html.dark .bg-slate-50,
+  html.dark .bg-slate-100,
+  html.dark .bg-blue-50,
+  html.dark .bg-emerald-100,
+  html.dark .bg-amber-100,
+  html.dark .bg-red-100 {
+    background-color: #0f172a !important;
+  }
+
+  html.dark p,
+  html.dark span,
+  html.dark label,
+  html.dark small,
+  html.dark a,
+  html.dark li,
+  html.dark td,
+  html.dark th {
+    color: #ffffff !important;
+  }
+
+  html.dark [class*="text-"] {
+    color: #ffffff !important;
+  }
+
+  html.dark input,
+  html.dark textarea,
+  html.dark select {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #1f2937 !important;
+  }
+
+  html.dark .bg-white {
+    background-color: #0f172a;
+  }
+
+  html.dark .bg-gray-50,
+  html.dark .bg-slate-50 {
+    background-color: #0b1220;
+  }
+
+  html.dark .text-gray-900,
+  html.dark .text-slate-900 {
+    color: #e2e8f0;
+  }
+
+  html.dark .text-gray-600,
+  html.dark .text-gray-500,
+  html.dark .text-slate-600,
+  html.dark .text-slate-500 {
+    color: #94a3b8;
+  }
+
+  html.dark .border-gray-200,
+  html.dark .border-slate-200 {
+    border-color: #1f2937;
+  }
+
+  html:not(.dark) input.date-icon-white {
+    color-scheme: dark;
+  }
+
+  html:not(.dark) input.date-icon-white::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(2);
+    opacity: 1;
+  }
+
+  /* Invoice detail page header - ensure visible in dark mode */
+  html.dark .invoice-detail-header,
+  html.dark .invoice-detail-header h1,
+  html.dark .invoice-detail-header p {
+    color: #f8fafc !important;
+  }
+
+  /* Print styles - hide layout elements when printing */
+  @media print {
+    /* Hide sidebar, navbar, and other layout elements */
+    aside,
+    header:not(#report-content),
+    nav,
+    .print\\:hidden,
+    .no-print,
+    button[class*="print"],
+    .print-hidden,
+    [class*="print-hidden"] {
+      display: none !important;
+      visibility: hidden !important;
+    }
+    
+    /* Hide all buttons and action elements */
+    button,
+    .btn,
+    [role="button"],
+    a[role="button"] {
+      display: none !important;
+      visibility: hidden !important;
+    }
+    
+    /* Hide layout wrapper elements but preserve structure */
+    .min-h-screen {
+      min-height: auto !important;
+    }
+    
+    /* Full width for content when printing */
+    main,
+    .flex-1 {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    /* Ensure report content is visible */
+    #report-content,
+    #report-content * {
+      display: block !important;
+      visibility: visible !important;
+    }
+    
+    /* Invoice print styles */
+    .invoice-print-container,
+    .invoice-print-container * {
+      visibility: visible !important;
+    }
+    
+    /* Reset body for printing */
+    body {
+      background: white !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: visible !important;
+    }
+    
+    /* Hide scrollbars */
+    html {
+      overflow: visible !important;
+    }
+    
+    /* Page margins */
+    @page {
+      margin: 0.5in;
+      size: auto;
+    }
+    
+    /* Ensure tables don't break awkwardly */
+    table {
+      page-break-inside: auto;
+    }
+    
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    
+    thead {
+      display: table-header-group;
+    }
+    
+    tfoot {
+      display: table-footer-group;
+    }
+  }
+}

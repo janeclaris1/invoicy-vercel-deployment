@@ -1,0 +1,18 @@
+const express = require('express');
+const {parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, getDashboardSummary} = require('../controller/aiController');
+const {protect } = require('../middlewares/authMiddleware.js');
+
+const router = express.Router();
+
+//Route to parse invoice from text
+router.post('/parse-invoice', protect, parseInvoiceFromText);
+//Route to parse invoice from image
+router.post('/parse-invoice-image', protect, parseInvoiceFromImage);
+
+//Route to generate reminder email
+router.post('/generate-reminder', protect, generateReminderEmail);
+
+//Route to get dashboard summary
+router.get('/dashboard-summary', protect, getDashboardSummary);
+
+module.exports = router;

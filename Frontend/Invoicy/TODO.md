@@ -1,0 +1,2 @@
+- [x] Update DashboardLayout.jsx to pass companyName={user.name} instead of companyName={user?.companyName || ""}
+- [x] Update Header.jsx to pass companyName={user.name} instead of companyName={user?.companyName || ""}

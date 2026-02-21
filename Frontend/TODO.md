@@ -1,0 +1,3 @@
+- [x] Fix typo in App.jsx: change <signp /> to <SignUp /> (already correct)
+- [x] Implement login form in login.jsx with email, password inputs and submit button
+- [ ] Test the login page
