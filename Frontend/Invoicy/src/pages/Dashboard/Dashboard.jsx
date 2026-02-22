@@ -189,9 +189,8 @@ const Dashboard = () => {
     <div className="space-y-8">
       {/* Debug output for API errors */}
       {stats.totalInvoices === 0 && recentInvoices.length === 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4">
-          <div className="text-yellow-800 text-sm font-medium">No invoices found or API returned empty data.</div>
-          <div className="text-yellow-700 text-xs mt-1">Check if your backend is running and accessible at <span className="font-mono">{API_PATHS.INVOICES.GET_ALL_INVOICES}</span>.</div>
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg mb-4">
+          <div className="text-slate-600 dark:text-slate-300 text-sm font-medium">No invoices yet.</div>
         </div>
       )}
       <div>
@@ -215,8 +214,8 @@ const Dashboard = () => {
                 <stat.icon className={`w-6 h-6 ${colorClasses[stat.color].text}`} />
               </div>
               <div className="ml-4 min-w-0">
-                <div className="dashboard-stat-label text-sm font-medium truncate">{stat.label}</div>
-                <div className="dashboard-stat-value text-2xl font-bold break-words">{stat.value}</div>
+                <div className="dashboard-stat-label text-sm font-medium truncate text-slate-600 dark:text-white">{stat.label}</div>
+                <div className="dashboard-stat-value text-2xl font-bold break-words text-slate-900 dark:text-white">{stat.value}</div>
               </div>
             </div>
           </div>
@@ -226,8 +225,8 @@ const Dashboard = () => {
       {/* AI Insights Cards */}
       <AIInsightsCard />
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts - keep black text on white background in dark mode */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 dashboard-chart-section">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm shadow-gray-100">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Summary</h3>
@@ -288,7 +287,7 @@ const Dashboard = () => {
       </div>
 
       {/* Tax & Top Customers Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 dashboard-chart-section">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm shadow-gray-100">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Tax Summary</h3>

@@ -9,6 +9,13 @@
 @layer base {
   html {
     font-family: var(--font-display);
+    --dashboard-stat-label: #475569;
+    --dashboard-stat-value: #0f172a;
+  }
+
+  html.dark {
+    --dashboard-stat-label: #ffffff;
+    --dashboard-stat-value: #ffffff;
   }
 
   body {
@@ -129,22 +136,16 @@
     color: #f8fafc !important;
   }
 
-  /* Dashboard stat cards: always visible text (no white-on-white on hover in light mode) */
-  html:not(.dark) .dashboard-stat-label,
-  html:not(.dark) .dashboard-stat-card:hover .dashboard-stat-label {
-    color: #475569 !important;
+  /* Dashboard stat cards: override global [class*="text-"] so label/value stay visible (light: dark text, dark: white text) */
+  html:not(.dark) .dashboard-stat-label {
+    color: var(--dashboard-stat-label) !important;
   }
-  html:not(.dark) .dashboard-stat-value,
-  html:not(.dark) .dashboard-stat-card:hover .dashboard-stat-value {
-    color: #0f172a !important;
+  html:not(.dark) .dashboard-stat-value {
+    color: var(--dashboard-stat-value) !important;
   }
   html.dark .dashboard-stat-label,
-  html.dark .dashboard-stat-card:hover .dashboard-stat-label {
-    color: #94a3b8 !important;
-  }
-  html.dark .dashboard-stat-value,
-  html.dark .dashboard-stat-card:hover .dashboard-stat-value {
-    color: #f8fafc !important;
+  html.dark .dashboard-stat-value {
+    color: #ffffff !important;
   }
 
   /* Print styles - hide layout elements when printing */
@@ -234,4 +235,29 @@
       display: table-footer-group;
     }
   }
+}
+
+/* Dashboard stat cards: white text in dark mode (only these three cards) */
+html.dark .dashboard-stat-card .dashboard-stat-label,
+html.dark .dashboard-stat-card .dashboard-stat-value {
+  color: #ffffff !important;
+}
+
+/* Charts: always black text on white background (even in dark mode) */
+html.dark .dashboard-chart-section,
+html.dark .dashboard-chart-section h3,
+html.dark .dashboard-chart-section p,
+html.dark .dashboard-chart-section span,
+html.dark .dashboard-chart-section .text-slate-500,
+html.dark .dashboard-chart-section .text-slate-600,
+html.dark .dashboard-chart-section .text-slate-900 {
+  color: #111827 !important;
+}
+html.dark .dashboard-chart-section .bg-white {
+  background-color: #ffffff !important;
+}
+/* Recharts axis and label text */
+html.dark .dashboard-chart-section .recharts-text,
+html.dark .dashboard-chart-section .recharts-cartesian-axis-tick-value {
+  fill: #111827 !important;
 }

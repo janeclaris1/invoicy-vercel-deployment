@@ -39,21 +39,23 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS Configuration - Allow specific origins in production
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
-  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174'];
+// CORS Configuration
+const isProduction = process.env.NODE_ENV === 'production';
+const prodOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean) : [];
+const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (process.env.NODE_ENV === 'development' || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (!origin) return callback(null, true); // Postman, curl, same-origin
+    if (!isProduction) {
+      if (isLocalOrigin(origin)) return callback(null, true);
     }
+    if (prodOrigins.indexOf(origin) !== -1) return callback(null, true);
+    if (isProduction && prodOrigins.length === 0 && isLocalOrigin(origin)) return callback(null, true);
+    logger.warn(`CORS rejected origin: ${origin}. Add it to ALLOWED_ORIGINS on Render.`);
+    const err = new Error('Not allowed by CORS');
+    err.statusCode = 403;
+    callback(err);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],

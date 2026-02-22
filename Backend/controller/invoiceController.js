@@ -114,6 +114,19 @@ exports.createInvoice = async (req, res) => {
             ? (paidValue >= grandTotal ? "Fully Paid" : "Partially Paid")
             : undefined;
 
+        const mergedBillFrom = (billFrom && typeof billFrom === "object")
+            ? {
+                businessName: billFrom.businessName || "",
+                email: billFrom.email || "",
+                address: billFrom.address || "",
+                phone: billFrom.phone || "",
+                tin: billFrom.tin || "",
+            }
+            : { businessName: "", email: "", address: "", phone: "", tin: "" };
+        const finalCompanyLogo = companyLogo || "";
+        const finalCompanySignature = companySignature || "";
+        const finalCompanyStamp = companyStamp || "";
+
         const invoice = new Invoice({
             user,
             invoiceNumber,
@@ -151,7 +164,11 @@ exports.createInvoice = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: "Error creating invoice", error: error.message });
+        console.error("Create invoice error:", error);
+        res.status(500).json({
+            message: "Error creating invoice",
+            error: error.message,
+        });
     }
 };
 

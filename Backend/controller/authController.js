@@ -265,35 +265,42 @@ exports.resetPassword = async (req, res) => {
 // @desc   Login user
 // @route   POST /api/auth/login
 // @access  Public
-exports.loginUser = async (req, res) => {
+exports.loginUser = async (req, res, next) => {
     const { email, password } = req.body;
 
     try {
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({
+                message: 'Database not connected. Check MONGO_URI and Atlas network access (allow 0.0.0.0/0 for cloud).',
+            });
+        }
+
         const user = await User.findOne({ email }).select('+password');
 
         if (user && (await user.matchPassword(password))) {
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            token: generateToken(user._id),
-            businessName: user.businessName || '',
-            tin: user.tin || '',
-            address: user.address || '',
-            phone: user.phone || '',
-            companyLogo: user.companyLogo || '',
-            companySignature: user.companySignature || '',
-            companyStamp: user.companyStamp || '',
-            currency: user.currency || 'GHS',
-            role: user.role || 'owner',
-            responsibilities: user.responsibilities || [],
-            createdBy: user.createdBy || null,
-        });
-    }  else {
-        res.status(401).json({ message: 'Invalid credentials' });
-    }
+            res.json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                token: generateToken(user._id),
+                businessName: user.businessName || '',
+                tin: user.tin || '',
+                address: user.address || '',
+                phone: user.phone || '',
+                companyLogo: user.companyLogo || '',
+                companySignature: user.companySignature || '',
+                companyStamp: user.companyStamp || '',
+                currency: user.currency || 'GHS',
+                role: user.role || 'owner',
+                responsibilities: user.responsibilities || [],
+                createdBy: user.createdBy || null,
+            });
+        } else {
+            res.status(401).json({ message: 'Invalid credentials' });
+        }
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        next(error);
     }
 };
 

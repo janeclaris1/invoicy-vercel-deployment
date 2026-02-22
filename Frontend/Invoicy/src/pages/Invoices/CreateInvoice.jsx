@@ -6,6 +6,7 @@ import moment from "moment";
 import { Trash2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import QRCode from "react-qr-code";
+import toast from "react-hot-toast";
 
 import InputField from "../../components/ui/InputField";
 import TextareaField from "../../components/ui/TextareaField";
@@ -350,20 +351,38 @@ const CreateInvoice = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Ensure company logo, signature, and stamp are from user profile if not set
+      // Map items to API shape: backend expects description and unitPrice (not itemDescription/itemPrice)
+      const itemsForApi = (formData.items || []).map((item) => ({
+        description: item.itemDescription ?? item.description ?? "",
+        quantity: Number(item.quantity) || 0,
+        unitPrice: Number(item.itemPrice ?? item.unitPrice ?? 0),
+      }));
+      const dueDate = formData.dueDate || formData.invoiceDate || new Date().toISOString().split("T")[0];
       const payload = {
         ...formData,
+        dueDate,
+        items: itemsForApi,
         companyLogo: formData.companyLogo || user?.companyLogo || "",
         companySignature: formData.companySignature || user?.companySignature || "",
         companyStamp: formData.companyStamp || user?.companyStamp || "",
         amountPaid: amountPaidValue,
         balanceDue: balanceDueValue,
       };
-      await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, payload);
+      if (existingInvoice?._id) {
+        await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(existingInvoice._id), payload);
+      } else {
+        await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, payload);
+      }
       window.dispatchEvent(new CustomEvent("invoicesUpdated"));
       navigate("/dashboard");
     } catch (error) {
       console.error("Failed to create invoice:", error);
+      const msg =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.msg ||
+        "Failed to save invoice. Please check your entries and try again.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

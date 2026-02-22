@@ -128,7 +128,6 @@ const InvoiceDetail = () => {
           header,
           nav,
           .print\\:hidden,
-          .print-hidden,
           .no-print,
           button,
           .btn {
@@ -393,7 +392,7 @@ const InvoiceDetail = () => {
                     size="small"
                     variant="secondary"
                     onClick={() => setIsEditingPayment(true)}
-                    className="flex items-center gap-1 print-hidden"
+                    className="flex items-center gap-1 no-print"
                   >
                     <Edit2 className="w-3 h-3" />
                     Edit
@@ -424,7 +423,7 @@ const InvoiceDetail = () => {
 
         {/* Payment History - hidden when printing */}
         {invoice.paymentHistory && invoice.paymentHistory.length > 0 && (
-          <div className="mt-6 border-t border-gray-200 pt-6 print-hidden">
+          <div className="mt-6 border-t border-gray-200 pt-6 no-print">
             <h3 className="text-sm font-semibold text-black mb-4">Payment History</h3>
             <div className="space-y-3">
               {invoice.paymentHistory
@@ -459,7 +458,7 @@ const InvoiceDetail = () => {
         </div>
         
         {/* Print button at bottom - white text, white border, no blue */}
-        <div className="flex justify-center print-hidden mt-6">
+        <div className="flex justify-center no-print mt-6">
           <Button
             onClick={handlePrint}
             className="flex items-center gap-2 !rounded-lg !bg-slate-800 hover:!bg-slate-700 !text-white !border-2 !border-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white dark:!border-white [&_svg]:!text-white [&_svg]:!stroke-white"

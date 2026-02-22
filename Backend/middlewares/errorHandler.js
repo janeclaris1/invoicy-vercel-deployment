@@ -41,11 +41,14 @@ const errorHandler = (err, req, res, next) => {
 
   // Don't expose internal error details in production
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+  if (isDevelopment) {
+    console.error('Error stack:', err.stack);
+  }
+
   res.status(statusCode).json({
     success: false,
     message,
-    ...(isDevelopment && { stack: err.stack, error: err })
+    ...(isDevelopment && { stack: err.stack, error: err.message })
   });
 };
 
