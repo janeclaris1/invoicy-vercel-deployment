@@ -27,19 +27,23 @@ export const AuthProvider = ({ children }) => {
             const userStr = localStorage.getItem('user');
             if (token && userStr) {
                 const userData = JSON.parse(userStr);
-                try {
-                    const res = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-                    const fresh = { ...userData, ...res.data };
-                    localStorage.setItem("user", JSON.stringify(fresh));
-                    setUser(fresh);
-                } catch {
-                    setUser(userData);
-                }
+                // Show app immediately with cached user (so "Subscribed clients" shows from localStorage)
+                setUser(userData);
                 setIsAuthenticated(true);
-            } else {
-                setUser(null);
-                setIsAuthenticated(false);
+                setLoading(false);
+                // Then refresh user from API in background (keeps isPlatformAdmin etc. in sync)
+                axiosInstance.get(API_PATHS.AUTH.GET_PROFILE)
+                    .then((res) => {
+                        const fresh = { ...userData, ...res.data };
+                        if (typeof res.data.isPlatformAdmin === 'boolean') fresh.isPlatformAdmin = res.data.isPlatformAdmin;
+                        localStorage.setItem("user", JSON.stringify(fresh));
+                        setUser(fresh);
+                    })
+                    .catch(() => {});
+                return;
             }
+            setUser(null);
+            setIsAuthenticated(false);
         } catch (error) {
             console.error("Auth check failed:", error);
             localStorage.removeItem("token");
@@ -47,9 +51,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem("user");
             setUser(null);
             setIsAuthenticated(false);
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     }
 
     const login = (useData, token) => {
@@ -73,9 +76,11 @@ export const AuthProvider = ({ children }) => {
 
     const updateUser = (updatedUserData) => {
         const newUserData = { ...user, ...updatedUserData };
+        if (typeof user?.isPlatformAdmin === 'boolean' && updatedUserData.isPlatformAdmin === undefined) {
+            newUserData.isPlatformAdmin = user.isPlatformAdmin;
+        }
         localStorage.setItem("user", JSON.stringify(newUserData));
         setUser(newUserData);
-
     }
 
     if (loading) {

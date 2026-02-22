@@ -7,6 +7,7 @@ const resources = {
       appName: "Invoicy",
       nav: {
         dashboard: "Dashboard",
+        clients: "Subscribed clients",
         invoices: "Invoices",
         create_invoice: "Create Invoice",
         customers: "Customers",
@@ -59,6 +60,7 @@ const resources = {
       appName: "Invoicy",
       nav: {
         dashboard: "Tableau de bord",
+        clients: "Clients abonnés",
         invoices: "Factures",
         create_invoice: "Créer une facture",
         customers: "Clients",
@@ -111,6 +113,7 @@ const resources = {
       appName: "Invoicy",
       nav: {
         dashboard: "仪表盘",
+        clients: "订阅客户",
         invoices: "发票",
         create_invoice: "创建发票",
         customers: "客户",

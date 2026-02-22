@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser, getMe, updateUserProfile, getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, forgotPassword, resetPassword } = require('../controller/authController');
+const { registerUser, loginUser, getMe, updateUserProfile, getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, getAllClients, forgotPassword, resetPassword } = require('../controller/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validateRegister, validateLogin } = require('../middlewares/validator');
 
@@ -12,6 +12,7 @@ router.post('/reset-password', resetPassword);
 router.route('/me').get(protect, getMe).put(protect, updateUserProfile);
 router.route('/team').get(protect, getTeamMembers).post(protect, createTeamMember);
 router.route('/team/:id').put(protect, updateTeamMember).delete(protect, deleteTeamMember);
+router.get('/clients', protect, getAllClients);
 
 module.exports = router; 
 

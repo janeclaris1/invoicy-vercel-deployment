@@ -1,7 +1,7 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
@@ -90,6 +90,14 @@ const connectDatabase = async () => {
   }
 };
 connectDatabase();
+
+// Log whether platform admin is configured (so you can verify .env is loaded)
+const _adminCount = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').filter((e) => e.trim()).length;
+if (_adminCount > 0) {
+  logger.info(`Platform admin: ${_adminCount} email(s) configured (Subscribed clients will show for that user).`);
+} else {
+  logger.warn('Platform admin: PLATFORM_ADMIN_EMAIL not set or empty - no one will see "Subscribed clients".');
+}
 
 // Middleware to parse JSON (allow larger payloads e.g. base64 images)
 app.use(express.json({ limit: "10mb" }));

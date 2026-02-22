@@ -232,8 +232,8 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-slate-900">Summary</h3>
             <p className="text-sm text-slate-500">Invoices, revenue, and unpaid totals</p>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <BarChart data={summaryChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -250,8 +250,8 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-slate-900">Payment Status</h3>
             <p className="text-sm text-slate-500">Fully paid, partially paid, and unpaid totals</p>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <PieChart>
                 <Tooltip formatter={(value) => `GH₵ ${Number(value).toFixed(2)}`} />
                 <Pie
@@ -293,8 +293,8 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-slate-900">Tax Summary</h3>
             <p className="text-sm text-slate-500">GRA VAT, NHIL, GETFUND totals</p>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <BarChart data={taxSummaryData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -311,8 +311,8 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold text-slate-900">Top Customers</h3>
             <p className="text-sm text-slate-500">Top 10 by frequency and total amount</p>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <BarChart data={topCustomersData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" hide />

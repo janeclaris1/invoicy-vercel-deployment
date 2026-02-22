@@ -272,13 +272,16 @@ exports.loginUser = async (req, res, next) => {
         const mongoose = require('mongoose');
         if (mongoose.connection.readyState !== 1) {
             return res.status(503).json({
-                message: 'Database not connected. Check MONGO_URI and Atlas network access (allow 0.0.0.0/0 for cloud).',
+                message: 'Service temporarily unavailable. Please try again later.',
             });
         }
 
         const user = await User.findOne({ email }).select('+password');
 
         if (user && (await user.matchPassword(password))) {
+            const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+            const userEmailNorm = (user.email || '').trim().toLowerCase();
+            const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
             res.json({
                 _id: user._id,
                 name: user.name,
@@ -295,6 +298,7 @@ exports.loginUser = async (req, res, next) => {
                 role: user.role || 'owner',
                 responsibilities: user.responsibilities || [],
                 createdBy: user.createdBy || null,
+                isPlatformAdmin: !!isPlatformAdmin,
             });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
@@ -309,8 +313,12 @@ exports.loginUser = async (req, res, next) => {
     //@access Private
 exports.getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        res.json({
+        const user = await User.findById(req.user._id || req.user.id);
+        if (!user) return res.status(401).json({ message: 'User not found' });
+        const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+        const userEmailNorm = (user.email || '').trim().toLowerCase();
+        const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
+        const payload = {
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -325,7 +333,12 @@ exports.getMe = async (req, res) => {
             role: user.role || 'owner',
             responsibilities: user.responsibilities || [],
             createdBy: user.createdBy || null,
-        });
+            isPlatformAdmin: !!isPlatformAdmin,
+        };
+        if (process.env.NODE_ENV !== 'production') {
+            payload._platformAdminCheck = { envConfigured: adminEmails.length > 0 };
+        }
+        res.json(payload);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -365,6 +378,9 @@ exports.updateUserProfile = async (req, res) => {
             }
 
             const updatedUser = await user.save();
+            const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+            const userEmailNorm = (updatedUser.email || '').trim().toLowerCase();
+            const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
             res.json({
                 _id: updatedUser._id,
                 name: updatedUser.name,
@@ -377,6 +393,7 @@ exports.updateUserProfile = async (req, res) => {
                 companySignature: updatedUser.companySignature,
                 companyStamp: updatedUser.companyStamp,
                 currency: updatedUser.currency || 'GHS',
+                isPlatformAdmin: !!isPlatformAdmin,
             });
         } else {
             res.status(404).json({ message: 'User not found' });
@@ -385,4 +402,27 @@ exports.updateUserProfile = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+// @desc    Get all subscribed clients (account owners) – platform admin only
+// @route   GET /api/auth/clients
+// @access  Private (PLATFORM_ADMIN_EMAIL only)
+exports.getAllClients = async (req, res) => {
+    try {
+        const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+        const userEmailNorm = (req.user?.email || '').trim().toLowerCase();
+        const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
+        if (!isPlatformAdmin) {
+            return res.status(403).json({ message: 'Only platform admin can view all clients' });
+        }
+        const clients = await User.find({ createdBy: null })
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .lean();
+        res.json(clients);
+    } catch (error) {
+        console.error('Get all clients error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
    

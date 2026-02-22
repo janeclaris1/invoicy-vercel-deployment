@@ -1,8 +1,8 @@
 export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// Log API base once so you can verify in DevTools (especially on deployed Vercel — should NOT be localhost)
+// Log API base so you can verify in DevTools which backend you're hitting (localhost = local, other = deployed)
 if (typeof window !== "undefined") {
-  console.debug("[API] BASE_URL:", BASE_URL);
+  console.log("[API] BASE_URL:", BASE_URL);
 }
 
 export const API_PATHS = {
@@ -15,6 +15,7 @@ export const API_PATHS = {
         UPDATE_PROFILE: "api/auth/me",
         TEAM: "api/auth/team",
         TEAM_MEMBER: (id) => `api/auth/team/${id}`,
+        CLIENTS: "api/auth/clients",
     },
     INVOICES: {
         GET_ALL_INVOICES: "api/invoices",

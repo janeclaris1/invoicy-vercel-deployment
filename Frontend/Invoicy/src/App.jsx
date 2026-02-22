@@ -32,6 +32,7 @@ import HrPerformance from "./pages/HR/HrPerformance";
 import HrRecruitment from "./pages/HR/HrRecruitment";
 import HrSelfService from "./pages/HR/HrSelfService";
 import Messages from "./pages/Messages/Messages";
+import Clients from "./pages/Clients/Clients";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -61,6 +62,7 @@ const App = () => {
           {/*Protected Routes*/}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="clients" element={<Clients />} />
             <Route path="invoices" element={<AllInvoices />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />

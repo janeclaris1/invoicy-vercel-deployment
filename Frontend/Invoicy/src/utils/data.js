@@ -184,6 +184,7 @@ export const HR_RESPONSIBILITIES = [
 // Navigation items configuration - responsibility maps to nav id for permission check
 export const NAVIGATION_MENU = [
     { id: "dashboard", name: "Dashboard", icon: LayoutDashboard, responsibility: "dashboard" },
+    { id: "clients", name: "Subscribed clients", icon: Users, responsibility: null }, // platform admin only (see canAccessNav)
     { id: "invoices", name: "Invoices", icon: FileText, responsibility: "invoices" },
     { id: "invoices/new", name: "Create Invoice", icon: Plus, responsibility: "invoices" },
     { id: "customers", name: "Customers", icon: Users, responsibility: "customers" },
@@ -215,6 +216,8 @@ export const NAVIGATION_MENU = [
 // Check if user has access to a nav item (owners/admins have full access; team members need responsibility)
 export const canAccessNav = (item, user) => {
     if (!user) return false;
+    // Subscribed clients: only platform admin (set via PLATFORM_ADMIN_EMAIL on backend)
+    if (item.id === "clients") return !!user.isPlatformAdmin;
     const role = user.role || "owner";
     const responsibilities = user.responsibilities || [];
     if (!user.createdBy) return true; // Original account owner
