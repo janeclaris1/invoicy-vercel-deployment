@@ -8,7 +8,7 @@ import {
   FileText,
  ArrowRight
 } from "lucide-react";
-import {API_PATHS} from "../../utils/apiPaths";
+import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
@@ -121,7 +121,7 @@ const Login = () => {
       if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else if (err.code === "ERR_NETWORK" || err.message.includes("Network Error")) {
-        setError("Cannot connect to server. Please make sure the backend server is running on http://localhost:8000");
+        setError(`Cannot connect to server. Please make sure the backend is running at ${BASE_URL}`);
       } else if (err.code === "ECONNABORTED" || err.message.includes("timeout")) {
         setError("Request timeout. Please check your connection and try again.");
       } else {

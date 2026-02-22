@@ -1,5 +1,10 @@
 export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+// Log API base once so you can verify in DevTools (especially on deployed Vercel — should NOT be localhost)
+if (typeof window !== "undefined") {
+  console.debug("[API] BASE_URL:", BASE_URL);
+}
+
 export const API_PATHS = {
     AUTH: {
         REGISTER: "api/auth/register",

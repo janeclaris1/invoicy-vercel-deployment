@@ -70,8 +70,13 @@ const SignUp = () => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         newFieldErrors.email = emailRegex.test(value) ? "" : "Please enter a valid email address";
       } else if (name === "password") {
-        newFieldErrors.password = value.length >= 6 ? "" : "Password must be at least 6 characters long";
-        
+        if (value.length < 6) {
+          newFieldErrors.password = "Password must be at least 6 characters long";
+        } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+          newFieldErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+        } else {
+          newFieldErrors.password = "";
+        }
         // Also revalidate confirm password if it has been touched
         if (touched.confirmPassword) {
           newFieldErrors.confirmPassword = formData.confirmPassword === value ? "" : "Passwords do not match";
@@ -101,7 +106,13 @@ const SignUp = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       newFieldErrors.email = emailRegex.test(formData.email) ? "" : "Please enter a valid email address";
     } else if (name === "password") {
-      newFieldErrors.password = formData.password.length >= 6 ? "" : "Password must be at least 6 characters long";
+      if (formData.password.length < 6) {
+        newFieldErrors.password = "Password must be at least 6 characters long";
+      } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+        newFieldErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
+      } else {
+        newFieldErrors.password = "";
+      }
     } else if (name === "confirmPassword") {
       newFieldErrors.confirmPassword = formData.confirmPassword === formData.password ? "" : "Passwords do not match";
     }
@@ -114,9 +125,9 @@ const SignUp = () => {
     const isNameValid = formData.name.trim().length >= 2;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailValid = emailRegex.test(formData.email);
-    const isPasswordValid = formData.password.length >= 6;
+    const isPasswordStrong = formData.password.length >= 6 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password);
     const isConfirmPasswordValid = formData.confirmPassword === formData.password && formData.confirmPassword.length > 0;
-    return isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
+    return isNameValid && isEmailValid && isPasswordStrong && isConfirmPasswordValid;
   };
 
   // ==================== FORM SUBMISSION ====================
@@ -125,7 +136,9 @@ const SignUp = () => {
     const nameError = formData.name.trim().length < 2 ? "Name must be at least 2 characters" : "";
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const emailError = !emailRegex.test(formData.email) ? "Please enter a valid email address" : "";
-    const passwordError = formData.password.length < 6 ? "Password must be at least 6 characters long" : "";
+    let passwordError = "";
+    if (formData.password.length < 6) passwordError = "Password must be at least 6 characters long";
+    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) passwordError = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
     const confirmPasswordError = formData.confirmPassword !== formData.password ? "Passwords do not match" : "";
     
     if (nameError || emailError || passwordError || confirmPasswordError) {
@@ -163,9 +176,14 @@ const SignUp = () => {
       }
     } catch (err) {
       console.error("Signup error:", err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else if (err.code === "ERR_NETWORK" || err.message.includes("Network Error")) {
+      const data = err.response?.data;
+      if (data?.errors?.length) {
+        const firstMsg = data.errors[0].msg;
+        setError(firstMsg);
+        if (data.errors[0].path === "password") setFileErrors((prev) => ({ ...prev, password: firstMsg }));
+      } else if (data?.message) {
+        setError(data.message);
+      } else if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
         setError("Cannot connect to server. Please make sure the backend server is running.");
       } else {
         setError(`An error occurred during signup: ${err.message || "Please try again."}`);
