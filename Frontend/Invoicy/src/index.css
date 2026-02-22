@@ -9,7 +9,7 @@
 @layer base {
   html {
     font-family: var(--font-display);
-    --dashboard-stat-label: #475569;
+    --dashboard-stat-label: #334155;
     --dashboard-stat-value: #0f172a;
   }
 
@@ -33,28 +33,14 @@
     color: #ffffff;
   }
 
-  html.dark .text-gray-900,
-  html.dark .text-gray-800,
-  html.dark .text-gray-700,
-  html.dark .text-gray-600,
-  html.dark .text-gray-500,
-  html.dark .text-slate-900,
-  html.dark .text-slate-800,
-  html.dark .text-slate-700,
-  html.dark .text-slate-600,
-  html.dark .text-slate-500,
-  html.dark .text-slate-400,
-  html.dark .text-gray-400 {
-    color: #ffffff !important;
-  }
-
+  /* Primary and heading text: soft white for readability (avoid pure white everywhere) */
   html.dark h1,
   html.dark h2,
   html.dark h3,
   html.dark h4,
   html.dark h5,
   html.dark h6 {
-    color: #ffffff !important;
+    color: #f1f5f9 !important;
   }
 
   html.dark .bg-white,
@@ -71,19 +57,20 @@
     background-color: #0f172a !important;
   }
 
+
+  /* Body and neutral text: readable light gray (do not override semantic colors like text-blue-600) */
   html.dark p,
   html.dark span,
   html.dark label,
   html.dark small,
-  html.dark a,
   html.dark li,
   html.dark td,
   html.dark th {
-    color: #ffffff !important;
+    color: #e2e8f0 !important;
   }
 
-  html.dark [class*="text-"] {
-    color: #ffffff !important;
+  html.dark a {
+    color: #93c5fd !important;
   }
 
   html.dark input,
@@ -104,8 +91,15 @@
   }
 
   html.dark .text-gray-900,
-  html.dark .text-slate-900 {
+  html.dark .text-gray-800,
+  html.dark .text-slate-900,
+  html.dark .text-slate-800 {
     color: #e2e8f0;
+  }
+
+  html.dark .text-gray-700,
+  html.dark .text-slate-700 {
+    color: #cbd5e1;
   }
 
   html.dark .text-gray-600,
@@ -113,6 +107,11 @@
   html.dark .text-slate-600,
   html.dark .text-slate-500 {
     color: #94a3b8;
+  }
+
+  html.dark .text-gray-400,
+  html.dark .text-slate-400 {
+    color: #64748b;
   }
 
   html.dark .border-gray-200,
@@ -136,7 +135,7 @@
     color: #f8fafc !important;
   }
 
-  /* Dashboard stat cards: override global [class*="text-"] so label/value stay visible (light: dark text, dark: white text) */
+  /* Dashboard stat cards: clear contrast in both themes (light: dark text, dark: white text); icons keep semantic color */
   html:not(.dark) .dashboard-stat-label {
     color: var(--dashboard-stat-label) !important;
   }
@@ -146,6 +145,21 @@
   html.dark .dashboard-stat-label,
   html.dark .dashboard-stat-value {
     color: #ffffff !important;
+  }
+
+  /* Stat cards: white bg in both themes (custom class, not .bg-white, so global dark override does not apply) */
+  .stat-card-bg {
+    background-color: #ffffff;
+  }
+  html.dark .stat-card-bg {
+    background-color: #ffffff !important;
+  }
+  html.dark .stat-card-bg .dashboard-stat-label,
+  html.dark .stat-card-bg .dashboard-stat-value {
+    color: #0f172a !important;
+  }
+  html.dark .stat-card-bg .dashboard-stat-label {
+    color: #334155 !important;
   }
 
   /* Print styles - hide layout elements when printing */
@@ -235,12 +249,6 @@
       display: table-footer-group;
     }
   }
-}
-
-/* Dashboard stat cards: white text in dark mode (only these three cards) */
-html.dark .dashboard-stat-card .dashboard-stat-label,
-html.dark .dashboard-stat-card .dashboard-stat-value {
-  color: #ffffff !important;
 }
 
 /* Charts: always black text on white background (even in dark mode) */

@@ -207,15 +207,15 @@ const Dashboard = () => {
         {statsData.map((stat, index) => (
           <div
             key={index}
-            className="dashboard-stat-card bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg shadow-gray-200 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-shadow transition-colors">
+            className="dashboard-stat-card stat-card-bg p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg shadow-gray-200 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-shadow transition-colors">
             <div className="flex items-center">
               <div
                 className={`flex-shrink-0 w-12 h-12 ${colorClasses[stat.color].bg} rounded-lg flex items-center justify-center`}>
                 <stat.icon className={`w-6 h-6 ${colorClasses[stat.color].text}`} />
               </div>
               <div className="ml-4 min-w-0">
-                <div className="dashboard-stat-label text-sm font-medium truncate text-slate-600 dark:text-white">{stat.label}</div>
-                <div className="dashboard-stat-value text-2xl font-bold break-words text-slate-900 dark:text-white">{stat.value}</div>
+                <div className="dashboard-stat-label text-sm font-medium truncate text-slate-600">{stat.label}</div>
+                <div className="dashboard-stat-value text-2xl font-bold break-words text-slate-900">{stat.value}</div>
               </div>
             </div>
           </div>
