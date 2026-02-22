@@ -285,19 +285,29 @@ const getDashboardSummary = async (req, res) => {
             return res.status(200).json({insights: ["No invoice data available to generate insights."]});
         }
 
-        // Processes and summarize data for AI prompt
+        // Normalize status to match frontend and invoice controller (Fully Paid / Paid = paid)
+        const normalizeStatus = (status) => {
+            const raw = String(status || "").toLowerCase();
+            if (raw === "paid" || raw === "fully paid") return "fully_paid";
+            if (raw === "partially paid" || raw === "partial") return "partially_paid";
+            return "unpaid";
+        };
+
         const totalInvoices = invoices.length;
-        const paidInvoices = invoices.filter(inv => inv.status === "Paid");
-        const unpaidInvoices = invoices.filter(inv => inv.status === "Unpaid");
+        const paidInvoices = invoices.filter(inv => normalizeStatus(inv.status) === "fully_paid");
+        const unpaidOrPartial = invoices.filter(inv => normalizeStatus(inv.status) !== "fully_paid");
         const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
-        const totalOutstanding = unpaidInvoices.reduce((acc, inv) => acc + (inv.grandTotal || 0), 0);
+        const totalOutstanding = unpaidOrPartial.reduce(
+            (acc, inv) => acc + (Number(inv.balanceDue) >= 0 ? inv.balanceDue : inv.grandTotal || 0),
+            0
+        );
 
         const dataSummary = `
         - Total Invoices: ${totalInvoices}
         - Paid Invoices: ${paidInvoices.length}
-        - Unpaid Invoices: ${unpaidInvoices.length}
+        - Unpaid/Partially Paid Invoices: ${unpaidOrPartial.length}
         - Total Revenue from Paid Invoices: $${totalRevenue.toFixed(2)}
-        - Total Outstanding from Unpaid Invoices: $${totalOutstanding.toFixed(2)}
+        - Total Outstanding from Unpaid/Partially Paid Invoices: $${totalOutstanding.toFixed(2)}
         - Recent Invoices: ${invoices.slice(-5).map(inv => `${inv.invoiceNumber} (${inv.status})`).join(', ')}
         `;
 
