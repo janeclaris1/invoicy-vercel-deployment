@@ -37,6 +37,7 @@ export const API_PATHS = {
         ADJUST_STOCK: (id) => `api/items/${id}/adjust-stock`,
         MOVEMENTS: (id) => `api/items/${id}/movements`,
         STOCK_MOVEMENTS: "api/items/stock/movements",
+        STOCK_REPORT: "api/items/stock/report",
     },
     CATEGORIES: {
         GET_ALL: "api/categories",

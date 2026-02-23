@@ -204,6 +204,54 @@ const getStockMovements = async (req, res) => {
   }
 };
 
+// @desc    Get stock report for a date range (items with stock + movements)
+// @route   GET /api/items/stock/report?from=YYYY-MM-DD&to=YYYY-MM-DD
+// @access  Private
+const getStockReport = async (req, res) => {
+  try {
+    const teamMemberIds = await getTeamMemberIds(req.user._id);
+    let from = req.query.from ? new Date(req.query.from) : null;
+    let to = req.query.to ? new Date(req.query.to) : null;
+    if (!to || isNaN(to.getTime())) to = new Date();
+    if (!from || isNaN(from.getTime())) {
+      from = new Date(to);
+      from.setDate(from.getDate() - 30);
+    }
+    if (from > to) [from, to] = [to, from];
+
+    const items = await Item.find({
+      user: { $in: teamMemberIds },
+      trackStock: true,
+    }).sort({ name: 1 });
+
+    const itemIds = items.map((i) => i._id);
+    const movements = await StockMovement.find({
+      item: { $in: itemIds },
+      createdAt: { $gte: from, $lte: to },
+    })
+      .sort({ createdAt: -1 })
+      .populate('item', 'name sku unit')
+      .populate('user', 'name');
+
+    res.json({
+      from: from.toISOString(),
+      to: to.toISOString(),
+      generatedAt: new Date().toISOString(),
+      items: items.map((i) => ({
+        _id: i._id,
+        name: i.name,
+        sku: i.sku,
+        unit: i.unit,
+        quantityInStock: i.quantityInStock,
+        reorderLevel: i.reorderLevel,
+      })),
+      movements,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getItems,
   createItem,
@@ -211,4 +259,5 @@ module.exports = {
   deleteItem,
   adjustStock,
   getStockMovements,
+  getStockReport,
 };

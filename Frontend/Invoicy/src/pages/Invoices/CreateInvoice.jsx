@@ -351,11 +351,12 @@ const CreateInvoice = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Map items to API shape: backend expects description and unitPrice (not itemDescription/itemPrice)
+      // Map items to API shape: backend expects description, unitPrice, and optional itemId for stock deduction
       const itemsForApi = (formData.items || []).map((item) => ({
         description: item.itemDescription ?? item.description ?? "",
         quantity: Number(item.quantity) || 0,
         unitPrice: Number(item.itemPrice ?? item.unitPrice ?? 0),
+        ...(item.catalogId && { itemId: item.catalogId }),
       }));
       const dueDate = formData.dueDate || formData.invoiceDate || new Date().toISOString().split("T")[0];
       const payload = {

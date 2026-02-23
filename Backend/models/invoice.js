@@ -10,7 +10,8 @@ const itemSchema = new mongoose.Schema({
     getFund: { type: Number, required: true },
     discount: { type: Number, required: true },
     amount: { type: Number, required: true },
-    total: { type: Number, required: true }
+    total: { type: Number, required: true },
+    itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', default: null }
 });
 
 const invoiceSchema = new mongoose.Schema({

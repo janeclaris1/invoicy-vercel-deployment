@@ -1,5 +1,7 @@
 const Invoice = require("../models/invoice");
 const User = require("../models/User");
+const Item = require("../models/Item");
+const StockMovement = require("../models/StockMovement");
 
 // @desc    Create a new invoice
 // @route   POST /api/invoices
@@ -73,6 +75,7 @@ exports.createInvoice = async (req, res) => {
                 discount: Number(item.discount) || 0,
                 amount: round(base),
                 total: taxIncl,
+                itemId: item.itemId || null,
             };
         });
 
@@ -157,6 +160,31 @@ exports.createInvoice = async (req, res) => {
         });
 
         await invoice.save();
+
+        // Deduct stock for lines that reference a tracked item
+        const teamMemberIds = await getTeamMemberIds(req.user._id);
+        for (const line of invoice.item) {
+            if (!line.itemId || !line.quantity || line.quantity <= 0) continue;
+            try {
+                const product = await Item.findById(line.itemId);
+                if (!product || !product.trackStock) continue;
+                if (!teamMemberIds.some(id => id.toString() === product.user.toString())) continue;
+                const qty = Math.floor(Number(line.quantity));
+                if (product.quantityInStock < qty) continue; // Skip deduct if insufficient (don't fail invoice)
+                product.quantityInStock -= qty;
+                await product.save();
+                await StockMovement.create({
+                    item: product._id,
+                    type: 'out',
+                    quantity: qty,
+                    reason: 'Invoice sale',
+                    reference: invoice.invoiceNumber || invoice._id.toString(),
+                    user: req.user._id,
+                });
+            } catch (err) {
+                console.error('Stock deduction error for item', line.itemId, err);
+            }
+        }
 
         res.status(201).json({
             message: "Invoice created successfully",
