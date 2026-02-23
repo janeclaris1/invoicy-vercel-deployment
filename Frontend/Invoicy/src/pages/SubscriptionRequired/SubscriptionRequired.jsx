@@ -1,11 +1,15 @@
-import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { CreditCard, AlertCircle } from "lucide-react";
+import axiosInstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
 
 const SubscriptionRequired = () => {
-    const { user, isAuthenticated, loading } = useAuth();
+    const { user, isAuthenticated, loading, updateUser } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [checkingPayment, setCheckingPayment] = useState(false);
 
     useEffect(() => {
         if (loading) return;
@@ -23,10 +27,35 @@ const SubscriptionRequired = () => {
         }
     }, [user, isAuthenticated, loading, navigate]);
 
-    if (loading || !user) {
+    useEffect(() => {
+        if (loading || !user || checkingPayment) return;
+        if (searchParams.get("payment") !== "success") return;
+        const run = async () => {
+            setCheckingPayment(true);
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const res = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
+                    const data = res.data || {};
+                    if (data.subscription && ["active", "trialing"].includes(data.subscription.status)) {
+                        updateUser(data);
+                        navigate("/dashboard", { replace: true });
+                        return;
+                    }
+                } catch (_) {}
+                await new Promise((r) => setTimeout(r, 2000));
+            }
+            setCheckingPayment(false);
+        };
+        run();
+    }, [loading, user, searchParams, navigate, updateUser, checkingPayment]);
+
+    if (loading || !user || checkingPayment) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
-                <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="text-center">
+                    <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    {checkingPayment && <p className="text-sm text-gray-500 mt-3">Confirming your payment…</p>}
+                </div>
             </div>
         );
     }

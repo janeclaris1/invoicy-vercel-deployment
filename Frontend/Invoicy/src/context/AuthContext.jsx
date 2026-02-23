@@ -31,13 +31,27 @@ export const AuthProvider = ({ children }) => {
                 setUser(userData);
                 setIsAuthenticated(true);
                 if (hasPaymentSuccess) {
+                    const fetchProfile = () => axiosInstance.get(API_PATHS.AUTH.GET_PROFILE).then((r) => r.data);
+                    const hasValidSub = (data) =>
+                        data?.subscription && ['active', 'trialing'].includes(data.subscription.status);
+                    let data = null;
                     try {
-                        const res = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-                        const fresh = { ...userData, ...res.data };
-                        if (res.data.subscription != null) fresh.subscription = res.data.subscription;
-                        if (typeof res.data.isPlatformAdmin === 'boolean') fresh.isPlatformAdmin = res.data.isPlatformAdmin;
-                        localStorage.setItem("user", JSON.stringify(fresh));
-                        setUser(fresh);
+                        data = await fetchProfile();
+                        if (!hasValidSub(data)) {
+                            await new Promise((r) => setTimeout(r, 2500));
+                            data = await fetchProfile();
+                        }
+                        if (!hasValidSub(data) && data) {
+                            await new Promise((r) => setTimeout(r, 3000));
+                            data = await fetchProfile();
+                        }
+                        if (data) {
+                            const fresh = { ...userData, ...data };
+                            if (data.subscription != null) fresh.subscription = data.subscription;
+                            if (typeof data.isPlatformAdmin === 'boolean') fresh.isPlatformAdmin = data.isPlatformAdmin;
+                            localStorage.setItem("user", JSON.stringify(fresh));
+                            setUser(fresh);
+                        }
                     } catch (_) {}
                 } else {
                     setLoading(false);

@@ -23,7 +23,8 @@ const ProtectedRoute = ({ children }) => {
     (user?.subscription && ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscription.status));
 
   if (!hasValidSubscription && !isCheckoutPage) {
-    return <Navigate to="/subscription-required" replace />;
+    const search = location.search || "";
+    return <Navigate to={`/subscription-required${search}`} replace />;
   }
 
   return (
