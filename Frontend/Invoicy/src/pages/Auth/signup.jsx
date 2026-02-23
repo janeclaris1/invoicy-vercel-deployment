@@ -204,10 +204,10 @@ const SignUp = () => {
           setError("Could not start signup. Please try again.");
           return;
         }
-        const payRes = await axiosInstance.post(API_PATHS.SUBSCRIPTIONS.INITIALIZE_GUEST, { pendingSignupId });
+        const payRes = await axiosInstance.post(API_PATHS.SUBSCRIPTIONS.INITIALIZE_GUEST, { pendingSignupId, trial: true });
         const url = payRes.data?.authorizationUrl;
         if (url) {
-          setSuccess("Redirecting to payment...");
+          setSuccess("Redirecting to add payment details…");
           window.location.href = url;
           return;
         }
@@ -265,7 +265,7 @@ const SignUp = () => {
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
           <p className="text-gray-600 text-sm">
-            Enter your details. You'll add your billing details next—they'll be saved for automatic billing after your 7-day free trial.
+            Enter your details. Next you'll add and save your payment details only. A small verification charge (1 GHS) may apply; your plan will be charged automatically after your 7-day free trial.
           </p>
         </div>
 
@@ -425,7 +425,7 @@ const SignUp = () => {
             )}
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
-            After 7 days you’ll be charged according to your plan. If payment fails, access will be paused until you update your billing.
+            Only payment details are captured now. Your plan is charged automatically after the 7-day trial. If payment fails, access will be paused until you update billing.
           </p>
         </div>
 

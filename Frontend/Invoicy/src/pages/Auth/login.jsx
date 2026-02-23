@@ -277,8 +277,8 @@ const Login = () => {
             <div className="mt-6 pt-4 border-t border-gray-200 text-center">
               <p className="text-sm text-gray-600"> Don't have an account? {" "}
                 <button
-                className="text-black fon-medium hover:underline"
-                onClick={() => navigate("/signup")}
+                className="text-black font-medium hover:underline"
+                onClick={() => navigate("/#pricing")}
                 >
                   Sign Up
                 </button>
