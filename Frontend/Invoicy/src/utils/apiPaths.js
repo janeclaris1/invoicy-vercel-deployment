@@ -115,6 +115,7 @@ export const API_PATHS = {
         PARSE_INVOICE_IMAGE: "api/ai/parse-invoice-image",
         GENERATE_REMINDER: "api/ai/generate-reminder",
         GET_DASHBOARD_SUMMARY: "api/ai/dashboard-summary",
+        GENERATE_POLICY: "api/ai/generate-policy",
     }
 
     };

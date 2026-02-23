@@ -348,4 +348,94 @@ Return only a JSON object in this exact format: { "insights": ["insight 1", "ins
     }
 };
 
-module.exports = {parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, generateWhatsAppReminder, getDashboardSummary};
+const TEMPLATE_META = {
+    'employment-contract': {
+        name: 'Employment Contract',
+        law: 'Labour Act, 2003 (Act 651)',
+        instruction: 'Generate a written employment contract (statement of particulars) suitable for Ghana. Include position, hours, remuneration, leave (annual/sick/maternity per Act 651), notice of termination (1 month for 3+ years, 2 weeks under 3 years), confidentiality, and signature lines. Use only the information provided; use [Company] or [To be specified] where not provided.',
+    },
+    'code-of-conduct': {
+        name: 'Code of Conduct / Workplace Policy',
+        law: 'Labour Act, 2003 (Act 651)',
+        instruction: 'Generate a professional Code of Conduct and workplace policy for a company in Ghana. Include standards of conduct, attendance, disciplinary process (warnings, suspension, termination in line with Act 651), grievance procedure, and an acknowledgment section. Align with Act 651 and use the company details provided.',
+    },
+    'leave-policy': {
+        name: 'Leave Policy',
+        law: 'Labour Act, 2003 (Act 651)',
+        instruction: 'Generate a Leave Policy for Ghana. Include annual leave (per Act 651), sick leave, maternity (12 weeks per law), paternity, bereavement, and public holidays. State that leave cannot be forfeited by agreement. Use the specific entitlements and contact details provided.',
+    },
+    'termination-resignation': {
+        name: 'Termination / Resignation Acknowledgment',
+        law: 'Labour Act, 2003 (Act 651)',
+        instruction: 'Generate a termination or resignation acknowledgment form for Ghana. Include fields for employee name, ID, position, type (resignation/termination/redundancy), notice dates, notice period per Act 651, handover checklist, and signature lines. Reference Act 651 notice requirements.',
+    },
+    'confidentiality-nda': {
+        name: 'Confidentiality / NDA',
+        law: 'General contract principles',
+        instruction: 'Generate a Confidentiality and Non-Disclosure Agreement for an employee or contractor. Include definition of confidential information, obligations (no disclose, use only for work, return/destroy on exit), exceptions, duration, and remedies. Use company name and duration if provided.',
+    },
+    'health-safety': {
+        name: 'Health & Safety Policy',
+        law: 'Applicable OHS regulations',
+        instruction: 'Generate a workplace Health and Safety Policy. Include commitment to safety, responsibilities (management and employees), hazard reporting, first aid and emergency procedures, and training. Use company name and any specific details provided.',
+    },
+    'data-protection': {
+        name: 'Employee Data Protection Notice',
+        law: 'Data Protection Act, 2012 (Act 843)',
+        instruction: 'Generate an Employee Data Protection Notice for Ghana. Include who is the controller, what data is collected, purposes and legal basis, who it is shared with, retention, rights (access, correction, complaint), security, and contact. Align with Act 843.',
+    },
+};
+
+const generatePolicy = async (req, res) => {
+    const { templateId, answers } = req.body || {};
+
+    if (!templateId || typeof templateId !== 'string' || !templateId.trim()) {
+        return res.status(400).json({ message: 'templateId is required' });
+    }
+    const meta = TEMPLATE_META[templateId.trim()];
+    if (!meta) {
+        return res.status(400).json({ message: 'Invalid templateId. Use one of: ' + Object.keys(TEMPLATE_META).join(', ') });
+    }
+    const answersObj = answers && typeof answers === 'object' ? answers : {};
+
+    try {
+        const answersText = Object.entries(answersObj)
+            .filter(([, v]) => v != null && String(v).trim() !== '')
+            .map(([k, v]) => `${k}: ${String(v).trim()}`)
+            .join('\n');
+
+        const prompt = `You are an expert HR and legal compliance writer for Ghana.
+
+TASK: Generate a customized "${meta.name}" document.
+
+LEGAL CONTEXT: Ensure the document is consistent with ${meta.law} where applicable. Do not give legal advice; the document should state it should be reviewed by a lawyer.
+
+INSTRUCTIONS: ${meta.instruction}
+
+USER-PROVIDED INFORMATION (use these to customize the document; if a field is missing, use a sensible placeholder like [Company Name] or [To be specified]):
+---
+${answersText || '(No specific details provided – use placeholders where needed.)'}
+---
+
+OUTPUT: Return ONLY the full document text. No preamble, no "Here is the document", no markdown code blocks. Plain text only.`;
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const result = await model.generateContent(prompt);
+        const responseText = (await result.response.text()).trim();
+
+        res.status(200).json({ content: responseText });
+    } catch (error) {
+        const status = error?.status || error?.response?.status;
+        const isQuota = status === 429 || /quota/i.test(error?.message || '');
+        console.error('Error generating policy:', error);
+        if (isQuota) {
+            return res.status(429).json({ message: 'AI quota exceeded. Please try again later.' });
+        }
+        res.status(500).json({
+            message: 'Failed to generate policy.',
+            details: error?.message || 'Unknown error',
+        });
+    }
+};
+
+module.exports = { parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, generateWhatsAppReminder, getDashboardSummary, generatePolicy };

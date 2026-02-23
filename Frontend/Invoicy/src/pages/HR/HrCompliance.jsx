@@ -7,8 +7,12 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import axiosInstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
 
 const DISCLAIMER =
   "These templates are for reference only. They are not legal advice. Have all documents reviewed by a qualified lawyer before use, especially for compliance with the Labour Act, 2003 (Act 651) and local regulations.";
@@ -271,15 +275,107 @@ Date adopted: _______
   },
 ];
 
+// Questions for AI-generated policies (key = sent to backend as answer key)
+const TEMPLATE_QUESTIONS = {
+  "employment-contract": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "employee_name", label: "Employee full name", placeholder: "e.g. Jane Doe", type: "text", required: true },
+    { id: "job_title", label: "Job title", placeholder: "e.g. Software Engineer", type: "text", required: true },
+    { id: "department", label: "Department", placeholder: "e.g. Technology", type: "text", required: false },
+    { id: "start_date", label: "Start date", placeholder: "e.g. 1 March 2025", type: "text", required: true },
+    { id: "work_address", label: "Place of work", placeholder: "e.g. Accra, Ghana", type: "text", required: false },
+    { id: "working_hours", label: "Working hours", placeholder: "e.g. 40 hours/week, Mon–Fri", type: "text", required: false },
+    { id: "salary_amount", label: "Basic salary (and currency)", placeholder: "e.g. 5,000 GHS per month", type: "text", required: false },
+    { id: "pay_date", label: "Pay day", placeholder: "e.g. Last working day of month", type: "text", required: false },
+    { id: "probation", label: "Probation period (if any)", placeholder: "e.g. 3 months", type: "text", required: false },
+  ],
+  "code-of-conduct": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "industry", label: "Industry or sector", placeholder: "e.g. Technology, Retail", type: "text", required: false },
+    { id: "grievance_contact", label: "Grievance contact (role or title)", placeholder: "e.g. HR Manager", type: "text", required: false },
+    { id: "extra_conduct", label: "Any specific conduct rules to include", placeholder: "e.g. No use of social media during work hours", type: "textarea", required: false },
+  ],
+  "leave-policy": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "annual_leave_days", label: "Annual leave days per year", placeholder: "e.g. 15 or as per Act 651", type: "text", required: false },
+    { id: "sick_leave_days", label: "Paid sick leave days per year", placeholder: "e.g. 12", type: "text", required: false },
+    { id: "sick_certificate_after", label: "Medical certificate required after (days absent)", placeholder: "e.g. 3", type: "text", required: false },
+    { id: "paternity_days", label: "Paternity leave days", placeholder: "e.g. 5", type: "text", required: false },
+    { id: "bereavement_days", label: "Bereavement leave days", placeholder: "e.g. 3–5", type: "text", required: false },
+    { id: "leave_approval_contact", label: "Leave requests submitted to", placeholder: "e.g. Line manager or HR", type: "text", required: false },
+  ],
+  "termination-resignation": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "employee_name", label: "Employee full name", placeholder: "e.g. Jane Doe", type: "text", required: false },
+    { id: "employee_id", label: "Employee ID", placeholder: "e.g. EMP-001", type: "text", required: false },
+    { id: "position", label: "Position/Title", placeholder: "e.g. Software Engineer", type: "text", required: false },
+    { id: "department", label: "Department", placeholder: "e.g. Technology", type: "text", required: false },
+    { id: "type_of_exit", label: "Type of exit", placeholder: "e.g. Resignation, Termination, Redundancy", type: "text", required: false },
+  ],
+  "confidentiality-nda": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "employee_or_contractor_name", label: "Employee or contractor name", placeholder: "e.g. Jane Doe", type: "text", required: false },
+    { id: "duration_years", label: "Confidentiality duration after exit (years)", placeholder: "e.g. 2", type: "text", required: false },
+    { id: "scope", label: "Scope (e.g. trade secrets only, or all confidential info)", placeholder: "Optional", type: "text", required: false },
+  ],
+  "health-safety": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "first_aid_location", label: "First-aid kit location", placeholder: "e.g. Reception, Floor 2", type: "text", required: false },
+    { id: "safety_officer", label: "Safety officer or contact", placeholder: "e.g. HR or Facilities", type: "text", required: false },
+    { id: "emergency_contacts", label: "Emergency contacts", placeholder: "e.g. 112, local hospital", type: "text", required: false },
+    { id: "specific_hazards", label: "Any specific hazards or measures to mention", placeholder: "e.g. Office only; fire drills quarterly", type: "textarea", required: false },
+  ],
+  "data-protection": [
+    { id: "company_name", label: "Company name", placeholder: "e.g. Acme Ltd", type: "text", required: true },
+    { id: "hr_contact", label: "HR or data protection contact", placeholder: "e.g. hr@company.com", type: "text", required: false },
+    { id: "retention_summary", label: "Data retention summary", placeholder: "e.g. 7 years for payroll after exit", type: "text", required: false },
+  ],
+};
+
 const TemplateCard = ({ template, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
+  const [mode, setMode] = useState("view"); // "view" | "generate" | "result"
   const [copied, setCopied] = useState(false);
+  const [answers, setAnswers] = useState({});
+  const [generating, setGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState("");
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(template.content);
+  const questions = TEMPLATE_QUESTIONS[template.id] || [];
+
+  const handleCopy = (text) => {
+    const toCopy = text || template.content;
+    navigator.clipboard.writeText(toCopy);
     setCopied(true);
-    toast.success("Template copied to clipboard");
+    toast.success("Copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAnswerChange = (id, value) => {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleGenerate = async () => {
+    const required = questions.filter((q) => q.required);
+    const missing = required.filter((q) => !(answers[q.id] || "").trim());
+    if (missing.length > 0) {
+      toast.error("Please fill in required fields: " + missing.map((q) => q.label).join(", "));
+      return;
+    }
+    setGenerating(true);
+    setGeneratedContent("");
+    try {
+      const res = await axiosInstance.post(API_PATHS.AI.GENERATE_POLICY, {
+        templateId: template.id,
+        answers,
+      });
+      setGeneratedContent(res.data?.content || "");
+      setMode("result");
+      toast.success("Policy generated");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to generate policy. Try again.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -312,22 +408,109 @@ const TemplateCard = ({ template, defaultOpen = false }) => {
         )}
       </button>
       {open && (
-        <div className="border-t border-gray-200 dark:border-slate-700 px-4 py-4 bg-gray-50/50 dark:bg-slate-800/30">
-          <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-slate-300 font-sans max-h-96 overflow-y-auto rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700">
-            {template.content}
-          </pre>
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition-colors"
-          >
-            {copied ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-            {copied ? "Copied" : "Copy template"}
-          </button>
+        <div className="border-t border-gray-200 dark:border-slate-700 px-4 py-4 bg-gray-50/50 dark:bg-slate-800/30 space-y-4">
+          {/* Tabs: View template | Generate with AI */}
+          <div className="flex gap-2 border-b border-gray-200 dark:border-slate-700 pb-2">
+            <button
+              type="button"
+              onClick={() => setMode("view")}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${mode === "view" ? "bg-blue-900 text-white" : "bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-500"}`}
+            >
+              View template
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode(questions.length ? "generate" : "view")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${mode === "generate" || mode === "result" ? "bg-blue-900 text-white" : "bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-500"}`}
+            >
+              <Sparkles className="w-4 h-4" /> Generate with AI
+            </button>
+          </div>
+
+          {mode === "view" && (
+            <>
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-slate-300 font-sans max-h-96 overflow-y-auto rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700">
+                {template.content}
+              </pre>
+              <button
+                type="button"
+                onClick={() => handleCopy(template.content)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition-colors"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? "Copied" : "Copy template"}
+              </button>
+            </>
+          )}
+
+          {mode === "generate" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-slate-400">
+                Answer the questions below. AI will generate a customized policy based on your responses.
+              </p>
+              <div className="space-y-3">
+                {questions.map((q) => (
+                  <div key={q.id}>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      {q.label}
+                      {q.required && <span className="text-red-500 ml-0.5">*</span>}
+                    </label>
+                    {q.type === "textarea" ? (
+                      <textarea
+                        value={answers[q.id] || ""}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                        placeholder={q.placeholder}
+                        rows={3}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={answers[q.id] || ""}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                        placeholder={q.placeholder}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-500"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={generating}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 disabled:opacity-70"
+              >
+                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {generating ? "Generating…" : "Generate policy"}
+              </button>
+            </div>
+          )}
+
+          {mode === "result" && generatedContent && (
+            <>
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-slate-300 font-sans max-h-96 overflow-y-auto rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700">
+                {generatedContent}
+              </pre>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCopy(generatedContent)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition-colors"
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? "Copied" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("generate"); setGeneratedContent(""); }}
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-slate-800"
+                >
+                  Generate again
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -343,7 +526,7 @@ const HrCompliance = () => {
           Legal & Compliance Templates
         </h1>
         <p className="text-gray-600 dark:text-slate-400">
-          HR document templates to support legal compliance. Customise with your company details and have them reviewed by a qualified lawyer before use.
+          Answer a few questions and let AI generate a customized policy, or view and copy static templates. Have all documents reviewed by a qualified lawyer before use.
         </p>
       </div>
 

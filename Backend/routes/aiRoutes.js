@@ -1,5 +1,5 @@
 const express = require('express');
-const {parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, getDashboardSummary} = require('../controller/aiController');
+const { parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, getDashboardSummary, generatePolicy } = require('../controller/aiController');
 const {protect } = require('../middlewares/authMiddleware.js');
 
 const router = express.Router();
@@ -14,5 +14,8 @@ router.post('/generate-reminder', protect, generateReminderEmail);
 
 //Route to get dashboard summary
 router.get('/dashboard-summary', protect, getDashboardSummary);
+
+// Route to generate HR policy from template + answers
+router.post('/generate-policy', protect, generatePolicy);
 
 module.exports = router;
