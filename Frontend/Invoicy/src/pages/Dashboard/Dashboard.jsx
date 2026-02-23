@@ -41,6 +41,17 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const [showThankYou, setShowThankYou] = useState(
+    () => new URLSearchParams(location.search).get("payment") === "success"
+  );
+
+  useEffect(() => {
+    if (showThankYou) {
+      window.history.replaceState({}, "", "/dashboard");
+      const t = setTimeout(() => setShowThankYou(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [showThankYou]);
 
   const fetchDashboardData = async () => {
     try {
@@ -184,18 +195,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const [showThankYou, setShowThankYou] = useState(
-    () => new URLSearchParams(location.search).get("payment") === "success"
-  );
-
-  useEffect(() => {
-    if (showThankYou) {
-      window.history.replaceState({}, "", "/dashboard");
-      const t = setTimeout(() => setShowThankYou(false), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [showThankYou]);
 
   return (
     <div className="space-y-8">
