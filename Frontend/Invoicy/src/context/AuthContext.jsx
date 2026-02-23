@@ -25,21 +25,34 @@ export const AuthProvider = ({ children }) => {
         try {
             const token = localStorage.getItem("token");
             const userStr = localStorage.getItem('user');
+            const hasPaymentSuccess = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('payment') === 'success';
             if (token && userStr) {
                 const userData = JSON.parse(userStr);
-                // Show app immediately with cached user (so "Subscribed clients" shows from localStorage)
                 setUser(userData);
                 setIsAuthenticated(true);
-                setLoading(false);
-                // Then refresh user from API in background (keeps isPlatformAdmin etc. in sync)
-                axiosInstance.get(API_PATHS.AUTH.GET_PROFILE)
-                    .then((res) => {
+                if (hasPaymentSuccess) {
+                    try {
+                        const res = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
                         const fresh = { ...userData, ...res.data };
+                        if (res.data.subscription != null) fresh.subscription = res.data.subscription;
                         if (typeof res.data.isPlatformAdmin === 'boolean') fresh.isPlatformAdmin = res.data.isPlatformAdmin;
                         localStorage.setItem("user", JSON.stringify(fresh));
                         setUser(fresh);
-                    })
-                    .catch(() => {});
+                    } catch (_) {}
+                } else {
+                    setLoading(false);
+                    axiosInstance.get(API_PATHS.AUTH.GET_PROFILE)
+                        .then((res) => {
+                            const fresh = { ...userData, ...res.data };
+                            if (res.data.subscription != null) fresh.subscription = res.data.subscription;
+                            if (typeof res.data.isPlatformAdmin === 'boolean') fresh.isPlatformAdmin = res.data.isPlatformAdmin;
+                            localStorage.setItem("user", JSON.stringify(fresh));
+                            setUser(fresh);
+                        })
+                        .catch(() => {});
+                    return;
+                }
+                setLoading(false);
                 return;
             }
             setUser(null);

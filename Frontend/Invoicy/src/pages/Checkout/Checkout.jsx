@@ -6,6 +6,8 @@ import { API_PATHS } from "../../utils/apiPaths";
 import PRICING_PLANS from "../../utils/data";
 import { Loader2, CreditCard, ArrowLeft } from "lucide-react";
 
+const ALLOWED_SUBSCRIPTION_STATUSES = ["active", "trialing"];
+
 const Checkout = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -13,6 +15,10 @@ const Checkout = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [planInfo, setPlanInfo] = useState(null);
+
+    const hasValidSubscription =
+        user?.isPlatformAdmin ||
+        (user?.subscription && ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscription.status));
 
     const planId = searchParams.get("plan") || (() => { try { return JSON.parse(sessionStorage.getItem("checkoutPlan") || "{}").plan; } catch { return null; } })();
     const interval = searchParams.get("interval") || (() => { try { return JSON.parse(sessionStorage.getItem("checkoutPlan") || "{}").interval; } catch { return null; } })();
@@ -61,6 +67,11 @@ const Checkout = () => {
 
     if (!user) {
         navigate("/login");
+        return null;
+    }
+
+    if (hasValidSubscription) {
+        navigate("/dashboard", { replace: true });
         return null;
     }
 
