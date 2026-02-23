@@ -13,13 +13,27 @@ import {
 import {API_PATHS} from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 
 const SignUp = () => {
-  // ==================== HOOKS & STATE ====================
-  const {login} = useAuth();
+  const [searchParams] = useSearchParams();
+  const { login } = useAuth();
   const navigate = useNavigate();
+
+  const { isAuthenticated } = useAuth();
+
+  // If user came from pricing, store plan/interval for checkout after login (or redirect to checkout if already logged in)
+  React.useEffect(() => {
+    const plan = searchParams.get("plan");
+    const interval = searchParams.get("interval");
+    if (!plan || !interval || !["basic", "pro"].includes(plan) || !["monthly", "annual"].includes(interval)) return;
+    if (isAuthenticated) {
+      navigate(`/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`, { replace: true });
+      return;
+    }
+    sessionStorage.setItem("checkoutPlan", JSON.stringify({ plan, interval }));
+  }, [searchParams, isAuthenticated, navigate]);
   
   // Form data state
   const [formData, setFormData] = useState({ 
@@ -161,13 +175,41 @@ const SignUp = () => {
     setError("");
     setSuccess("");
 
+    const plan = searchParams.get("plan");
+    const interval = searchParams.get("interval");
+    const isPayFirstFlow = plan && interval && ["basic", "pro"].includes(plan) && ["monthly", "annual"].includes(interval);
+
     try {
+      if (isPayFirstFlow) {
+        const pendingRes = await axiosInstance.post(API_PATHS.AUTH.PENDING_SIGNUP, {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          plan,
+          interval,
+        });
+        const pendingSignupId = pendingRes.data?.pendingSignupId;
+        if (!pendingSignupId) {
+          setError("Could not start signup. Please try again.");
+          return;
+        }
+        const payRes = await axiosInstance.post(API_PATHS.SUBSCRIPTIONS.INITIALIZE_GUEST, { pendingSignupId });
+        const url = payRes.data?.authorizationUrl;
+        if (url) {
+          setSuccess("Redirecting to payment...");
+          window.location.href = url;
+          return;
+        }
+        setError(payRes.data?.message || "Could not start payment. Please try again.");
+        return;
+      }
+
       const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
-      
+
       if (response.status === 201 || response.status === 200) {
         setSuccess("Account created successfully! Redirecting to login...");
         setTimeout(() => {
@@ -203,7 +245,9 @@ const SignUp = () => {
             <FileText className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600 text-sm">Join Invoicy today</p>
+          <p className="text-gray-600 text-sm">
+            {searchParams.get("plan") ? "Enter your details, then you’ll pay to complete signup." : "Join Invoicy today"}
+          </p>
         </div>
 
         {/* Form */}
@@ -352,11 +396,11 @@ const SignUp = () => {
             {isloading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Creating Account...
+                {searchParams.get("plan") ? "Redirecting to payment..." : "Creating Account..."}
               </>
             ) : (
               <>
-                Sign Up
+                {searchParams.get("plan") ? "Continue to payment" : "Sign Up"}
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </>
             )}
@@ -369,7 +413,11 @@ const SignUp = () => {
             Already have an account?{" "}
             <button
               className="text-blue-900 font-medium hover:underline"
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                const p = searchParams.get("plan");
+                const i = searchParams.get("interval");
+                navigate(p && i ? `/login?plan=${p}&interval=${i}` : "/login");
+              }}
             >
               Sign In
             </button>

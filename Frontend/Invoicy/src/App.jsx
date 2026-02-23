@@ -33,6 +33,7 @@ import HrRecruitment from "./pages/HR/HrRecruitment";
 import HrSelfService from "./pages/HR/HrSelfService";
 import Messages from "./pages/Messages/Messages";
 import Clients from "./pages/Clients/Clients";
+import Checkout from "./pages/Checkout/Checkout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -63,6 +64,7 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="clients" element={<Clients />} />
+            <Route path="checkout" element={<Checkout />} />
             <Route path="invoices" element={<AllInvoices />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />
@@ -103,3 +105,7 @@ const App = () => {
 }
 
 export default App; 
+
+
+
+

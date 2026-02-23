@@ -36,9 +36,10 @@ const userSchema = new mongoose.Schema({
 { timestamps: true }
 );
 
-//Password hashing middleware
+//Password hashing middleware (skip if already a bcrypt hash, e.g. when creating user from PendingSignup after payment)
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
+  if (this.password && /^\$2[aby]?\$/.test(this.password)) return;
   this.password = await bcrypt.hash(this.password, 10);
 });
 

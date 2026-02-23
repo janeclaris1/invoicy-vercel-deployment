@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Employee = require('../models/Employee');
+const Subscription = require('../models/Subscription');
+const PendingSignup = require('../models/PendingSignup');
 
 const getTeamMemberIds = async (currentUserId) => {
     const currentUser = await User.findById(currentUserId).select('createdBy').lean();
@@ -24,6 +26,32 @@ const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '7d',
     });
+};
+
+// @desc    Create pending signup (before payment) – used when customer pays before account exists
+// @route   POST /api/auth/pending-signup
+// @access  Public
+exports.createPendingSignup = async (req, res, next) => {
+    const { name, email, password, plan, interval } = req.body;
+    try {
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: 'Name, email and password are required' });
+        }
+        if (!plan || !interval || !['basic', 'pro'].includes(plan) || !['monthly', 'annual'].includes(interval)) {
+            return res.status(400).json({ message: 'Valid plan (basic|pro) and interval (monthly|annual) are required' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+        const existing = await User.findOne({ email: email.toLowerCase() });
+        if (existing) {
+            return res.status(400).json({ message: 'User already exists with this email. Please log in.' });
+        }
+        const pending = await PendingSignup.create({ name: name.trim(), email: email.toLowerCase().trim(), password, plan, interval });
+        res.status(201).json({ pendingSignupId: pending._id.toString() });
+    } catch (error) {
+        next(error);
+    }
 };
 
 // @desc    Register a new user
@@ -418,7 +446,15 @@ exports.getAllClients = async (req, res) => {
             .select('-password')
             .sort({ createdAt: -1 })
             .lean();
-        res.json(clients);
+        const userIds = clients.map((c) => c._id);
+        const subscriptions = await Subscription.find({ user: { $in: userIds } }).lean();
+        const subByUser = {};
+        subscriptions.forEach((s) => { subByUser[s.user.toString()] = s; });
+        const clientsWithSub = clients.map((c) => ({
+            ...c,
+            subscription: subByUser[c._id.toString()] || null,
+        }));
+        res.json(clientsWithSub);
     } catch (error) {
         console.error('Get all clients error:', error);
         res.status(500).json({ message: 'Server error' });

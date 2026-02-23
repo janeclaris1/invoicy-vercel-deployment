@@ -11,11 +11,20 @@ import {
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const Login = () => {
-  const {login} = useAuth();
+  const [searchParams] = useSearchParams();
+  const { login } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const plan = searchParams.get("plan");
+    const interval = searchParams.get("interval");
+    if (plan && interval && ["basic", "pro"].includes(plan) && ["monthly", "annual"].includes(interval)) {
+      sessionStorage.setItem("checkoutPlan", JSON.stringify({ plan, interval }));
+    }
+  }, [searchParams]);
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isloading, setIsLoading] = useState(false);
@@ -108,10 +117,18 @@ const Login = () => {
           setSuccess("Login successful");
           login(response.data, token);
 
-          // Redirect based on role
+          let redirect = "/dashboard";
+          try {
+            const raw = sessionStorage.getItem("checkoutPlan");
+            if (raw) {
+              const { plan, interval } = JSON.parse(raw);
+              sessionStorage.removeItem("checkoutPlan");
+              redirect = `/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`;
+            }
+          } catch (_) {}
           setTimeout(() => {
-            window.location.href = "/dashboard";
-          }, 2000);
+            window.location.href = redirect;
+          }, 1500);
         } else {
           setError(response.data.message || "Invalid credentials");
         }
@@ -144,6 +161,12 @@ const Login = () => {
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login to Your Account</h1>
             <p className="text-gray-600 text-sm">Welcome back to Invoicy! Please enter your details.</p>
             </div>
+
+        {searchParams.get("payment") === "success" && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800 text-sm font-medium">Payment successful! Your account has been created. Log in with your email and password.</p>
+          </div>
+        )}
 
         {/* Form */}
         <div className="space-y-4">

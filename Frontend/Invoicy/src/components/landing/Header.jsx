@@ -71,7 +71,7 @@ const Header = () => {
           </a>
 
  <a
-            href="#TeamMembers"
+            href="#pricing"
             className="text-gray-600 hover:text-gray-900 font-medium transition-colors duration-200 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-black after:transition-all hover:after:w-full"
           >
            Pricing

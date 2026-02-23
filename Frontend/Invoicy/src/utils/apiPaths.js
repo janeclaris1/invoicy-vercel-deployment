@@ -8,6 +8,7 @@ if (typeof window !== "undefined") {
 export const API_PATHS = {
     AUTH: {
         REGISTER: "api/auth/register",
+        PENDING_SIGNUP: "api/auth/pending-signup",
         LOGIN: "api/auth/login",
         FORGOT_PASSWORD: "api/auth/forgot-password",
         RESET_PASSWORD: "api/auth/reset-password",
@@ -16,6 +17,11 @@ export const API_PATHS = {
         TEAM: "api/auth/team",
         TEAM_MEMBER: (id) => `api/auth/team/${id}`,
         CLIENTS: "api/auth/clients",
+    },
+    SUBSCRIPTIONS: {
+        ME: "api/subscriptions/me",
+        INITIALIZE: "api/subscriptions/initialize",
+        INITIALIZE_GUEST: "api/subscriptions/initialize-guest",
     },
     INVOICES: {
         GET_ALL_INVOICES: "api/invoices",

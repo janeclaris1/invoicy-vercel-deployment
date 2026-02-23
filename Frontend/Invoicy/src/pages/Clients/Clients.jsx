@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { Users, Mail, Loader2 } from "lucide-react";
+import { Users, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const Clients = () => {
@@ -83,28 +83,44 @@ const Clients = () => {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Email</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Business</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Plan</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Next billing</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Joined</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                             {clients.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-slate-400">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500 dark:text-slate-400">
                                         No clients yet.
                                     </td>
                                 </tr>
                             ) : (
-                                clients.map((client) => (
-                                    <tr key={client._id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                                        <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{client.name || "—"}</td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-slate-300 flex items-center gap-2">
-                                            <Mail className="w-4 h-4 text-gray-400" />
-                                            {client.email || "—"}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{client.businessName || "—"}</td>
-                                        <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-sm">{formatDate(client.createdAt)}</td>
-                                    </tr>
-                                ))
+                                clients.map((client) => {
+                                    const sub = client.subscription;
+                                    return (
+                                        <tr key={client._id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                                            <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{client.name || "—"}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{client.email || "—"}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{client.businessName || "—"}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{sub ? sub.plan.charAt(0).toUpperCase() + sub.plan.slice(1) : "—"}</td>
+                                            <td className="px-4 py-3">
+                                                {sub ? (
+                                                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                                                        sub.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" :
+                                                        sub.status === "past_due" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" :
+                                                        "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                                    }`}>
+                                                        {sub.status}
+                                                    </span>
+                                                ) : "—"}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-sm">{sub?.currentPeriodEnd ? formatDate(sub.currentPeriodEnd) : "—"}</td>
+                                            <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-sm">{formatDate(client.createdAt)}</td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

@@ -23,6 +23,8 @@ const onboardingOffboardingRoutes = require("./routes/onboardingOffboardingRoute
 const performanceTalentRoutes = require("./routes/performanceTalentRoutes");
 const recruitmentRoutes = require("./routes/recruitmentRoutes");
 const messagingRoutes = require("./routes/messagingRoutes");
+const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
 const app = express();
 
@@ -99,6 +101,12 @@ if (_adminCount > 0) {
   logger.warn('Platform admin: PLATFORM_ADMIN_EMAIL not set or empty - no one will see "Subscribed clients".');
 }
 
+// Paystack webhook must receive raw body for signature verification (before express.json)
+app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
+  req.rawBody = req.body;
+  next();
+}, subscriptionWebhook);
+
 // Middleware to parse JSON (allow larger payloads e.g. base64 images)
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -128,6 +136,7 @@ app.use("/api/hr-performance", performanceTalentRoutes);
 app.use("/api/hr-recruitment", recruitmentRoutes);
 app.use("/api/messages", messagingLimiter, messagingRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
+app.use("/api/subscriptions", authLimiter, subscriptionRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {

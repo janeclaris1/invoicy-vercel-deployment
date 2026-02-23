@@ -1,11 +1,12 @@
 const express = require('express');
-const { registerUser, loginUser, getMe, updateUserProfile, getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, getAllClients, forgotPassword, resetPassword } = require('../controller/authController');
+const { registerUser, loginUser, getMe, updateUserProfile, getTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, getAllClients, createPendingSignup, forgotPassword, resetPassword } = require('../controller/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validateRegister, validateLogin } = require('../middlewares/validator');
 
 const router = express.Router();
 
 router.post('/register', validateRegister, registerUser);
+router.post('/pending-signup', createPendingSignup);
 router.post('/login', validateLogin, loginUser);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
