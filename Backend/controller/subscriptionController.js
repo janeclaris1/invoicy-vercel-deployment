@@ -184,6 +184,11 @@ exports.webhook = async (req, res) => {
         if (!reference) return res.status(200).send('OK');
         const verify = await paystackRequest(`/transaction/verify/${reference}`, 'GET');
         if (!verify.status || verify.data?.status !== 'success') {
+            logger.warn('Paystack verify failed – subscription not created. Check PAYSTACK_SECRET_KEY.', {
+                reference,
+                paystackMessage: verify.message,
+                paystackStatus: verify.status,
+            });
             return res.status(200).send('OK');
         }
         const metadata = verify.data.metadata || {};

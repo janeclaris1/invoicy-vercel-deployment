@@ -51,10 +51,18 @@ In the same Web Service, go to **Environment** and add:
 | `GEMINI_API_KEY` | Your Google Gemini API key |
 | `ALLOWED_ORIGINS` | Your Vercel frontend URL, e.g. `https://your-app.vercel.app` (add multiple with commas if needed) |
 
+**Required for subscriptions (so users can access the dashboard after paying):**
+
+| Key | Value |
+|-----|--------|
+| `PAYSTACK_SECRET_KEY` | Your **secret** key from [Paystack Dashboard](https://dashboard.paystack.com) → Settings → API Keys (use `sk_live_...` for live or `sk_test_...` for test). Using the wrong key causes "Invalid key" and subscriptions are never created. |
+| `FRONTEND_URL` | Your Vercel app URL, e.g. `https://invoicy-vercel-deployment.vercel.app` (used for payment callback URLs). |
+
 Optional:
 
 - `GRA_COMPANY_REFERENCE`, `GRA_SECURITY_KEY` if you use GRA.
 - `LOG_LEVEL` = `info`.
+- `PLATFORM_ADMIN_EMAIL` = your email so you can see "Subscribed clients" and revenue.
 
 Save. Render will redeploy. Wait until the deploy is **Live**.
 
