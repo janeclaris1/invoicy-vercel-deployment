@@ -49,6 +49,7 @@ const CreateInvoice = () => {
       paymentTerms: "",
       status: "Unpaid",
       amountPaid: 0,
+      type: "invoice",
       balanceDue: 0,
       discountPercent: 0,
       discountAmount: 0,
@@ -363,6 +364,7 @@ const CreateInvoice = () => {
         ...formData,
         dueDate,
         items: itemsForApi,
+        type: (formData.type || "invoice").toLowerCase() === "proforma" ? "proforma" : "invoice",
         companyLogo: formData.companyLogo || user?.companyLogo || "",
         companySignature: formData.companySignature || user?.companySignature || "",
         companyStamp: formData.companyStamp || user?.companyStamp || "",
@@ -398,6 +400,22 @@ const CreateInvoice = () => {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        {!existingInvoice && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Document type</label>
+            <select
+              value={formData.type || "invoice"}
+              onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value }))}
+              className="w-full max-w-xs h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="invoice">Invoice (for VAT reporting)</option>
+              <option value="proforma">Proforma (convert to invoice when paid)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.type === "proforma" ? "Proforma is a preliminary bill. When paid, you can convert it to an invoice for VAT reporting." : "Standard tax invoice for GRA reporting."}
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <InputField
             label="Invoice Number"

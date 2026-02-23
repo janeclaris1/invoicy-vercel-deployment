@@ -4,7 +4,8 @@ const {
     getInvoices,
     getInvoiceById,
     updateInvoice,
-    deleteInvoice
+    deleteInvoice,
+    convertProformaToInvoice
 } = require("../controller/invoiceController.js");
 const { protect } = require("../middlewares/authMiddleware.js");
 const { validateInvoice } = require("../middlewares/validator");
@@ -14,6 +15,8 @@ const router = express.Router();
 router.route("/")
     .post(protect, validateInvoice, createInvoice)
     .get(protect, getInvoices);
+
+router.post("/:id/convert-to-invoice", protect, convertProformaToInvoice);
 
 router
     .route("/:id")

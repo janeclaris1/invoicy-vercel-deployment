@@ -90,7 +90,14 @@ const invoiceSchema = new mongoose.Schema({
         date: { type: Date, default: Date.now },
         notes: { type: String, default: '' },
         recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-    }]
+    }],
+    type: {
+        type: String,
+        enum: ['invoice', 'proforma'],
+        default: 'invoice'
+    },
+    convertedFromProforma: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
+    convertedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null }
 }, { timestamps: true }
 
 );

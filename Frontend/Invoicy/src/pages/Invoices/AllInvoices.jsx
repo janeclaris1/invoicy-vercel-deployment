@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react"; 
 import axiosinstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2 } from "lucide-react";
+import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText } from "lucide-react";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
@@ -23,6 +23,7 @@ const AllInvoices = () => {
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [statusChangeLoading, setStatusChangeLoading] = useState(null);
+  const [convertLoading, setConvertLoading] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -106,6 +107,27 @@ const AllInvoices = () => {
   const handleOpenReminderModal = (invoice) => {
     setSelectedInvoice(invoice);
     setIsReminderModalOpen(true);
+  };
+
+  const handleConvertToInvoice = async (invoice) => {
+    if (!invoice?.convertedTo && (invoice?.status === "Fully Paid" || invoice?.status === "Paid") && invoice?.type === "proforma") {
+      setConvertLoading(invoice._id);
+      try {
+        const res = await axiosinstance.post(API_PATHS.INVOICES.CONVERT_TO_INVOICE(invoice._id));
+        const newInv = res.data.invoice;
+        setInvoices((prev) => {
+          const updated = prev.map((inv) => (inv._id === invoice._id ? { ...inv, convertedTo: newInv?._id } : inv));
+          if (newInv && !updated.find((i) => i._id === newInv._id)) updated.unshift(newInv);
+          return updated.sort((a, b) => new Date(b.invoiceDate || 0) - new Date(a.invoiceDate || 0));
+        });
+        toast.success("Proforma converted to invoice: " + (newInv?.invoiceNumber || ""));
+        if (newInv?._id) navigate(`/invoices/${newInv._id}`);
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Failed to convert");
+      } finally {
+        setConvertLoading(null);
+      }
+    }
   };
 
 
@@ -225,6 +247,7 @@ const AllInvoices = () => {
         <table className="w-full divide-y divide-gray-200 table-auto">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Type</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Invoice Number</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Client</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Created by</th>
@@ -238,6 +261,14 @@ const AllInvoices = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredInvoices.map((invoice) => (
               <tr key={invoice._id} className="hover:bg-teal-700 group transition-colors duration-150 cursor-pointer" onClick={() => navigate(`/invoices/${invoice._id}`)}>
+                <td className="px-4 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
+                    {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
+                  </span>
+                  {invoice.convertedTo && (invoice.type || "") === "proforma" && (
+                    <span className="ml-1 text-xs text-slate-500">Converted</span>
+                  )}
+                </td>
                 <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>{invoice.invoiceNumber}</td>
                 <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>{invoice.billTo?.clientName || 'N/A'}</td>
                 <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>{typeof invoice.user === 'object' && invoice.user?.name ? invoice.user.name : '—'}</td>
@@ -256,6 +287,18 @@ const AllInvoices = () => {
                 <td className="px-4 py-4 text-sm text-black group-hover:text-white">{invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}</td>
                 <td className="px-4 py-4 text-sm text-black">
                   <div className="flex items-center justify-end gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                    {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
+                      <Button
+                        size="small"
+                        variant="secondary"
+                        onClick={() => handleConvertToInvoice(invoice)}
+                        disabled={convertLoading === invoice._id}
+                        title="Convert to invoice for VAT reporting"
+                      >
+                        {convertLoading === invoice._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        Convert
+                      </Button>
+                    )}
                     <Button 
                       size="small" 
                       variant="secondary" 

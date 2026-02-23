@@ -148,23 +148,26 @@ const Reports = () => {
   }, [invoices, dateRange, filters]);
 
   const reportData = useMemo(() => {
-    const totalSales = filteredInvoices.reduce((sum, inv) => sum + Number(inv.grandTotal || 0), 0);
-    const totalVat = filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalVat || 0), 0);
-    const totalNhil = filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalNhil || 0), 0);
-    const totalGetFund = filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalGetFund || 0), 0);
+    // VAT and tax reporting: only formal invoices (exclude proforma until converted)
+    const invoicesForVat = filteredInvoices.filter((inv) => (inv.type || "invoice") !== "proforma");
+
+    const totalSales = invoicesForVat.reduce((sum, inv) => sum + Number(inv.grandTotal || 0), 0);
+    const totalVat = invoicesForVat.reduce((sum, inv) => sum + Number(inv.totalVat || 0), 0);
+    const totalNhil = invoicesForVat.reduce((sum, inv) => sum + Number(inv.totalNhil || 0), 0);
+    const totalGetFund = invoicesForVat.reduce((sum, inv) => sum + Number(inv.totalGetFund || 0), 0);
     const totalLevies = totalNhil + totalGetFund;
     const totalTax = totalVat + totalLevies;
-    const taxableSales = filteredInvoices.reduce((sum, inv) => {
+    const taxableSales = invoicesForVat.reduce((sum, inv) => {
       const baseSubtotal = Number(inv.subtotal || 0);
       if (baseSubtotal > 0) return sum + baseSubtotal;
       const derivedBase = Number(inv.grandTotal || 0) - (Number(inv.totalVat || 0) + Number(inv.totalNhil || 0) + Number(inv.totalGetFund || 0));
       return sum + (Number.isFinite(derivedBase) ? derivedBase : 0);
     }, 0);
-    const paidInvoices = filteredInvoices.filter((inv) => {
+    const paidInvoices = invoicesForVat.filter((inv) => {
       const normalized = (inv.status || "").toLowerCase();
       return normalized === "paid" || normalized === "fully paid";
     });
-    const pendingInvoices = filteredInvoices.filter((inv) => {
+    const pendingInvoices = invoicesForVat.filter((inv) => {
       const normalized = (inv.status || "").toLowerCase();
       return !(normalized === "paid" || normalized === "fully paid");
     });
@@ -195,7 +198,7 @@ const Reports = () => {
     return {
       summary: {
         totalSales,
-        totalInvoices: filteredInvoices.length,
+        totalInvoices: invoicesForVat.length,
         paidInvoices: paidInvoices.length,
         pendingInvoices: pendingInvoices.length,
         totalTax,

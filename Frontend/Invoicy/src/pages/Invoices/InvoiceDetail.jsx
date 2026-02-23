@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import moment from "moment";
-import { Loader2, Printer, Edit2, Save, X } from "lucide-react";
+import { Loader2, Printer, Edit2, Save, X, FileText } from "lucide-react";
 import QRCode from "react-qr-code";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -22,6 +22,7 @@ const InvoiceDetail = () => {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentNote, setPaymentNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [convertLoading, setConvertLoading] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -93,6 +94,22 @@ const InvoiceDetail = () => {
     setPaymentAmount(invoice?.amountPaid || 0);
     setPaymentNote("");
     setIsEditingPayment(false);
+  };
+
+  const handleConvertToInvoice = async () => {
+    if (!invoice || (invoice.type || "invoice") !== "proforma" || invoice.convertedTo) return;
+    const statusNorm = (invoice.status || "").toLowerCase();
+    if (statusNorm !== "paid" && statusNorm !== "fully paid") return;
+    setConvertLoading(true);
+    try {
+      const res = await axiosInstance.post(API_PATHS.INVOICES.CONVERT_TO_INVOICE(invoice._id));
+      toast.success("Converted to invoice: " + (res.data?.invoice?.invoiceNumber || ""));
+      if (res.data?.invoice?._id) navigate(`/invoices/${res.data.invoice._id}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to convert");
+    } finally {
+      setConvertLoading(false);
+    }
   };
 
   if (loading) {
@@ -185,9 +202,25 @@ const InvoiceDetail = () => {
         <div className="flex items-center justify-between print:hidden">
           <div>
             <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
-            <p className="text-sm text-black dark:text-black">#{invoice.invoiceNumber}</p>
+            <p className="text-sm text-black dark:text-black flex items-center gap-2 flex-wrap">
+              #{invoice.invoiceNumber}
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
+                {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
+              </span>
+              {invoice.convertedTo && (
+                <Button size="small" variant="ghost" onClick={() => navigate(`/invoices/${invoice.convertedTo?._id || invoice.convertedTo}`)} className="text-xs">
+                  View converted invoice →
+                </Button>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-2">
+            {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
+              <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2">
+                {convertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Convert to invoice
+              </Button>
+            )}
             {!isEditingPayment ? (
               <Button 
                 variant="secondary" 

@@ -30,7 +30,8 @@ exports.createInvoice = async (req, res) => {
             graVerificationUrl,
             graVerificationCode,
             discountPercent = 0,   // Optional - percent
-            discountAmount = 0     // Optional - flat
+            discountAmount = 0,    // Optional - flat
+            type: invoiceType = 'invoice'
         } = req.body;
 
         const normalizedBillTo = (billTo && Object.keys(billTo).length > 0)
@@ -43,7 +44,8 @@ exports.createInvoice = async (req, res) => {
             return res.status(400).json({ message: "Invoice must contain at least one item" });
         }
 
-        const invoiceNumber = `INV-${Date.now()}`;
+        const isProforma = (invoiceType || '').toString().toLowerCase() === 'proforma';
+        const invoiceNumber = isProforma ? `PRO-${Date.now()}` : `INV-${Date.now()}`;
         const round = (num) => Math.round(num * 100) / 100;
 
         // Ghana tax rates
@@ -152,6 +154,7 @@ exports.createInvoice = async (req, res) => {
             amountPaid: paidValue,
             balanceDue,
             grandTotal,
+            type: isProforma ? 'proforma' : 'invoice',
             discountPercent: discountPercent ? Number(discountPercent) : undefined,
             discountAmount: discountAmount ? Number(discountAmount) : undefined,
             graQrCode: graQrCode || undefined,
@@ -460,4 +463,79 @@ exports.deleteInvoice = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Error deleting invoice', error: error.message });  
     }
-};  
+};
+
+// @desc Convert a paid proforma invoice to a formal invoice (for VAT reporting)
+// @route POST /api/invoices/:id/convert-to-invoice
+// @access Private (owner/admin only)
+exports.convertProformaToInvoice = async (req, res) => {
+    try {
+        const role = req.user?.role || 'owner';
+        if (!['owner', 'admin'].includes(role)) {
+            return res.status(403).json({ message: 'Only owner or admin can convert proforma to invoice' });
+        }
+
+        const proforma = await Invoice.findById(req.params.id);
+        if (!proforma) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+
+        const teamMemberIds = await getTeamMemberIds(req.user._id);
+        if (!teamMemberIds.some(id => id.toString() === proforma.user.toString())) {
+            return res.status(403).json({ message: 'Unauthorized access to this invoice' });
+        }
+
+        if ((proforma.type || 'invoice') !== 'proforma') {
+            return res.status(400).json({ message: 'Only proforma invoices can be converted' });
+        }
+        if (proforma.convertedTo) {
+            return res.status(400).json({ message: 'This proforma has already been converted to an invoice' });
+        }
+
+        const statusNorm = (proforma.status || '').toLowerCase();
+        if (statusNorm !== 'paid' && statusNorm !== 'fully paid') {
+            return res.status(400).json({ message: 'Proforma must be fully paid before converting to invoice' });
+        }
+
+        const newInvoiceNumber = `INV-${Date.now()}`;
+        const newInvoice = new Invoice({
+            user: proforma.user,
+            invoiceNumber: newInvoiceNumber,
+            invoiceDate: proforma.invoiceDate,
+            dueDate: proforma.dueDate,
+            billFrom: proforma.billFrom,
+            billTo: proforma.billTo,
+            companyLogo: proforma.companyLogo,
+            companySignature: proforma.companySignature,
+            companyStamp: proforma.companyStamp,
+            item: proforma.item,
+            notes: proforma.notes,
+            paymentTerms: proforma.paymentTerms,
+            status: 'Fully Paid',
+            subtotal: proforma.subtotal,
+            totalVat: proforma.totalVat,
+            totalNhil: proforma.totalNhil,
+            totalGetFund: proforma.totalGetFund,
+            totalDiscount: proforma.totalDiscount,
+            amountPaid: proforma.amountPaid,
+            balanceDue: 0,
+            grandTotal: proforma.grandTotal,
+            paymentHistory: proforma.paymentHistory || [],
+            type: 'invoice',
+            convertedFromProforma: proforma._id,
+        });
+
+        await newInvoice.save();
+        proforma.convertedTo = newInvoice._id;
+        await proforma.save();
+
+        const populated = await Invoice.findById(newInvoice._id).populate('user', 'name email');
+        res.status(201).json({
+            message: 'Proforma converted to invoice successfully',
+            invoice: populated,
+        });
+    } catch (error) {
+        console.error('Convert proforma error:', error);
+        res.status(500).json({ message: 'Error converting proforma', error: error.message });
+    }
+};
