@@ -114,15 +114,41 @@ const Login = () => {
       if(response.status === 200){
         const {token} = response.data;
         if (token) {
-          setSuccess("Login successful");
           login(response.data, token);
-
-          let redirect = "/dashboard";
           const paymentSuccess = searchParams.get("payment") === "success";
+
           if (paymentSuccess) {
             sessionStorage.removeItem("checkoutPlan");
-            redirect = "/dashboard?payment=success";
+            setSuccess("Verifying your subscription…");
+            let attempts = 0;
+            const maxAttempts = 15;
+            const checkSubscription = async () => {
+              while (attempts < maxAttempts) {
+                attempts += 1;
+                try {
+                  const meRes = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
+                  const data = meRes.data || {};
+                  const status = data.subscription?.status;
+                  const hasAccess = data.isPlatformAdmin || (status === "active" || status === "trialing");
+                  if (hasAccess) {
+                    if (data.subscription) {
+                      const updated = { ...response.data, ...data };
+                      login(updated, token);
+                    }
+                    setSuccess("Subscription confirmed! Taking you to dashboard…");
+                    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+                    return;
+                  }
+                } catch (_) {}
+                await new Promise((r) => setTimeout(r, 2000));
+              }
+              setSuccess("Subscription is being activated. Taking you to dashboard…");
+              setTimeout(() => { window.location.href = "/dashboard?payment=success"; }, 1500);
+            };
+            await checkSubscription();
           } else {
+            setSuccess("Login successful");
+            let redirect = "/dashboard";
             try {
               const raw = sessionStorage.getItem("checkoutPlan");
               if (raw) {
@@ -131,10 +157,8 @@ const Login = () => {
                 redirect = `/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`;
               }
             } catch (_) {}
+            setTimeout(() => { window.location.href = redirect; }, 1500);
           }
-          setTimeout(() => {
-            window.location.href = redirect;
-          }, 1500);
         } else {
           setError(response.data.message || "Invalid credentials");
         }

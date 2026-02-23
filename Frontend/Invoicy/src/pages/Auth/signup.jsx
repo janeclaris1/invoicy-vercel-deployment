@@ -265,7 +265,7 @@ const SignUp = () => {
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
           <p className="text-gray-600 text-sm">
-            Enter your details, then you'll pay to complete signup.
+            Fill in your details, then proceed to pay. After payment you can log in and access your account.
           </p>
         </div>
 
