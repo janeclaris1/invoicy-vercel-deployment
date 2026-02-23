@@ -118,14 +118,20 @@ const Login = () => {
           login(response.data, token);
 
           let redirect = "/dashboard";
-          try {
-            const raw = sessionStorage.getItem("checkoutPlan");
-            if (raw) {
-              const { plan, interval } = JSON.parse(raw);
-              sessionStorage.removeItem("checkoutPlan");
-              redirect = `/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`;
-            }
-          } catch (_) {}
+          const paymentSuccess = searchParams.get("payment") === "success";
+          if (paymentSuccess) {
+            sessionStorage.removeItem("checkoutPlan");
+            redirect = "/dashboard?payment=success";
+          } else {
+            try {
+              const raw = sessionStorage.getItem("checkoutPlan");
+              if (raw) {
+                const { plan, interval } = JSON.parse(raw);
+                sessionStorage.removeItem("checkoutPlan");
+                redirect = `/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`;
+              }
+            } catch (_) {}
+          }
           setTimeout(() => {
             window.location.href = redirect;
           }, 1500);
@@ -135,7 +141,9 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Login error:", err);
-      if (err.response && err.response.data && err.response.data.message) {
+      if (err.response?.status === 429) {
+        setError(err.response?.data?.message || "Too many login attempts. Please try again in 15 minutes.");
+      } else if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else if (err.code === "ERR_NETWORK" || err.message.includes("Network Error")) {
         setError(`Cannot connect to server. Please make sure the backend is running at ${BASE_URL}`);

@@ -22,6 +22,7 @@ const HR_PATH_TO_RESPONSIBILITY = {
   "/hr/performance": "hr_performance",
   "/hr/recruitment": "hr_recruitment",
   "/hr/self-service": "hr_self_service",
+  "/hr/compliance": "hr_compliance",
 };
 
 const ALWAYS_ALLOWED = ["/profile", "/support", "/hr/self-service"];
@@ -40,7 +41,7 @@ const hasHrAccess = (responsibilities, requiredHr) => {
 
 const getFirstHrPath = (responsibilities) => {
   if (responsibilities.includes("hr")) return "/hr/records";
-  const pathOrder = ["/hr/records", "/hr/onboarding", "/hr/attendance", "/hr/payroll", "/hr/performance", "/hr/recruitment", "/hr/self-service"];
+  const pathOrder = ["/hr/records", "/hr/onboarding", "/hr/attendance", "/hr/payroll", "/hr/performance", "/hr/recruitment", "/hr/self-service", "/hr/compliance"];
   for (const path of pathOrder) {
     const req = HR_PATH_TO_RESPONSIBILITY[path];
     if (req && responsibilities.includes(req)) return path;

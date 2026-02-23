@@ -175,6 +175,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
         if (id === "hr/performance") return "nav.hr_performance";
         if (id === "hr/recruitment") return "nav.hr_recruitment";
         if (id === "hr/self-service") return "nav.hr_self_service";
+        if (id === "hr/compliance") return "nav.hr_compliance";
         if (id === "hr/team") return "nav.hr_team";
         return `nav.${id.replace(/\//g, "_")}`;
     };

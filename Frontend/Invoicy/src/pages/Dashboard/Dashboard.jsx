@@ -185,8 +185,26 @@ const Dashboard = () => {
     );
   }
 
+  const [showThankYou, setShowThankYou] = useState(
+    () => new URLSearchParams(location.search).get("payment") === "success"
+  );
+
+  useEffect(() => {
+    if (showThankYou) {
+      window.history.replaceState({}, "", "/dashboard");
+      const t = setTimeout(() => setShowThankYou(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [showThankYou]);
+
   return (
     <div className="space-y-8">
+      {showThankYou && (
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-green-800 dark:text-green-200 font-medium">Thank you for subscribing!</p>
+          <p className="text-green-700 dark:text-green-300 text-sm mt-1">Your account is now active. Start creating invoices and managing your business.</p>
+        </div>
+      )}
       {/* Debug output for API errors */}
       {stats.totalInvoices === 0 && recentInvoices.length === 0 && (
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg mb-4">

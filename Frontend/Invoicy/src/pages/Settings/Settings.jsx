@@ -53,6 +53,7 @@ const Settings = () => {
     { id: "hr_performance", label: "Performance & Talent", description: "Performance and talent only" },
     { id: "hr_recruitment", label: "Recruitment & ATS", description: "Recruitment and ATS only" },
     { id: "hr_self_service", label: "Employee Self-Service", description: "Employee self-service only" },
+    { id: "hr_compliance", label: "Legal & Compliance Templates", description: "HR legal and compliance templates only" },
     { id: "settings", label: "Settings", description: "Manage account and team settings" },
   ];
 

@@ -179,6 +179,7 @@ export const HR_RESPONSIBILITIES = [
     "hr_performance",
     "hr_recruitment",
     "hr_self_service",
+    "hr_compliance",
 ];
 
 // Navigation items configuration - responsibility maps to nav id for permission check
@@ -205,6 +206,7 @@ export const NAVIGATION_MENU = [
             { id: "hr/performance", name: "Performance & Talent", icon: null, responsibility: "hr_performance" },
             { id: "hr/recruitment", name: "Recruitment & ATS", icon: null, responsibility: "hr_recruitment" },
             { id: "hr/self-service", name: "Employee Self-Service", icon: null, responsibility: "hr_self_service" },
+            { id: "hr/compliance", name: "Legal & Compliance Templates", icon: null, responsibility: "hr_compliance" },
         ],
     },
     { id: "messages", name: "Messages", icon: MessageCircle, responsibility: null },

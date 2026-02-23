@@ -31,6 +31,7 @@ import HrPayroll from "./pages/HR/HrPayroll";
 import HrPerformance from "./pages/HR/HrPerformance";
 import HrRecruitment from "./pages/HR/HrRecruitment";
 import HrSelfService from "./pages/HR/HrSelfService";
+import HrCompliance from "./pages/HR/HrCompliance";
 import Messages from "./pages/Messages/Messages";
 import Clients from "./pages/Clients/Clients";
 import Checkout from "./pages/Checkout/Checkout";
@@ -80,6 +81,7 @@ const App = () => {
             <Route path="hr/performance" element={<HrPerformance />} />
             <Route path="hr/recruitment" element={<HrRecruitment />} />
             <Route path="hr/self-service" element={<HrSelfService />} />
+            <Route path="hr/compliance" element={<HrCompliance />} />
             <Route path="messages" element={<Messages />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />

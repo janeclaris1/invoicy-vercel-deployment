@@ -10,10 +10,10 @@ const apiLimiter = rateLimit({
   skip: (req) => (req.originalUrl || req.url || req.path || '').startsWith('/api/messages'),
 });
 
-// Stricter rate limiter for auth routes
+// Stricter rate limiter for auth routes (failed attempts only, skipSuccessfulRequests: true)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login/register requests per windowMs
+  max: 20, // Limit each IP to 20 failed auth attempts per window (successful logins don't count)
   message: 'Too many authentication attempts from this IP, please try again after 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,

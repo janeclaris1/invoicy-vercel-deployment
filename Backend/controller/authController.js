@@ -304,7 +304,8 @@ exports.loginUser = async (req, res, next) => {
             });
         }
 
-        const user = await User.findOne({ email }).select('+password');
+        const emailNorm = (email || '').trim().toLowerCase();
+        const user = await User.findOne({ email: emailNorm }).select('+password');
 
         if (user && (await user.matchPassword(password))) {
             const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
