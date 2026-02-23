@@ -15,6 +15,10 @@ const itemSchema = new mongoose.Schema({
   sku: { type: String, default: '' },
   taxRate: { type: Number, default: 0 },
   usageCount: { type: Number, default: 0 },
+  // Stock management
+  trackStock: { type: Boolean, default: false },
+  quantityInStock: { type: Number, default: 0 },
+  reorderLevel: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Item', itemSchema);

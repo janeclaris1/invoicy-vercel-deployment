@@ -19,6 +19,9 @@ const Items = () => {
     unit: "unit",
     sku: "",
     taxRate: "",
+    trackStock: false,
+    quantityInStock: "",
+    reorderLevel: "",
   });
 
   // Default categories (fallback)
@@ -121,7 +124,8 @@ const Items = () => {
   }, []);
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
   };
 
   const openAddItem = () => {
@@ -134,6 +138,9 @@ const Items = () => {
       unit: "unit",
       sku: "",
       taxRate: "",
+      trackStock: false,
+      quantityInStock: "",
+      reorderLevel: "",
     });
     setShowModal(true);
   };
@@ -148,6 +155,9 @@ const Items = () => {
       unit: item.unit || "unit",
       sku: item.sku || "",
       taxRate: item.taxRate || "",
+      trackStock: Boolean(item.trackStock),
+      quantityInStock: item.quantityInStock != null ? String(item.quantityInStock) : "",
+      reorderLevel: item.reorderLevel != null ? String(item.reorderLevel) : "",
     });
     setShowModal(true);
   };
@@ -181,6 +191,9 @@ const Items = () => {
           unit: formData.unit,
           sku: formData.sku,
           taxRate: formData.taxRate,
+          trackStock: formData.trackStock,
+          quantityInStock: formData.trackStock ? Number(formData.quantityInStock) || 0 : 0,
+          reorderLevel: formData.trackStock ? Number(formData.reorderLevel) || 0 : 0,
         });
         const updated = response.data;
         setItems((prev) => prev.map((item) =>
@@ -198,6 +211,9 @@ const Items = () => {
           unit: formData.unit,
           sku: formData.sku,
           taxRate: formData.taxRate,
+          trackStock: formData.trackStock,
+          quantityInStock: formData.trackStock ? Number(formData.quantityInStock) || 0 : 0,
+          reorderLevel: formData.trackStock ? Number(formData.reorderLevel) || 0 : 0,
         });
         const newItem = response.data;
         setItems((prev) => [{
@@ -252,6 +268,9 @@ const Items = () => {
       unit: "unit",
       sku: "",
       taxRate: "",
+      trackStock: false,
+      quantityInStock: "",
+      reorderLevel: "",
     });
   };
 
@@ -490,6 +509,54 @@ const Items = () => {
                     max="100"
                   />
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="trackStock"
+                    name="trackStock"
+                    checked={formData.trackStock}
+                    onChange={handleInputChange}
+                    className="rounded border-gray-300 text-blue-900 focus:ring-blue-500"
+                  />
+                  <label htmlFor="trackStock" className="text-sm font-medium text-gray-700">
+                    Track stock (manage in Stock Management)
+                  </label>
+                </div>
+                {formData.trackStock && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Quantity in stock
+                      </label>
+                      <input
+                        type="number"
+                        name="quantityInStock"
+                        value={formData.quantityInStock}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Reorder level (alert when at or below)
+                      </label>
+                      <input
+                        type="number"
+                        name="reorderLevel"
+                        value={formData.reorderLevel}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center justify-end space-x-4 pt-4">

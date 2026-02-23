@@ -23,6 +23,7 @@ import Customers from "./pages/Customers/Customers";
 import Suppliers from "./pages/Suppliers/Suppliers";
 import Categories from "./pages/Categories/Categories";
 import Items from "./pages/Items/Items";
+import Stock from "./pages/Stock/Stock";
 import Reports from "./pages/Reports/Reports";
 import HrRecords from "./pages/HR/HrRecords";
 import HrOnboarding from "./pages/HR/HrOnboarding";
@@ -73,6 +74,7 @@ const App = () => {
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="categories" element={<Categories />} />
             <Route path="items" element={<Items />} />
+            <Route path="stock" element={<Stock />} />
             <Route path="reports" element={<Reports />} />
             <Route path="hr/records" element={<HrRecords />} />
             <Route path="hr/onboarding" element={<HrOnboarding />} />

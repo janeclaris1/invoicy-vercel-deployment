@@ -10,6 +10,7 @@ const PATH_TO_RESPONSIBILITY = {
   "/suppliers": "suppliers",
   "/categories": "categories",
   "/items": "items",
+  "/stock": "items",
   "/reports": "reports",
   "/settings": "settings",
 };

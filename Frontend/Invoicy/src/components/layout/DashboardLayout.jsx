@@ -167,6 +167,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const navLabelKey = (id) => {
         if (id === "invoices/new") return "nav.create_invoice";
+        if (id === "stock") return "nav.stock";
         if (id === "hr") return "nav.hr";
         if (id === "hr/records") return "nav.hr_records";
         if (id === "hr/onboarding") return "nav.hr_onboarding";
