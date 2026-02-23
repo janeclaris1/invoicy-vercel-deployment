@@ -92,19 +92,15 @@ exports.initializePayment = async (req, res) => {
     }
 };
 
-// Minimal amount for 7-day trial: only capture/save payment details (Paystack requires amount > 0)
-const TRIAL_VERIFICATION_AMOUNT = 100; // 1 GHS in pesewas
-
 // @desc    Initialize Paystack for guest (new signup – pay before account exists)
 // @route   POST /api/subscriptions/initialize-guest
 // @access  Public
-// @body    pendingSignupId, trial (optional) – if trial true, charge minimal amount and create trialing subscription; full charge after 7 days
 exports.initializeGuestPayment = async (req, res) => {
     try {
         if (!PAYSTACK_SECRET) {
             return res.status(503).json({ message: 'Paystack is not configured' });
         }
-        const { pendingSignupId, trial } = req.body;
+        const { pendingSignupId } = req.body;
         if (!pendingSignupId) {
             return res.status(400).json({ message: 'pendingSignupId is required' });
         }
@@ -113,13 +109,11 @@ exports.initializeGuestPayment = async (req, res) => {
             return res.status(404).json({ message: 'Signup session expired. Please start again from the pricing page.' });
         }
         const { plan, interval } = pending;
-        const isTrial = trial === true || trial === 'true';
-        const fullAmount = getAmount(plan, interval);
+        const amount = getAmount(plan, interval);
         const currency = getCurrency(plan, interval);
-        if (fullAmount == null || fullAmount <= 0) {
+        if (amount == null || amount <= 0) {
             return res.status(400).json({ message: 'Invalid plan or interval' });
         }
-        const amount = isTrial ? TRIAL_VERIFICATION_AMOUNT : fullAmount;
         const callbackUrl = (process.env.FRONTEND_URL || process.env.ALLOWED_ORIGINS?.split(',')[0] || 'http://localhost:5173') + '/login?payment=success';
         const paystackRes = await paystackRequest('/transaction/initialize', 'POST', {
             amount,
@@ -130,7 +124,6 @@ exports.initializeGuestPayment = async (req, res) => {
                 pendingSignupId: pending._id.toString(),
                 plan,
                 interval,
-                trial: isTrial,
             },
         });
         if (!paystackRes.status || !paystackRes.data?.authorization_url) {
@@ -195,19 +188,14 @@ exports.webhook = async (req, res) => {
         const pendingSignupId = metadata.pendingSignupId;
         const plan = metadata.plan;
         const interval = metadata.interval;
-        const isTrial = metadata.trial === true || metadata.trial === 'true';
         if (!plan || !interval) {
             logger.warn('Paystack webhook missing metadata', metadata);
             return res.status(200).send('OK');
         }
         const currency = (verify.data.currency || 'GHS').toUpperCase();
         let periodEnd = new Date();
-        if (isTrial) {
-            periodEnd.setDate(periodEnd.getDate() + 7);
-        } else {
-            if (interval === 'monthly') periodEnd.setMonth(periodEnd.getMonth() + 1);
-            else periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-        }
+        if (interval === 'monthly') periodEnd.setMonth(periodEnd.getMonth() + 1);
+        else periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 
         let userId;
         if (pendingSignupId) {
@@ -231,33 +219,28 @@ exports.webhook = async (req, res) => {
             }
         }
 
-        const subscriptionStatus = isTrial ? 'trialing' : 'active';
-        const subscriptionAmount = isTrial ? (getAmount(plan, interval) || verify.data.amount) : verify.data.amount;
-
         await Subscription.findOneAndUpdate(
             { user: userId },
             {
                 user: userId,
                 plan,
                 billingInterval: interval,
-                status: subscriptionStatus,
-                amount: subscriptionAmount,
+                status: 'active',
+                amount: verify.data.amount,
                 currency,
                 currentPeriodEnd: periodEnd,
                 paystackReference: reference,
             },
             { upsert: true, new: true }
         );
-        if (!isTrial) {
-            await SubscriptionPayment.create({
-                user: userId,
-                amount: verify.data.amount,
-                currency,
-                paystackReference: reference,
-                plan,
-                billingInterval: interval,
-            });
-        }
+        await SubscriptionPayment.create({
+            user: userId,
+            amount: verify.data.amount,
+            currency,
+            paystackReference: reference,
+            plan,
+            billingInterval: interval,
+        });
         res.status(200).send('OK');
     } catch (error) {
         logger.error('Paystack webhook error', error);
