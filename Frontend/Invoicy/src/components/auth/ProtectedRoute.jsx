@@ -3,8 +3,10 @@ import { useAuth } from "../../context/AuthContext";
 import DashboardLayout from "../layout/DashboardLayout";
 import ResponsibilityGuard from "./ResponsibilityGuard";
 
+const ALLOWED_SUBSCRIPTION_STATUSES = ["active", "trialing"];
+
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -12,6 +14,14 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  const hasValidSubscription =
+    user?.isPlatformAdmin ||
+    (user?.subscription && ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscription.status));
+
+  if (!hasValidSubscription) {
+    return <Navigate to="/subscription-required" replace />;
   }
 
   return (

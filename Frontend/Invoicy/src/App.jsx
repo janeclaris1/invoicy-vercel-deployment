@@ -36,6 +36,7 @@ import HrCompliance from "./pages/HR/HrCompliance";
 import Messages from "./pages/Messages/Messages";
 import Clients from "./pages/Clients/Clients";
 import Checkout from "./pages/Checkout/Checkout";
+import SubscriptionRequired from "./pages/SubscriptionRequired/SubscriptionRequired";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -60,6 +61,7 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/subscription-required" element={<SubscriptionRequired />} />
 
 
           {/*Protected Routes*/}

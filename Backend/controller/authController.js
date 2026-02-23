@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Employee = require('../models/Employee');
 const Subscription = require('../models/Subscription');
+const SubscriptionPayment = require('../models/SubscriptionPayment');
 const PendingSignup = require('../models/PendingSignup');
 
 const getTeamMemberIds = async (currentUserId) => {
@@ -311,6 +312,7 @@ exports.loginUser = async (req, res, next) => {
             const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
             const userEmailNorm = (user.email || '').trim().toLowerCase();
             const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
+            const subscription = await Subscription.findOne({ user: user._id }).lean();
             res.json({
                 _id: user._id,
                 name: user.name,
@@ -328,6 +330,7 @@ exports.loginUser = async (req, res, next) => {
                 responsibilities: user.responsibilities || [],
                 createdBy: user.createdBy || null,
                 isPlatformAdmin: !!isPlatformAdmin,
+                subscription: subscription || null,
             });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
@@ -347,6 +350,7 @@ exports.getMe = async (req, res) => {
         const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
         const userEmailNorm = (user.email || '').trim().toLowerCase();
         const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
+        const subscription = await Subscription.findOne({ user: user._id }).lean();
         const payload = {
             _id: user._id,
             name: user.name,
@@ -363,6 +367,7 @@ exports.getMe = async (req, res) => {
             responsibilities: user.responsibilities || [],
             createdBy: user.createdBy || null,
             isPlatformAdmin: !!isPlatformAdmin,
+            subscription: subscription || null,
         };
         if (process.env.NODE_ENV !== 'production') {
             payload._platformAdminCheck = { envConfigured: adminEmails.length > 0 };
@@ -451,13 +456,48 @@ exports.getAllClients = async (req, res) => {
         const subscriptions = await Subscription.find({ user: { $in: userIds } }).lean();
         const subByUser = {};
         subscriptions.forEach((s) => { subByUser[s.user.toString()] = s; });
+        const payments = await SubscriptionPayment.aggregate([
+            { $match: { user: { $in: userIds } } },
+            { $group: { _id: '$user', total: { $sum: '$amount' } } },
+        ]);
+        const revenueByUser = {};
+        payments.forEach((p) => { revenueByUser[p._id.toString()] = p.total; });
+        const totalRevenue = payments.reduce((sum, p) => sum + p.total, 0);
         const clientsWithSub = clients.map((c) => ({
             ...c,
             subscription: subByUser[c._id.toString()] || null,
+            revenue: revenueByUser[c._id.toString()] || 0,
         }));
-        res.json(clientsWithSub);
+        res.json({ clients: clientsWithSub, totalRevenue });
     } catch (error) {
         console.error('Get all clients error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Remove a subscribed client (platform admin only)
+// @route   DELETE /api/auth/clients/:id
+// @access  Private (PLATFORM_ADMIN_EMAIL only)
+exports.removeClient = async (req, res) => {
+    try {
+        const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+        const userEmailNorm = (req.user?.email || '').trim().toLowerCase();
+        if (!adminEmails.length || !adminEmails.includes(userEmailNorm)) {
+            return res.status(403).json({ message: 'Only platform admin can remove clients' });
+        }
+        const targetId = req.params.id;
+        if (targetId === req.user._id?.toString() || targetId === req.user.id?.toString()) {
+            return res.status(400).json({ message: 'You cannot remove your own account' });
+        }
+        const target = await User.findById(targetId);
+        if (!target) return res.status(404).json({ message: 'User not found' });
+        if (target.createdBy) return res.status(400).json({ message: 'Can only remove account owners (clients), not team members' });
+        await Subscription.deleteMany({ user: targetId });
+        await SubscriptionPayment.deleteMany({ user: targetId });
+        await target.deleteOne();
+        res.json({ message: 'Client removed' });
+    } catch (error) {
+        console.error('Remove client error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

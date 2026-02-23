@@ -23,17 +23,28 @@ const SignUp = () => {
 
   const { isAuthenticated } = useAuth();
 
-  // If user came from pricing, store plan/interval for checkout after login (or redirect to checkout if already logged in)
+  const plan = searchParams.get("plan");
+  const interval = searchParams.get("interval");
+  const hasValidPlan = plan && interval && ["basic", "pro"].includes(plan) && ["monthly", "annual"].includes(interval);
+
+  // Require plan: redirect to pricing if none chosen
   React.useEffect(() => {
-    const plan = searchParams.get("plan");
-    const interval = searchParams.get("interval");
-    if (!plan || !interval || !["basic", "pro"].includes(plan) || !["monthly", "annual"].includes(interval)) return;
-    if (isAuthenticated) {
-      navigate(`/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`, { replace: true });
+    if (hasValidPlan) {
+      sessionStorage.setItem("checkoutPlan", JSON.stringify({ plan, interval }));
       return;
     }
-    sessionStorage.setItem("checkoutPlan", JSON.stringify({ plan, interval }));
-  }, [searchParams, isAuthenticated, navigate]);
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    navigate("/#pricing", { replace: true });
+  }, [hasValidPlan, isAuthenticated, navigate]);
+
+  // If user came from pricing and is already logged in, send to checkout
+  React.useEffect(() => {
+    if (!hasValidPlan || !isAuthenticated) return;
+    navigate(`/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`, { replace: true });
+  }, [hasValidPlan, isAuthenticated, plan, interval, navigate]);
   
   // Form data state
   const [formData, setFormData] = useState({ 
@@ -236,6 +247,14 @@ const SignUp = () => {
   };
 
   // ==================== RENDER ====================
+  if (!hasValidPlan || isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
+        <p className="text-gray-600">Redirecting...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
@@ -246,7 +265,7 @@ const SignUp = () => {
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
           <p className="text-gray-600 text-sm">
-            {searchParams.get("plan") ? "Enter your details, then you’ll pay to complete signup." : "Join Invoicy today"}
+            Enter your details. You'll add your billing details next—they'll be saved for automatic billing after your 7-day free trial.
           </p>
         </div>
 
@@ -396,15 +415,18 @@ const SignUp = () => {
             {isloading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                {searchParams.get("plan") ? "Redirecting to payment..." : "Creating Account..."}
+                Redirecting to add billing details…
               </>
             ) : (
               <>
-                {searchParams.get("plan") ? "Continue to payment" : "Sign Up"}
+                Try free for 7 days
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </>
             )}
           </button>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            After 7 days you’ll be charged according to your plan. If payment fails, access will be paused until you update your billing.
+          </p>
         </div>
 
         {/* Footer */}

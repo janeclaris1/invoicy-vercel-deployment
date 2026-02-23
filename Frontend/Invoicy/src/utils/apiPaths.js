@@ -17,6 +17,7 @@ export const API_PATHS = {
         TEAM: "api/auth/team",
         TEAM_MEMBER: (id) => `api/auth/team/${id}`,
         CLIENTS: "api/auth/clients",
+        CLIENTS_DELETE: (id) => `api/auth/clients/${id}`,
     },
     SUBSCRIPTIONS: {
         ME: "api/subscriptions/me",

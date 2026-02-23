@@ -80,6 +80,33 @@ const NavigationItemWithDropdown = ({ item, activeNavItem, onClick, isCollapsed,
     );
 };
 
+const NextBillingCountdown = ({ currentPeriodEnd }) => {
+    const [text, setText] = useState("");
+    useEffect(() => {
+        const update = () => {
+            const end = new Date(currentPeriodEnd);
+            const now = new Date();
+            if (end <= now) {
+                setText("Billing due");
+                return;
+            }
+            const days = Math.ceil((end - now) / (24 * 60 * 60 * 1000));
+            if (days <= 0) setText("Next billing today");
+            else if (days === 1) setText("Next billing tomorrow");
+            else if (days <= 31) setText(`Next billing in ${days} days`);
+            else setText(`Next billing: ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`);
+        };
+        update();
+        const t = setInterval(update, 60 * 1000);
+        return () => clearInterval(t);
+    }, [currentPeriodEnd]);
+    if (!text) return null;
+    return (
+        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 hidden sm:block" title={new Date(currentPeriodEnd).toLocaleString()}>
+            {text}
+        </p>
+    );
+};
 
 const DashboardLayout = ({ children, activeMenu }) => {
     const { user, logout } = useAuth();
@@ -296,6 +323,9 @@ const DashboardLayout = ({ children, activeMenu }) => {
                             <p className="text-sm text-gray-500 dark:text-slate-400 hidden sm:block">
                                 {t("header.subtitle")}
                             </p>
+                            {!user?.isPlatformAdmin && user?.subscription?.currentPeriodEnd && (
+                                <NextBillingCountdown currentPeriodEnd={user.subscription.currentPeriodEnd} />
+                            )}
                         </div>
                     </div>
 

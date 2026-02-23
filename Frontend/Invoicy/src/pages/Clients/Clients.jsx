@@ -2,35 +2,55 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { Users, Loader2 } from "lucide-react";
+import { Users, Loader2, Trash2, DollarSign } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const Clients = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const [clients, setClients] = useState([]);
+    const [totalRevenue, setTotalRevenue] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [removingId, setRemovingId] = useState(null);
+
+    const fetchClients = async () => {
+        if (!user?.isPlatformAdmin) return;
+        try {
+            const res = await axiosInstance.get(API_PATHS.AUTH.CLIENTS);
+            const data = res.data;
+            setClients(Array.isArray(data.clients) ? data.clients : (data && !Array.isArray(data) ? [] : (res.data || [])));
+            setTotalRevenue(typeof data?.totalRevenue === "number" ? data.totalRevenue : 0);
+            setError(null);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to load clients");
+            setClients([]);
+            setTotalRevenue(0);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!user?.isPlatformAdmin) {
             setLoading(false);
             return;
         }
-        const fetchClients = async () => {
-            try {
-                const res = await axiosInstance.get(API_PATHS.AUTH.CLIENTS);
-                setClients(res.data || []);
-                setError(null);
-            } catch (err) {
-                setError(err.response?.data?.message || "Failed to load clients");
-                setClients([]);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchClients();
     }, [user?.isPlatformAdmin]);
+
+    const handleRemove = async (client) => {
+        if (!window.confirm(`Remove "${client.name || client.email}"? This will delete their account and subscription.`)) return;
+        setRemovingId(client._id);
+        try {
+            await axiosInstance.delete(API_PATHS.AUTH.CLIENTS_DELETE(client._id));
+            await fetchClients();
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to remove client");
+        } finally {
+            setRemovingId(null);
+        }
+    };
 
     if (!user?.isPlatformAdmin) {
         return (
@@ -59,14 +79,23 @@ const Clients = () => {
 
     return (
         <div className="p-6">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Users className="w-7 h-7 text-blue-600" />
-                    {t("nav.clients")}
-                </h1>
-                <p className="text-gray-600 dark:text-slate-400 mt-1">
-                    All account owners (subscribed clients) on the platform.
-                </p>
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Users className="w-7 h-7 text-blue-600" />
+                        {t("nav.clients")}
+                    </h1>
+                    <p className="text-gray-600 dark:text-slate-400 mt-1">
+                        All account owners (subscribed clients) on the platform.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-2">
+                    <DollarSign className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Total revenue</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        ₦{typeof totalRevenue === "number" ? totalRevenue.toLocaleString() : "0"}
+                    </span>
+                </div>
             </div>
 
             {error && (
@@ -86,13 +115,15 @@ const Clients = () => {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Plan</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Next billing</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Revenue</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Joined</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                             {clients.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500 dark:text-slate-400">
+                                    <td colSpan={9} className="px-4 py-12 text-center text-gray-500 dark:text-slate-400">
                                         No clients yet.
                                     </td>
                                 </tr>
@@ -117,7 +148,20 @@ const Clients = () => {
                                                 ) : "—"}
                                             </td>
                                             <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-sm">{sub?.currentPeriodEnd ? formatDate(sub.currentPeriodEnd) : "—"}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-300">₦{(client.revenue ?? 0).toLocaleString()}</td>
                                             <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-sm">{formatDate(client.createdAt)}</td>
+                                            <td className="px-4 py-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemove(client)}
+                                                    disabled={removingId === client._id}
+                                                    className="inline-flex items-center gap-1 px-2 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md disabled:opacity-50"
+                                                    title="Remove client"
+                                                >
+                                                    {removingId === client._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                    Remove
+                                                </button>
+                                            </td>
                                         </tr>
                                     );
                                 })

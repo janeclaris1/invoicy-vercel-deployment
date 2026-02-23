@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const https = require('https');
 const User = require('../models/User');
 const Subscription = require('../models/Subscription');
+const SubscriptionPayment = require('../models/SubscriptionPayment');
 const PendingSignup = require('../models/PendingSignup');
 const { getAmount, getCurrency } = require('../config/plans');
 const logger = require('../utils/logger');
@@ -227,6 +228,14 @@ exports.webhook = async (req, res) => {
             },
             { upsert: true, new: true }
         );
+        await SubscriptionPayment.create({
+            user: userId,
+            amount: verify.data.amount,
+            currency,
+            paystackReference: reference,
+            plan,
+            billingInterval: interval,
+        });
         res.status(200).send('OK');
     } catch (error) {
         logger.error('Paystack webhook error', error);
