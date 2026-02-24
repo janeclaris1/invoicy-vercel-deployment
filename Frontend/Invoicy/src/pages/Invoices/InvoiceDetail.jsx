@@ -325,15 +325,15 @@ const InvoiceDetail = () => {
         </div>
 
         {/* Left: Notes + GRA QR | Right: Subtotal & tax details - same row when printing */}
-        <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6">
+        <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-slate-800 text-white rounded-xl p-4">
           {/* Left column: Notes and GRA QR code */}
           <div className="flex flex-col gap-4">
-            <div className="text-sm text-black">
+            <div className="text-sm text-white">
               <div>Notes: {invoice.notes || "-"}</div>
               <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
             </div>
             <div className="space-y-2">
-              <div className="text-xs font-medium text-black">GRA Verification QR</div>
+              <div className="text-xs font-medium text-white">GRA Verification QR</div>
               {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
                 String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                   <img
@@ -347,12 +347,12 @@ const InvoiceDetail = () => {
                   </div>
                 )
               ) : (
-                <div className="w-32 h-32 border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center text-xs text-black">No QR</div>
+                <div className="w-32 h-32 border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center text-xs text-white">No QR</div>
               )}
             </div>
           </div>
           {/* Right column: Subtotal and tax details */}
-          <div className="text-sm text-black space-y-2 flex flex-col items-end">
+          <div className="text-sm text-white space-y-2 flex flex-col items-end">
             <div className="flex items-center justify-between w-full max-w-xs gap-4">
               <span>Subtotal</span>
               <span>{formatCurrency(invoice.subtotal, userCurrency)}</span>
@@ -434,7 +434,7 @@ const InvoiceDetail = () => {
               )}
             </div>
             <div className="flex items-center justify-between w-full max-w-xs gap-4 font-semibold">
-              <span>
+              <span className="text-white">
                 {balanceDue > 0 
                   ? "Balance Due" 
                   : balanceDue < 0 
@@ -443,10 +443,10 @@ const InvoiceDetail = () => {
               </span>
               <span className={
                 balanceDue > 0 
-                  ? "text-red-600" 
+                  ? "text-red-200" 
                   : balanceDue < 0 
-                  ? "text-blue-600" 
-                  : "text-emerald-600"
+                  ? "text-blue-200" 
+                  : "text-emerald-200"
               }>
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
