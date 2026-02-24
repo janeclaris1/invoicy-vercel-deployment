@@ -129,12 +129,15 @@ const InvoiceDetail = () => {
       const response = await axiosInstance.post(API_PATHS.GRA.SUBMIT_INVOICE, { invoiceId: id });
       const data = response?.data || response;
       const res = data?.response || data;
+      const mesaage = res?.mesaage || res?.message || data?.response?.mesaage;
       const qrCode = res?.qr_code ?? data?.qr_code;
-      const verificationUrl = res?.verificationUrl ?? data?.verificationUrl ?? qrCode;
-      const verificationCode = res?.verificationCode ?? data?.verificationCode ?? res?.ysdcintdata;
+      const verificationUrl =
+        res?.verificationUrl ?? data?.verificationUrl ?? qrCode ?? (typeof qrCode === "string" ? qrCode : null);
+      const verificationCode =
+        res?.verificationCode ?? data?.verificationCode ?? mesaage?.ysdcintdata ?? res?.ysdcintdata;
       const updates = {};
-      if (verificationUrl) updates.graVerificationUrl = verificationUrl;
-      if (verificationCode) updates.graVerificationCode = verificationCode;
+      if (verificationUrl && String(verificationUrl).trim()) updates.graVerificationUrl = String(verificationUrl).trim();
+      if (verificationCode && String(verificationCode).trim()) updates.graVerificationCode = String(verificationCode).trim();
       if (qrCode && String(qrCode).startsWith("data:image")) updates.graQrCode = qrCode;
       if (Object.keys(updates).length === 0) {
         toast.success("Invoice submitted to GRA. No verification URL/code returned; check GRA portal.");
@@ -392,13 +395,23 @@ const InvoiceDetail = () => {
                     alt="GRA QR"
                     className="w-32 h-32 object-contain border border-gray-200 rounded-xl bg-white p-2"
                   />
+                ) : /^https?:\/\//i.test(String(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode || "")) ? (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=112x112&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
+                    alt="GRA QR"
+                    className="w-32 h-32 object-contain border border-gray-200 rounded-xl bg-white p-2"
+                  />
                 ) : (
-                  <div className="w-32 h-32 border border-gray-200 rounded-xl bg-white p-2 inline-flex items-center justify-center">
-                    <QRCode value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)} size={112} />
+                  <div className="w-32 h-32 border border-gray-200 rounded-xl bg-white p-2 inline-flex items-center justify-center overflow-hidden">
+                    <QRCode
+                      value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)}
+                      size={112}
+                      style={{ height: 112, width: 112 }}
+                    />
                   </div>
                 )
               ) : (
-                <div className="w-32 h-32 border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center text-xs text-white dark:text-black">No QR</div>
+                <div className="w-32 h-32 border border-gray-200 dark:border-slate-600 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-xs text-gray-600 dark:text-slate-300">No QR</div>
               )}
             </div>
           </div>
