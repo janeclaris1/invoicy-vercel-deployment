@@ -101,6 +101,11 @@ const invoiceSchema = new mongoose.Schema({
     graQrCode: { type: String },
     graVerificationUrl: { type: String },
     graVerificationCode: { type: String },
+    graSdcId: { type: String },
+    graReceiptNumber: { type: String },
+    graReceiptDateTime: { type: Date },
+    graMrc: { type: String },
+    graReceiptSignature: { type: String },
 }, { timestamps: true }
 
 );

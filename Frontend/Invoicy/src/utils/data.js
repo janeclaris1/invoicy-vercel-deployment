@@ -4,7 +4,7 @@ import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users
 import avatarBusinessMan from "../assets/bussiness-man.png";
 import avatarUser from "../assets/user.png";
 import teamPhoto1 from "../assets/41650481-19d6-47d3-8a9e-3f32df66bbce.png";
-import teamPhoto2 from "../assets/d0ed5670-5fa4-4533-8f6b-21cab2d2f63e.jpeg";
+import teamPhoto2 from "../assets/WhatsApp Image 2026-02-24 at 12.49.22 (1).jpeg";
 import teamPhoto3 from "../assets/Angela-Kyerematen-Jimoh-1.jpg";
 
 export const FEATURES = [
@@ -107,7 +107,7 @@ export const TEAM_MEMBERS = [
         bio: "Enow is a visionary leader with over 2 years of experience in the tech industry. He is passionate about leveraging AI to simplify business processes.",
     },
     {
-        name: "Folashade Blessing",
+        name: "Folade Ajayi Blessing",
         role: "Full Stack Developer",
         photo: teamPhoto2,
         bio: "Folashade is an experienced developer specializing in building scalable web applications. She is dedicated to creating seamless user experiences.",
@@ -119,7 +119,7 @@ export const TEAM_MEMBERS = [
         bio: "Hogan is a talented developer with a strong background in AI and machine learning. He is committed to creating efficient and user-friendly applications.",
     },
     {
-        name: "Kashie Elikplim",
+        name: "Kwashie Elikplim",
         role: "Developer",
         photo: avatarUser,
         bio: "Arrey is a skilled developer with a passion for creating user-friendly applications. He ensures that Invoicy is reliable and easy to use.",

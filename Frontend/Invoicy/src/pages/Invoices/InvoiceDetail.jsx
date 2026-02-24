@@ -142,6 +142,11 @@ const InvoiceDetail = () => {
       if (verificationUrl && String(verificationUrl).trim()) updates.graVerificationUrl = String(verificationUrl).trim();
       if (verificationCode && String(verificationCode).trim()) updates.graVerificationCode = String(verificationCode).trim();
       if (qrCode && String(qrCode).startsWith("data:image")) updates.graQrCode = qrCode;
+      if (mesaage?.ysdcid) updates.graSdcId = String(mesaage.ysdcid).trim();
+      if (mesaage?.ysdcrecnum) updates.graReceiptNumber = String(mesaage.ysdcrecnum).trim();
+      if (mesaage?.ysdctime) updates.graReceiptDateTime = mesaage.ysdctime;
+      if (mesaage?.mrc) updates.graMrc = String(mesaage.mrc).trim();
+      if (mesaage?.receiptSignature || mesaage?.signature) updates.graReceiptSignature = String(mesaage.receiptSignature || mesaage.signature || "").trim();
       if (Object.keys(updates).length === 0) {
         toast.success("Invoice submitted to GRA. No verification URL/code returned; check GRA portal.");
       } else {
@@ -381,29 +386,18 @@ const InvoiceDetail = () => {
           </table>
         </div>
 
-        {/* GRA-style: Left = Notes + SDC/verification info | Right = Tax summary + QR (like GRA sample) */}
+        {/* Left: Notes | Right: Tax summary + QR */}
         <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-slate-800 dark:bg-transparent text-white dark:text-black rounded-xl p-4 dark:p-0">
-          {/* Left column: Notes and SDC / verification block (GRA-style) */}
+          {/* Left column: Notes */}
           <div className="flex flex-col gap-4">
             <div className="text-sm">
               <div>Notes: {invoice.notes || "-"}</div>
               <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
             </div>
-            {(invoice.graVerificationCode || invoice.graVerificationUrl) && (
-              <div className="text-sm space-y-1 border border-slate-600 dark:border-slate-500 rounded-lg p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide opacity-90">SDC / GRA Verification</div>
-                {invoice.graVerificationCode && (
-                  <div>
-                    <span className="text-xs opacity-80">INTERNAL DATA: </span>
-                    <span className="font-mono text-xs break-all">{invoice.graVerificationCode}</span>
-                  </div>
-                )}
-                {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
-                  <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
-                    Verify on GRA portal →
-                  </a>
-                )}
-              </div>
+            {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
+              <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
+                Verify on GRA portal →
+              </a>
             )}
           </div>
           {/* Right column: Subtotal, tax details, and GRA QR (bottom right like GRA sample) */}
