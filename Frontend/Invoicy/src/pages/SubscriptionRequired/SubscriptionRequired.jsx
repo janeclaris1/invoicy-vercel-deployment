@@ -30,31 +30,46 @@ const SubscriptionRequired = () => {
     useEffect(() => {
         if (loading || !user || checkingPayment) return;
         if (searchParams.get("payment") !== "success") return;
+        let cancelled = false;
         const run = async () => {
             setCheckingPayment(true);
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 5 && !cancelled; i++) {
                 try {
                     const res = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
                     const data = res.data || {};
-                    if (data.subscription && ["active", "trialing"].includes(data.subscription.status)) {
+                    const status = (data.subscription?.status || "").toLowerCase();
+                    if (data.subscription && (status === "active" || status === "trialing")) {
                         updateUser(data);
                         navigate("/dashboard", { replace: true });
                         return;
                     }
                 } catch (_) {}
-                await new Promise((r) => setTimeout(r, 2000));
+                if (!cancelled && i < 4) await new Promise((r) => setTimeout(r, 1500));
             }
-            setCheckingPayment(false);
+            if (!cancelled) setCheckingPayment(false);
         };
         run();
+        return () => { cancelled = true; };
     }, [loading, user, searchParams, navigate, updateUser, checkingPayment]);
 
     if (loading || !user || checkingPayment) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
-                <div className="text-center">
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950 p-4">
+                <div className="text-center max-w-sm">
                     <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    {checkingPayment && <p className="text-sm text-gray-500 mt-3">Confirming your payment…</p>}
+                    {checkingPayment && (
+                        <>
+                            <p className="text-sm text-gray-500 dark:text-slate-400 mt-3">Confirming your payment…</p>
+                            <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">This usually takes a few seconds.</p>
+                            <button
+                                type="button"
+                                onClick={() => { setCheckingPayment(false); navigate("/dashboard", { replace: true }); }}
+                                className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                                Go to dashboard now
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         );

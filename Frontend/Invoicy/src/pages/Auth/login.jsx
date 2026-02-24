@@ -28,6 +28,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isloading, setIsLoading] = useState(false);
+  const [verifyingSubscription, setVerifyingSubscription] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [fileErrors, setFileErrors] = useState({
@@ -120,32 +121,35 @@ const Login = () => {
           if (paymentSuccess) {
             sessionStorage.removeItem("checkoutPlan");
             setSuccess("Verifying your subscription…");
-            let attempts = 0;
-            const maxAttempts = 15;
-            const checkSubscription = async () => {
-              while (attempts < maxAttempts) {
-                attempts += 1;
-                try {
-                  const meRes = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-                  const data = meRes.data || {};
-                  const status = data.subscription?.status;
-                  const hasAccess = data.isPlatformAdmin || (status === "active" || status === "trialing");
-                  if (hasAccess) {
-                    if (data.subscription) {
-                      const updated = { ...response.data, ...data };
-                      login(updated, token);
-                    }
-                    setSuccess("Subscription confirmed! Taking you to dashboard…");
-                    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
-                    return;
+            setVerifyingSubscription(true);
+            let done = false;
+            const maxAttempts = 8;
+            const delayMs = 1500;
+            for (let attempt = 1; attempt <= maxAttempts && !done; attempt++) {
+              try {
+                const meRes = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
+                const data = meRes.data || {};
+                const status = (data.subscription?.status || "").toLowerCase();
+                const hasAccess = data.isPlatformAdmin || status === "active" || status === "trialing";
+                if (hasAccess) {
+                  if (data.subscription) {
+                    const updated = { ...response.data, ...data };
+                    login(updated, token);
                   }
-                } catch (_) {}
-                await new Promise((r) => setTimeout(r, 2000));
-              }
-              setSuccess("Subscription is being activated. Taking you to dashboard…");
-              setTimeout(() => { window.location.href = "/dashboard?payment=success"; }, 1500);
-            };
-            await checkSubscription();
+                  setVerifyingSubscription(false);
+                  setSuccess("Subscription confirmed! Taking you to dashboard…");
+                  setTimeout(() => { window.location.href = "/dashboard"; }, 600);
+                  done = true;
+                  break;
+                }
+              } catch (_) {}
+              if (!done && attempt < maxAttempts) await new Promise((r) => setTimeout(r, delayMs));
+            }
+            if (!done) {
+              setVerifyingSubscription(false);
+              setSuccess("Taking you to dashboard…");
+              setTimeout(() => { window.location.href = "/dashboard?payment=success"; }, 1200);
+            }
           } else {
             setSuccess("Login successful");
             let redirect = "/dashboard";
@@ -276,6 +280,15 @@ const Login = () => {
           {success && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-600 text-sm">{success}</p>
+              {verifyingSubscription && (
+                <button
+                  type="button"
+                  onClick={() => { setVerifyingSubscription(false); window.location.href = "/dashboard?payment=success"; }}
+                  className="mt-2 text-sm text-blue-600 font-medium hover:underline"
+                >
+                  Go to dashboard now
+                </button>
+              )}
             </div>
           )}
 

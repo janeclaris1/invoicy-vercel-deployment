@@ -32,8 +32,10 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
                 if (hasPaymentSuccess) {
                     const fetchProfile = () => axiosInstance.get(API_PATHS.AUTH.GET_PROFILE).then((r) => r.data);
-                    const hasValidSub = (data) =>
-                        data?.subscription && ['active', 'trialing'].includes(data.subscription.status);
+                    const hasValidSub = (data) => {
+                        const s = (data?.subscription?.status || "").toLowerCase();
+                        return data?.subscription && (s === "active" || s === "trialing");
+                    };
                     let data = null;
                     try {
                         data = await fetchProfile();
