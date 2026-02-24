@@ -8,7 +8,7 @@ const {
     convertProformaToInvoice
 } = require("../controller/invoiceController.js");
 const { protect } = require("../middlewares/authMiddleware.js");
-const { validateInvoice } = require("../middlewares/validator");
+const { validateInvoice, validateInvoiceUpdate } = require("../middlewares/validator");
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.post("/:id/convert-to-invoice", protect, convertProformaToInvoice);
 router
     .route("/:id")
     .get(protect, getInvoiceById)
-    .put(protect, validateInvoice, updateInvoice)
+    .put(protect, validateInvoiceUpdate, updateInvoice)
     .delete(protect, deleteInvoice);
 
 module.exports = router;

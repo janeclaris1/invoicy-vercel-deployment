@@ -325,6 +325,7 @@ exports.updateInvoice = async (req, res) => {
             companyLogo,
             companySignature,
             companyStamp,
+            grandTotal: bodyGrandTotal,
             graQrCode,
             graVerificationUrl,
             graVerificationCode,
@@ -374,6 +375,12 @@ exports.updateInvoice = async (req, res) => {
             }
         }
 
+        // Allow explicit grand total override when not recalculating from items
+        if (bodyGrandTotal !== undefined && (!items || items.length === 0)) {
+            const gt = Number(bodyGrandTotal);
+            if (!isNaN(gt) && gt >= 0) grandTotal = gt;
+        }
+
         // Calculate balance and status from payment amount
         const paidValue = Number(amountPaid) !== undefined ? Number(amountPaid) : invoice.amountPaid || 0;
         const balanceDue = grandTotal - paidValue; // Can be negative if overpaid
@@ -409,28 +416,28 @@ exports.updateInvoice = async (req, res) => {
             });
         }
 
-        const updatePayload = {
-            invoiceNumber,
-            invoiceDate,
-            dueDate,
-            billFrom: mergedBillFrom,
-            billTo,
-            items,
-            notes,
-            paymentTerms,
-            companyLogo,
-            companySignature,
-            companyStamp,
-            status: statusFromPayment,
-            subtotal,
-            totalNhil: nhil,
-            totalGetFund: getFund,
-            totalVat: vat,
-            amountPaid: paidValue,
-            balanceDue,
-            grandTotal,
-            paymentHistory,
-        };
+        // Build update payload: only include fields that are provided or derived (avoid overwriting with undefined)
+        const updatePayload = {};
+        if (invoiceNumber !== undefined) updatePayload.invoiceNumber = invoiceNumber;
+        if (invoiceDate !== undefined) updatePayload.invoiceDate = invoiceDate;
+        if (dueDate !== undefined) updatePayload.dueDate = dueDate;
+        if (billFrom !== undefined) updatePayload.billFrom = mergedBillFrom;
+        if (billTo !== undefined) updatePayload.billTo = billTo;
+        if (items !== undefined) updatePayload.items = items;
+        if (notes !== undefined) updatePayload.notes = notes;
+        if (paymentTerms !== undefined) updatePayload.paymentTerms = paymentTerms;
+        if (companyLogo !== undefined) updatePayload.companyLogo = companyLogo;
+        if (companySignature !== undefined) updatePayload.companySignature = companySignature;
+        if (companyStamp !== undefined) updatePayload.companyStamp = companyStamp;
+        updatePayload.status = statusFromPayment;
+        updatePayload.subtotal = subtotal;
+        updatePayload.totalNhil = nhil;
+        updatePayload.totalGetFund = getFund;
+        updatePayload.totalVat = vat;
+        updatePayload.amountPaid = paidValue;
+        updatePayload.balanceDue = balanceDue;
+        updatePayload.grandTotal = grandTotal;
+        updatePayload.paymentHistory = paymentHistory;
         if (graQrCode !== undefined) updatePayload.graQrCode = graQrCode || null;
         if (graVerificationUrl !== undefined) updatePayload.graVerificationUrl = graVerificationUrl || null;
         if (graVerificationCode !== undefined) updatePayload.graVerificationCode = graVerificationCode || null;
