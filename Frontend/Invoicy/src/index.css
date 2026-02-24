@@ -13,116 +13,41 @@
     --dashboard-stat-value: #0f172a;
   }
 
-  /* Invoice templates: always white background and black text (all invoice-related pages) */
-  .invoice-template {
-    background-color: #ffffff !important;
-    color: #111827;
-  }
-  .invoice-template h1,
-  .invoice-template h2,
-  .invoice-template h3,
-  .invoice-template h4,
-  .invoice-template h5,
-  .invoice-template h6,
-  .invoice-template p,
-  .invoice-template span,
-  .invoice-template label,
-  .invoice-template small,
-  .invoice-template li,
-  .invoice-template td,
-  .invoice-template th {
-    color: #111827 !important;
-  }
-  .invoice-template .text-gray-900,
-  .invoice-template .text-gray-800,
-  .invoice-template .text-gray-700,
-  .invoice-template .text-gray-600,
-  .invoice-template .text-slate-900,
-  .invoice-template .text-slate-800,
-  .invoice-template .text-slate-700,
-  .invoice-template .text-slate-600,
-  .invoice-template .text-slate-500,
-  .invoice-template .text-gray-500,
-  .invoice-template .text-black {
-    color: #111827 !important;
-  }
-  .invoice-template .bg-white,
-  .invoice-template .bg-gray-50,
-  .invoice-template .bg-slate-50,
-  .invoice-template .bg-gray-100,
-  .invoice-template .bg-slate-100,
-  .invoice-template .invoice-print-container {
-    background-color: #ffffff !important;
-  }
-  .invoice-template .border-gray-200,
-  .invoice-template .border-slate-200,
-  .invoice-template .invoice-print-container {
-    border-color: #e5e7eb !important;
-  }
-  .invoice-template input,
-  .invoice-template textarea,
-  .invoice-template select {
-    background-color: #ffffff !important;
-    color: #111827 !important;
-    border-color: #d1d5db !important;
-  }
-  .invoice-template a {
-    color: #1d4ed8 !important;
-  }
-
-  /* Create Invoice form: light mode only – white text on dark background */
-  html:not(.dark) form.invoice-template {
-    background-color: #0f172a !important;
+  /* Light mode: white text only on invoice detail page */
+  html:not(.dark) .invoice-detail-page {
+    background-color: #0f172a;
     color: #ffffff;
   }
-  html:not(.dark) form.invoice-template h1,
-  html:not(.dark) form.invoice-template h2,
-  html:not(.dark) form.invoice-template h3,
-  html:not(.dark) form.invoice-template h4,
-  html:not(.dark) form.invoice-template h5,
-  html:not(.dark) form.invoice-template h6,
-  html:not(.dark) form.invoice-template p,
-  html:not(.dark) form.invoice-template span,
-  html:not(.dark) form.invoice-template label,
-  html:not(.dark) form.invoice-template small,
-  html:not(.dark) form.invoice-template li,
-  html:not(.dark) form.invoice-template td,
-  html:not(.dark) form.invoice-template th {
+  html:not(.dark) .invoice-detail-page h1,
+  html:not(.dark) .invoice-detail-page h2,
+  html:not(.dark) .invoice-detail-page h3,
+  html:not(.dark) .invoice-detail-page h4,
+  html:not(.dark) .invoice-detail-page h5,
+  html:not(.dark) .invoice-detail-page h6,
+  html:not(.dark) .invoice-detail-page p,
+  html:not(.dark) .invoice-detail-page span,
+  html:not(.dark) .invoice-detail-page label,
+  html:not(.dark) .invoice-detail-page small,
+  html:not(.dark) .invoice-detail-page li,
+  html:not(.dark) .invoice-detail-page td,
+  html:not(.dark) .invoice-detail-page th {
     color: #ffffff !important;
   }
-  html:not(.dark) form.invoice-template .text-gray-900,
-  html:not(.dark) form.invoice-template .text-gray-800,
-  html:not(.dark) form.invoice-template .text-gray-700,
-  html:not(.dark) form.invoice-template .text-gray-600,
-  html:not(.dark) form.invoice-template .text-gray-500,
-  html:not(.dark) form.invoice-template .text-slate-900,
-  html:not(.dark) form.invoice-template .text-slate-800,
-  html:not(.dark) form.invoice-template .text-slate-700,
-  html:not(.dark) form.invoice-template .text-slate-600,
-  html:not(.dark) form.invoice-template .text-slate-500,
-  html:not(.dark) form.invoice-template .text-black {
+  html:not(.dark) .invoice-detail-page .text-black,
+  html:not(.dark) .invoice-detail-page .text-gray-900,
+  html:not(.dark) .invoice-detail-page .text-gray-800,
+  html:not(.dark) .invoice-detail-page .text-slate-900,
+  html:not(.dark) .invoice-detail-page .text-slate-800,
+  html:not(.dark) .invoice-detail-page .text-slate-700,
+  html:not(.dark) .invoice-detail-page .text-gray-700 {
     color: #ffffff !important;
   }
-  html:not(.dark) form.invoice-template .bg-white,
-  html:not(.dark) form.invoice-template .bg-gray-50,
-  html:not(.dark) form.invoice-template .bg-slate-50,
-  html:not(.dark) form.invoice-template .bg-gray-100,
-  html:not(.dark) form.invoice-template .bg-slate-100 {
+  html:not(.dark) .invoice-detail-page .invoice-print-container,
+  html:not(.dark) .invoice-detail-page .invoice-print-container.bg-white {
     background-color: #1e293b !important;
     border-color: #334155 !important;
   }
-  html:not(.dark) form.invoice-template input,
-  html:not(.dark) form.invoice-template textarea,
-  html:not(.dark) form.invoice-template select {
-    background-color: #1e293b !important;
-    color: #ffffff !important;
-    border-color: #334155 !important;
-  }
-  html:not(.dark) form.invoice-template select option {
-    background-color: #1e293b;
-    color: #ffffff;
-  }
-  html:not(.dark) form.invoice-template a {
+  html:not(.dark) .invoice-detail-page a:not([role="button"]):not(.btn) {
     color: #93c5fd !important;
   }
 
