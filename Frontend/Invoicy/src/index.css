@@ -192,11 +192,44 @@
     opacity: 1;
   }
 
-  /* Invoice detail page header - ensure visible in dark mode */
-  html.dark .invoice-detail-header,
-  html.dark .invoice-detail-header h1,
-  html.dark .invoice-detail-header p {
-    color: #f8fafc !important;
+  /* Invoice: do not change background in dark mode – keep white and dark text */
+  html.dark .invoice-print-container,
+  html.dark .invoice-print-container.bg-white {
+    background-color: #ffffff !important;
+  }
+  html.dark .invoice-print-container .bg-white,
+  html.dark .invoice-print-container .bg-gray-50,
+  html.dark .invoice-print-container .bg-slate-50 {
+    background-color: #ffffff !important;
+  }
+  html.dark .invoice-print-container h1,
+  html.dark .invoice-print-container h2,
+  html.dark .invoice-print-container h3,
+  html.dark .invoice-print-container h4,
+  html.dark .invoice-print-container h5,
+  html.dark .invoice-print-container h6,
+  html.dark .invoice-print-container p,
+  html.dark .invoice-print-container span,
+  html.dark .invoice-print-container label,
+  html.dark .invoice-print-container td,
+  html.dark .invoice-print-container th,
+  html.dark .invoice-print-container li,
+  html.dark .invoice-print-container small {
+    color: #111827 !important;
+  }
+  html.dark .invoice-print-container .text-gray-900,
+  html.dark .invoice-print-container .text-gray-800,
+  html.dark .invoice-print-container .text-gray-700,
+  html.dark .invoice-print-container .text-gray-600,
+  html.dark .invoice-print-container .text-slate-900,
+  html.dark .invoice-print-container .text-slate-800,
+  html.dark .invoice-print-container .text-slate-700,
+  html.dark .invoice-print-container .text-slate-600 {
+    color: #111827 !important;
+  }
+  html.dark .invoice-print-container .border-gray-200,
+  html.dark .invoice-print-container .border-slate-200 {
+    border-color: #e5e7eb !important;
   }
 
   /* Dashboard stat cards: clear contrast in both themes (light: dark text, dark: white text); icons keep semantic color */
