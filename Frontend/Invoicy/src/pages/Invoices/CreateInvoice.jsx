@@ -12,11 +12,13 @@ import InputField from "../../components/ui/InputField";
 import TextareaField from "../../components/ui/TextareaField";
 import Button from "../../components/ui/Button";
 import SelectField from "../../components/ui/SelectField";
+import { formatCurrency } from "../../utils/helper";
 
 const CreateInvoice = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const userCurrency = user?.currency || "GHS";
   const existingInvoice = location.state?.invoice || null;
 
   const [formData, setFormData] = useState(
@@ -671,7 +673,7 @@ const CreateInvoice = () => {
                     />
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-left text-sm text-black">
-                    GH₵ {((item.quantity || 0) * (item.itemPrice || 0)).toFixed(2)}
+                    {formatCurrency((item.quantity || 0) * (item.itemPrice || 0), userCurrency)}
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-left">
                     <Button
@@ -704,7 +706,7 @@ const CreateInvoice = () => {
                   placeholder="0"
                 />
                 <InputField
-                  label="Discount Amount (GH₵)"
+                  label={`Discount Amount (${userCurrency})`}
                   name="discountAmount"
                   type="text"
                   inputMode="decimal"
@@ -716,46 +718,46 @@ const CreateInvoice = () => {
               <div className="space-y-2 text-sm text-black">
                 <div className="flex items-center justify-between">
                   <span>Subtotal (Tax Exclusive)</span>
-                  <span className="font-medium">GH₵ {subtotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(subtotal, userCurrency)}</span>
                 </div>
                 {totalDiscount > 0 && (
                   <div className="flex items-center justify-between">
                     <span>Discount</span>
-                    <span className="font-medium">- GH₵ {totalDiscount.toFixed(2)}</span>
+                    <span className="font-medium">- {formatCurrency(totalDiscount, userCurrency)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
                   <span>VAT (15%)</span>
-                  <span className="font-medium">GH₵ {totalVat.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(totalVat, userCurrency)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>NHIL (2.5%)</span>
-                  <span className="font-medium">GH₵ {totalNhil.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(totalNhil, userCurrency)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>GETFUND (2.5%)</span>
-                  <span className="font-medium">GH₵ {totalGetFund.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(totalGetFund, userCurrency)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Total Tax</span>
-                  <span className="font-medium">GH₵ {taxTotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(taxTotal, userCurrency)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
                   <span className="text-base font-semibold text-black">Grand Total</span>
-                  <span className="text-base font-semibold text-black">GH₵ {grandTotal.toFixed(2)}</span>
+                  <span className="text-base font-semibold text-black">{formatCurrency(grandTotal, userCurrency)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Amount Paid</span>
-                  <span className="font-medium">GH₵ {amountPaidValue.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(amountPaidValue, userCurrency)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Amount Due</span>
-                  <span className="font-medium">GH₵ {balanceDueValue.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(balanceDueValue, userCurrency)}</span>
                 </div>
                 {overpaidValue > 0 && (
                   <div className="flex items-center justify-between">
                     <span>Customer Balance (Overpaid)</span>
-                    <span className="font-medium">GH₵ {overpaidValue.toFixed(2)}</span>
+                    <span className="font-medium">{formatCurrency(overpaidValue, userCurrency)}</span>
                   </div>
                 )}
               </div>
@@ -773,8 +775,8 @@ const CreateInvoice = () => {
               />
               <div className="text-sm">
                 {overpaidValue > 0
-                  ? `Customer Balance: GH₵ ${overpaidValue.toFixed(2)}`
-                  : `Balance Due: GH₵ ${balanceDueValue.toFixed(2)}`}
+                  ? `Customer Balance: ${formatCurrency(overpaidValue, userCurrency)}`
+                  : `Balance Due: ${formatCurrency(balanceDueValue, userCurrency)}`}
               </div>
               <SelectField
                 label="Payment Status"
