@@ -295,11 +295,33 @@ const Settings = () => {
   };
 
   const handleSaveCompany = async () => {
+    const previousCurrency = user?.currency || "GHS";
+    const newCurrency = companyForm.currency || "GHS";
+    const isCurrencyChanging = newCurrency !== previousCurrency;
+
+    if (isCurrencyChanging && isAdminOrOwner) {
+      const rateNum = exchangeRate !== "" ? parseFloat(exchangeRate) : NaN;
+      const rateValid = Number.isFinite(rateNum) && rateNum > 0;
+      const fromMatches = exchangeFrom === previousCurrency;
+      const toMatches = exchangeTo === newCurrency;
+      if (!rateValid || !fromMatches || !toMatches) {
+        toast.error(
+          "When changing currency you must set the exchange rate: choose From = current currency, To = new currency, and enter a valid rate (e.g. 1 USD = 12.5 GHS)."
+        );
+        return;
+      }
+    }
+
     setSavingCompany(true);
     try {
-      const response = await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, companyForm);
+      const payload = { ...companyForm };
+      if (isCurrencyChanging && isAdminOrOwner && exchangeRate !== "" && Number.isFinite(parseFloat(exchangeRate))) {
+        payload.currencyExchangeRate = exchangeRate;
+        payload.currencyRateDirection = rateDirection;
+      }
+      const response = await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, payload);
       updateUser(response.data);
-      toast.success("Company details saved");
+      toast.success("Company details saved. Dashboard and reports will show amounts in the new currency.");
     } catch (error) {
       console.error("Failed to update company profile:", error);
       toast.error(error.response?.data?.message || "Failed to save company details");
@@ -504,12 +526,19 @@ const Settings = () => {
                         Organization Currency
                       </label>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                        Set the default currency for your organization. This will be used throughout the application for invoices, reports, and financial calculations.
+                        Set the default currency for your organization. This will be used throughout the application for invoices, reports, and financial calculations. When changing to a different currency, you must enter an exchange rate below; all existing amounts will be converted and the dashboard and reports will reflect the new currency.
                       </p>
                       <select
                         className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                         value={companyForm.currency}
-                        onChange={(e) => setCompanyForm((prev) => ({ ...prev, currency: e.target.value }))}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setCompanyForm((prev) => ({ ...prev, currency: next }));
+                          if (next !== (user?.currency || "GHS")) {
+                            setExchangeFrom(user?.currency || "GHS");
+                            setExchangeTo(next);
+                          }
+                        }}
                       >
                         {currencyOptions.map((option) => (
                           <option key={option.value} value={option.value}>

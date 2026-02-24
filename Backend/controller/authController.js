@@ -5,6 +5,10 @@ const Employee = require('../models/Employee');
 const Subscription = require('../models/Subscription');
 const SubscriptionPayment = require('../models/SubscriptionPayment');
 const PendingSignup = require('../models/PendingSignup');
+const Invoice = require('../models/invoice');
+const Item = require('../models/Item');
+const Salary = require('../models/Salary');
+const Payroll = require('../models/Payroll');
 
 const getTeamMemberIds = async (currentUserId) => {
     const currentUser = await User.findById(currentUserId).select('createdBy').lean();
@@ -388,6 +392,14 @@ exports.getMe = async (req, res) => {
     }
 };
 
+const convertByRate = (amount, rate, direction) => {
+    if (amount == null || rate == null || !rate || isNaN(rate)) return amount;
+    const n = Number(amount);
+    const r = Number(rate);
+    const converted = direction === 'fromTo' ? n * r : n / r;
+    return Math.round(converted * 100) / 100;
+};
+
 // @desc Update user profile
 // @route PUT /api/auth/me
 // @access Private
@@ -406,8 +418,79 @@ exports.updateUserProfile = async (req, res) => {
             // Only allow admin/owner to update currency
             if (req.body.currency && ['owner', 'admin'].includes(user.role)) {
                 const validCurrencies = ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'];
-                if (validCurrencies.includes(req.body.currency)) {
-                    user.currency = req.body.currency;
+                const newCurrency = validCurrencies.includes(req.body.currency) ? req.body.currency : null;
+                const oldCurrency = user.currency || 'GHS';
+                if (newCurrency && newCurrency !== oldCurrency) {
+                    const rate = req.body.currencyExchangeRate != null ? parseFloat(req.body.currencyExchangeRate) : NaN;
+                    const direction = req.body.currencyRateDirection === 'fromTo' ? 'fromTo' : 'toFrom';
+                    if (!Number.isFinite(rate) || rate <= 0) {
+                        return res.status(400).json({ message: 'Exchange rate is required when changing currency. Enter the rate in Settings and try again.' });
+                    }
+                    const userId = user._id;
+                    const invoices = await Invoice.find({ user: userId });
+                    for (const inv of invoices) {
+                        inv.subtotal = convertByRate(inv.subtotal, rate, direction);
+                        inv.totalVat = convertByRate(inv.totalVat, rate, direction);
+                        inv.totalNhil = convertByRate(inv.totalNhil, rate, direction);
+                        inv.totalGetFund = convertByRate(inv.totalGetFund, rate, direction);
+                        inv.totalDiscount = convertByRate(inv.totalDiscount, rate, direction);
+                        inv.amountPaid = convertByRate(inv.amountPaid, rate, direction);
+                        inv.balanceDue = convertByRate(inv.balanceDue, rate, direction);
+                        inv.grandTotal = convertByRate(inv.grandTotal, rate, direction);
+                        if (inv.item && inv.item.length) {
+                            for (const line of inv.item) {
+                                line.unitPrice = convertByRate(line.unitPrice, rate, direction);
+                                line.amount = convertByRate(line.amount, rate, direction);
+                                line.total = convertByRate(line.total, rate, direction);
+                                line.vat = convertByRate(line.vat, rate, direction);
+                                line.nhil = convertByRate(line.nhil, rate, direction);
+                                line.getFund = convertByRate(line.getFund, rate, direction);
+                                line.discount = convertByRate(line.discount, rate, direction);
+                            }
+                        }
+                        if (inv.paymentHistory && inv.paymentHistory.length) {
+                            for (const p of inv.paymentHistory) {
+                                p.amount = convertByRate(p.amount, rate, direction);
+                            }
+                        }
+                        await inv.save();
+                    }
+                    const items = await Item.find({ user: userId });
+                    for (const it of items) {
+                        it.price = convertByRate(it.price, rate, direction);
+                        await it.save();
+                    }
+                    const sub = await Subscription.findOne({ user: userId });
+                    if (sub) {
+                        sub.amount = convertByRate(sub.amount, rate, direction);
+                        sub.currency = newCurrency;
+                        await sub.save();
+                    }
+                    const subPayments = await SubscriptionPayment.find({ user: userId });
+                    for (const sp of subPayments) {
+                        sp.amount = convertByRate(sp.amount, rate, direction);
+                        sp.currency = newCurrency;
+                        await sp.save();
+                    }
+                    const salaries = await Salary.find({ user: userId });
+                    for (const s of salaries) {
+                        s.baseSalary = convertByRate(s.baseSalary, rate, direction);
+                        s.currency = newCurrency;
+                        await s.save();
+                    }
+                    const payrolls = await Payroll.find({ user: userId });
+                    for (const p of payrolls) {
+                        p.baseSalary = convertByRate(p.baseSalary, rate, direction);
+                        p.bonuses = convertByRate(p.bonuses, rate, direction);
+                        p.deductions = convertByRate(p.deductions, rate, direction);
+                        p.tax = convertByRate(p.tax, rate, direction);
+                        p.netPay = convertByRate(p.netPay, rate, direction);
+                        p.currency = newCurrency;
+                        await p.save();
+                    }
+                    user.currency = newCurrency;
+                } else if (newCurrency) {
+                    user.currency = newCurrency;
                 }
             }
             if (req.body.currentPassword && req.body.newPassword) {
@@ -425,6 +508,7 @@ exports.updateUserProfile = async (req, res) => {
             const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
             const userEmailNorm = (updatedUser.email || '').trim().toLowerCase();
             const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
+            const subscription = await Subscription.findOne({ user: updatedUser._id }).lean();
             res.json({
                 _id: updatedUser._id,
                 name: updatedUser.name,
@@ -438,6 +522,7 @@ exports.updateUserProfile = async (req, res) => {
                 companyStamp: updatedUser.companyStamp,
                 currency: updatedUser.currency || 'GHS',
                 isPlatformAdmin: !!isPlatformAdmin,
+                subscription: subscription || null,
             });
         } else {
             res.status(404).json({ message: 'User not found' });
