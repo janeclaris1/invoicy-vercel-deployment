@@ -41,14 +41,16 @@ exports.createPendingSignup = async (req, res, next) => {
         if (!plan || !interval || !['basic', 'pro'].includes(plan) || !['monthly', 'annual'].includes(interval)) {
             return res.status(400).json({ message: 'Valid plan (basic|pro) and interval (monthly|annual) are required' });
         }
-        if (password.length < 6) {
+        const passwordTrimmed = (password || '').trim();
+        if (passwordTrimmed.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters' });
         }
-        const existing = await User.findOne({ email: email.toLowerCase() });
+        const emailNorm = (email || '').trim().toLowerCase();
+        const existing = await User.findOne({ email: emailNorm });
         if (existing) {
             return res.status(400).json({ message: 'User already exists with this email. Please log in.' });
         }
-        const pending = await PendingSignup.create({ name: name.trim(), email: email.toLowerCase().trim(), password, plan, interval });
+        const pending = await PendingSignup.create({ name: name.trim(), email: emailNorm, password: passwordTrimmed, plan, interval });
         res.status(201).json({ pendingSignupId: pending._id.toString() });
     } catch (error) {
         next(error);
@@ -306,9 +308,15 @@ exports.loginUser = async (req, res, next) => {
         }
 
         const emailNorm = (email || '').trim().toLowerCase();
+        const passwordTrimmed = (password || '').trim();
         const user = await User.findOne({ email: emailNorm }).select('+password');
 
-        if (user && (await user.matchPassword(password))) {
+        if (!user) {
+            return res.status(401).json({
+                message: 'No account found with this email. If you just completed signup and payment, wait a few seconds and try again.',
+            });
+        }
+        if (user && (await user.matchPassword(passwordTrimmed))) {
             const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
             const userEmailNorm = (user.email || '').trim().toLowerCase();
             const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);

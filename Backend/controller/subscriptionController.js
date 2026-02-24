@@ -212,7 +212,7 @@ exports.webhook = async (req, res) => {
             const user = await User.create({
                 name: pending.name,
                 email: pending.email,
-                password: pending.password,
+                password: typeof pending.password === 'string' ? pending.password : String(pending.password),
             });
             userId = user._id;
             await PendingSignup.findByIdAndDelete(pendingSignupId);
