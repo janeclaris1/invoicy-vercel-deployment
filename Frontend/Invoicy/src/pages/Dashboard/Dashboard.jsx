@@ -404,7 +404,7 @@ const Dashboard = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(() => {
                         const status = (invoice.status || "").toLowerCase();
                         if (status === "paid" || status === "fully paid") return "bg-emerald-100 text-emerald-800 group-hover:bg-emerald-200 group-hover:text-emerald-900";
-                        if (status === "partially paid" || status === "partial") return "bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200 group-hover:text-yellow-900";
+                        if (status === "partially paid" || status === "partial") return "bg-sky-100 text-sky-800 group-hover:bg-sky-200 group-hover:text-sky-900";
                         return "bg-red-100 text-red-800 group-hover:bg-red-200 group-hover:text-red-900";
                       })()}`}>
                         {invoice.status}

@@ -972,7 +972,7 @@ const Reports = () => {
                               (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
                                 ? "bg-emerald-100 text-emerald-800"
                                 : (invoice.status || "").toLowerCase() === "partially paid"
-                                ? "bg-yellow-100 text-yellow-800"
+                                ? "bg-sky-100 text-sky-800"
                                 : "bg-red-100 text-red-800"
                             }`}>
                               {invoice.status || "Unpaid"}
