@@ -13,44 +13,6 @@
     --dashboard-stat-value: #0f172a;
   }
 
-  /* Light mode: white text only on invoice detail page */
-  html:not(.dark) .invoice-detail-page {
-    background-color: #0f172a;
-    color: #ffffff;
-  }
-  html:not(.dark) .invoice-detail-page h1,
-  html:not(.dark) .invoice-detail-page h2,
-  html:not(.dark) .invoice-detail-page h3,
-  html:not(.dark) .invoice-detail-page h4,
-  html:not(.dark) .invoice-detail-page h5,
-  html:not(.dark) .invoice-detail-page h6,
-  html:not(.dark) .invoice-detail-page p,
-  html:not(.dark) .invoice-detail-page span,
-  html:not(.dark) .invoice-detail-page label,
-  html:not(.dark) .invoice-detail-page small,
-  html:not(.dark) .invoice-detail-page li,
-  html:not(.dark) .invoice-detail-page td,
-  html:not(.dark) .invoice-detail-page th {
-    color: #ffffff !important;
-  }
-  html:not(.dark) .invoice-detail-page .text-black,
-  html:not(.dark) .invoice-detail-page .text-gray-900,
-  html:not(.dark) .invoice-detail-page .text-gray-800,
-  html:not(.dark) .invoice-detail-page .text-slate-900,
-  html:not(.dark) .invoice-detail-page .text-slate-800,
-  html:not(.dark) .invoice-detail-page .text-slate-700,
-  html:not(.dark) .invoice-detail-page .text-gray-700 {
-    color: #ffffff !important;
-  }
-  html:not(.dark) .invoice-detail-page .invoice-print-container,
-  html:not(.dark) .invoice-detail-page .invoice-print-container.bg-white {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-  }
-  html:not(.dark) .invoice-detail-page a:not([role="button"]):not(.btn) {
-    color: #93c5fd !important;
-  }
-
   html.dark {
     --dashboard-stat-label: #ffffff;
     --dashboard-stat-value: #ffffff;
@@ -166,44 +128,11 @@
     opacity: 1;
   }
 
-  /* Invoice: do not change background in dark mode – keep white and dark text */
-  html.dark .invoice-print-container,
-  html.dark .invoice-print-container.bg-white {
-    background-color: #ffffff !important;
-  }
-  html.dark .invoice-print-container .bg-white,
-  html.dark .invoice-print-container .bg-gray-50,
-  html.dark .invoice-print-container .bg-slate-50 {
-    background-color: #ffffff !important;
-  }
-  html.dark .invoice-print-container h1,
-  html.dark .invoice-print-container h2,
-  html.dark .invoice-print-container h3,
-  html.dark .invoice-print-container h4,
-  html.dark .invoice-print-container h5,
-  html.dark .invoice-print-container h6,
-  html.dark .invoice-print-container p,
-  html.dark .invoice-print-container span,
-  html.dark .invoice-print-container label,
-  html.dark .invoice-print-container td,
-  html.dark .invoice-print-container th,
-  html.dark .invoice-print-container li,
-  html.dark .invoice-print-container small {
-    color: #111827 !important;
-  }
-  html.dark .invoice-print-container .text-gray-900,
-  html.dark .invoice-print-container .text-gray-800,
-  html.dark .invoice-print-container .text-gray-700,
-  html.dark .invoice-print-container .text-gray-600,
-  html.dark .invoice-print-container .text-slate-900,
-  html.dark .invoice-print-container .text-slate-800,
-  html.dark .invoice-print-container .text-slate-700,
-  html.dark .invoice-print-container .text-slate-600 {
-    color: #111827 !important;
-  }
-  html.dark .invoice-print-container .border-gray-200,
-  html.dark .invoice-print-container .border-slate-200 {
-    border-color: #e5e7eb !important;
+  /* Invoice detail page header - ensure visible in dark mode */
+  html.dark .invoice-detail-header,
+  html.dark .invoice-detail-header h1,
+  html.dark .invoice-detail-header p {
+    color: #f8fafc !important;
   }
 
   /* Dashboard stat cards: clear contrast in both themes (light: dark text, dark: white text); icons keep semantic color */
