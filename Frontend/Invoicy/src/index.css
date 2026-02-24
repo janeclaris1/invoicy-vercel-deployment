@@ -70,6 +70,62 @@
     color: #1d4ed8 !important;
   }
 
+  /* Create Invoice form: light mode only – white text on dark background */
+  html:not(.dark) form.invoice-template {
+    background-color: #0f172a !important;
+    color: #ffffff;
+  }
+  html:not(.dark) form.invoice-template h1,
+  html:not(.dark) form.invoice-template h2,
+  html:not(.dark) form.invoice-template h3,
+  html:not(.dark) form.invoice-template h4,
+  html:not(.dark) form.invoice-template h5,
+  html:not(.dark) form.invoice-template h6,
+  html:not(.dark) form.invoice-template p,
+  html:not(.dark) form.invoice-template span,
+  html:not(.dark) form.invoice-template label,
+  html:not(.dark) form.invoice-template small,
+  html:not(.dark) form.invoice-template li,
+  html:not(.dark) form.invoice-template td,
+  html:not(.dark) form.invoice-template th {
+    color: #ffffff !important;
+  }
+  html:not(.dark) form.invoice-template .text-gray-900,
+  html:not(.dark) form.invoice-template .text-gray-800,
+  html:not(.dark) form.invoice-template .text-gray-700,
+  html:not(.dark) form.invoice-template .text-gray-600,
+  html:not(.dark) form.invoice-template .text-gray-500,
+  html:not(.dark) form.invoice-template .text-slate-900,
+  html:not(.dark) form.invoice-template .text-slate-800,
+  html:not(.dark) form.invoice-template .text-slate-700,
+  html:not(.dark) form.invoice-template .text-slate-600,
+  html:not(.dark) form.invoice-template .text-slate-500,
+  html:not(.dark) form.invoice-template .text-black {
+    color: #ffffff !important;
+  }
+  html:not(.dark) form.invoice-template .bg-white,
+  html:not(.dark) form.invoice-template .bg-gray-50,
+  html:not(.dark) form.invoice-template .bg-slate-50,
+  html:not(.dark) form.invoice-template .bg-gray-100,
+  html:not(.dark) form.invoice-template .bg-slate-100 {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+  }
+  html:not(.dark) form.invoice-template input,
+  html:not(.dark) form.invoice-template textarea,
+  html:not(.dark) form.invoice-template select {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border-color: #334155 !important;
+  }
+  html:not(.dark) form.invoice-template select option {
+    background-color: #1e293b;
+    color: #ffffff;
+  }
+  html:not(.dark) form.invoice-template a {
+    color: #93c5fd !important;
+  }
+
   html.dark {
     --dashboard-stat-label: #ffffff;
     --dashboard-stat-value: #ffffff;
