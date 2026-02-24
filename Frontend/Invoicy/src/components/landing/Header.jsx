@@ -173,7 +173,7 @@ const Header = () => {
           </a>
 
           <a
-            href="#Pricing"
+            href="#pricing"
             className="block px-4 py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50 font-medium transition-colors duration-200"
           >
             Pricing
@@ -197,7 +197,7 @@ const Header = () => {
                 Login
               </Link>
               <Link
-                to="/Pricing"
+                to="/#pricing"
                 className="block w-full text-left bg-gray-900 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200"
               >
                 Choose a Plan
