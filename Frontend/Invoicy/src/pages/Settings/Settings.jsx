@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, Lock, User, Building2, CreditCard, Users, Plus, Edit2, Trash2 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
+import PRICING_PLANS from "../../utils/data";
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("general");
   const [companyForm, setCompanyForm] = useState({
     businessName: "",
@@ -848,20 +851,90 @@ const Settings = () => {
 
             {activeTab === "billing" && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Billing Information</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Billing & Subscription</h2>
                 <div className="space-y-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-900">
-                      You are currently on the <strong>Free Plan</strong>
-                    </p>
-                  </div>
+                  {/* Current plan */}
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Payment Method</h3>
-                    <p className="text-sm text-gray-600 mb-4">No payment method added</p>
-                    <button className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors">
-                      Add Payment Method
-                    </button>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-3">Current plan</h3>
+                    {user?.isPlatformAdmin ? (
+                      <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-4">
+                        <p className="text-sm text-gray-700 dark:text-slate-300">Platform admin – no subscription required.</p>
+                      </div>
+                    ) : user?.subscription ? (
+                      <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-lg p-4">
+                        <p className="text-sm text-blue-900 dark:text-slate-200 font-medium">
+                          {user.subscription.plan?.charAt(0).toUpperCase() + (user.subscription.plan?.slice(1) || "")} – {user.subscription.billingInterval === "annual" ? "Annual" : "Monthly"}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                          {user.subscription.currency} {user.subscription.amount != null ? (user.subscription.amount / 100).toFixed(2) : "—"} per {user.subscription.billingInterval === "annual" ? "year" : "month"}
+                        </p>
+                        {user.subscription.currentPeriodEnd && (
+                          <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
+                            Current period ends: {new Date(user.subscription.currentPeriodEnd).toLocaleDateString(undefined, { dateStyle: "medium" })}
+                          </p>
+                        )}
+                        <span className="inline-block mt-2 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                          {user.subscription.status === "active" ? "Active" : user.subscription.status || "Active"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="text-sm text-amber-900 dark:text-amber-200">No active subscription. Choose a plan below to continue using the app.</p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Change or update plan */}
+                  {!user?.isPlatformAdmin && (
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-3">Change or update your plan</h3>
+                      <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+                        Select a plan and you’ll be taken to checkout to update your subscription.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {PRICING_PLANS.filter((p) => p.name.toLowerCase() !== "enterprise").map((plan) => {
+                          const planId = plan.name.toLowerCase();
+                          return (
+                            <div key={planId} className="flex flex-col gap-2">
+                              {["monthly", "annual"].map((interval) => {
+                                const price = interval === "annual" ? plan.annualPrice : plan.monthlyPrice;
+                                const label = interval === "annual" ? "Annual" : "Monthly";
+                                const isCurrent = user?.subscription?.plan === planId && user?.subscription?.billingInterval === interval;
+                                return (
+                                  <div
+                                    key={interval}
+                                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                                      isCurrent
+                                        ? "border-blue-500 bg-blue-50 dark:bg-slate-800 dark:border-blue-500"
+                                        : "border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                    }`}
+                                  >
+                                    <div>
+                                      <p className="font-medium text-gray-900 dark:text-white">{plan.name} – {label}</p>
+                                      <p className="text-sm text-gray-600 dark:text-slate-400">
+                                        {plan.currency} {price} / {interval === "annual" ? "year" : "month"}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={isCurrent}
+                                      onClick={() => navigate(`/checkout?plan=${planId}&interval=${interval}`)}
+                                      className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-900 text-white hover:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-400 dark:disabled:bg-slate-600"
+                                    >
+                                      {isCurrent ? "Current plan" : "Switch to this plan"}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-slate-500 mt-3">
+                        Need Enterprise or custom billing? Contact support.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
