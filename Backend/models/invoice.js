@@ -97,7 +97,10 @@ const invoiceSchema = new mongoose.Schema({
         default: 'invoice'
     },
     convertedFromProforma: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
-    convertedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null }
+    convertedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
+    graQrCode: { type: String },
+    graVerificationUrl: { type: String },
+    graVerificationCode: { type: String },
 }, { timestamps: true }
 
 );

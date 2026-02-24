@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import moment from "moment";
-import { Loader2, Printer, Edit2, Save, X, FileText } from "lucide-react";
+import { Loader2, Printer, Edit2, Save, X, FileText, Building2 } from "lucide-react";
 import QRCode from "react-qr-code";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import { graApi } from "../../utils/graApi";
 import Button from "../../components/ui/Button";
 import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
@@ -23,6 +24,7 @@ const InvoiceDetail = () => {
   const [paymentNote, setPaymentNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [convertLoading, setConvertLoading] = useState(false);
+  const [graSubmitting, setGraSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -109,6 +111,63 @@ const InvoiceDetail = () => {
       toast.error(err.response?.data?.message || "Failed to convert");
     } finally {
       setConvertLoading(false);
+    }
+  };
+
+  const handleSubmitToGRA = async () => {
+    if (!invoice || !id) return;
+    const invType = (invoice.type || "invoice").toLowerCase();
+    if (invType === "proforma") {
+      toast.error("Submit to GRA is only available for tax invoices. Convert this proforma to an invoice first.");
+      return;
+    }
+    setGraSubmitting(true);
+    try {
+      const itemsForGra = lineItems.map((line) => ({
+        description: line.description || line.itemDescription || "",
+        quantity: Number(line.quantity) || 0,
+        unitPrice: Number(line.unitPrice ?? line.itemPrice) || 0,
+        amount: Number(line.amount) || 0,
+        vatRate: 15,
+        vatAmount: Number(line.vat) || 0,
+      }));
+      const invoiceDateFormatted =
+        invoice.invoiceDate instanceof Date
+          ? moment(invoice.invoiceDate).format("YYYY-MM-DD")
+          : moment(invoice.invoiceDate).format("YYYY-MM-DD");
+      const graPayload = {
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: invoiceDateFormatted,
+        customerName: invoice.billTo?.clientName || "",
+        customerTIN: invoice.billTo?.tin || "",
+        customerAddress: [invoice.billTo?.address].filter(Boolean).join(", ") || "",
+        items: itemsForGra,
+        subtotal: invoice.subtotal ?? 0,
+        totalVAT: invoice.totalVat ?? 0,
+        total: invoice.grandTotal ?? 0,
+      };
+      const response = await graApi.submitInvoice(graPayload);
+      const res = response?.response || response;
+      const qrCode = res?.qr_code ?? response?.qr_code;
+      const verificationUrl = res?.verificationUrl ?? response?.verificationUrl ?? qrCode;
+      const verificationCode = res?.verificationCode ?? response?.verificationCode ?? res?.ysdcintdata;
+      const updates = {};
+      if (verificationUrl) updates.graVerificationUrl = verificationUrl;
+      if (verificationCode) updates.graVerificationCode = verificationCode;
+      if (qrCode && String(qrCode).startsWith("data:image")) updates.graQrCode = qrCode;
+      if (Object.keys(updates).length === 0) {
+        toast.success("Invoice submitted to GRA. No verification URL/code returned; check GRA portal.");
+      } else {
+        await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(id), updates);
+        const refresh = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
+        setInvoice(refresh.data);
+        toast.success("Submitted to GRA and verification data saved.");
+      }
+    } catch (err) {
+      console.error("GRA submit error:", err);
+      toast.error(err?.message || err?.response?.data?.message || "Failed to submit to GRA.");
+    } finally {
+      setGraSubmitting(false);
     }
   };
 
@@ -214,7 +273,18 @@ const InvoiceDetail = () => {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {(invoice.type || "invoice") === "invoice" && (
+              <Button
+                variant="secondary"
+                onClick={handleSubmitToGRA}
+                disabled={graSubmitting}
+                className="flex items-center gap-2 text-black dark:text-black"
+              >
+                {graSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+                Submit to GRA
+              </Button>
+            )}
             {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
               <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2">
                 {convertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}

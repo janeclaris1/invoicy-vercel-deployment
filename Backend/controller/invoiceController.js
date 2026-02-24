@@ -322,9 +322,12 @@ exports.updateInvoice = async (req, res) => {
             status,
             amountPaid,
             paymentNote,
-            companyLogo
-            ,companySignature,
-            companyStamp
+            companyLogo,
+            companySignature,
+            companyStamp,
+            graQrCode,
+            graVerificationUrl,
+            graVerificationCode,
         } = req.body;
 
         // Merge billFrom with company settings from user profile when updating
@@ -401,30 +404,35 @@ exports.updateInvoice = async (req, res) => {
             });
         }
 
+        const updatePayload = {
+            invoiceNumber,
+            invoiceDate,
+            dueDate,
+            billFrom: mergedBillFrom,
+            billTo,
+            items,
+            notes,
+            paymentTerms,
+            companyLogo,
+            companySignature,
+            companyStamp,
+            status: statusFromPayment,
+            subtotal,
+            totalNhil: nhil,
+            totalGetFund: getFund,
+            totalVat: vat,
+            amountPaid: paidValue,
+            balanceDue,
+            grandTotal,
+            paymentHistory,
+        };
+        if (graQrCode !== undefined) updatePayload.graQrCode = graQrCode || null;
+        if (graVerificationUrl !== undefined) updatePayload.graVerificationUrl = graVerificationUrl || null;
+        if (graVerificationCode !== undefined) updatePayload.graVerificationCode = graVerificationCode || null;
+
         const updateInvoice = await Invoice.findByIdAndUpdate(
             req.params.id,
-            {
-                invoiceNumber,
-                invoiceDate,
-                dueDate,
-                billFrom: mergedBillFrom,
-                billTo,
-                items,
-                notes,
-                paymentTerms,
-                companyLogo,
-                companySignature,
-                companyStamp,
-                status: statusFromPayment,
-                subtotal,
-                totalNhil: nhil,
-                totalGetFund: getFund,
-                totalVat: vat,
-                amountPaid: paidValue,
-                balanceDue,
-                grandTotal,
-                paymentHistory,
-            },
+            updatePayload,
             { new: true }
         );
 
