@@ -532,7 +532,15 @@ const InvoiceDetail = () => {
                   </div>
                 )
               ) : (
-                <div className="w-36 h-36 border border-slate-600 dark:border-slate-500 rounded-lg bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-xs text-slate-300">No QR</div>
+                <>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=144x144&data=${encodeURIComponent(`GRA verification pending - Invoice ${invoice.invoiceNumber || ""}`)}`}
+                    alt="GRA Verification QR (sample)"
+                    className="w-36 h-36 object-contain border border-slate-600 dark:border-slate-500 rounded-lg bg-white p-2 opacity-80"
+                    title="Sample QR – submit to GRA to show verification QR"
+                  />
+                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
+                </>
               )}
             </div>
           </div>
