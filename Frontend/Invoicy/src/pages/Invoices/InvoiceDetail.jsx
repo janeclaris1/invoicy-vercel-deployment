@@ -130,11 +130,14 @@ const InvoiceDetail = () => {
       const data = response?.data || response;
       const res = data?.response || data;
       const mesaage = res?.mesaage || res?.message || data?.response?.mesaage;
-      const qrCode = res?.qr_code ?? data?.qr_code;
-      const verificationUrl =
-        res?.verificationUrl ?? data?.verificationUrl ?? qrCode ?? (typeof qrCode === "string" ? qrCode : null);
+      // Capture verification URL from any common GRA response fields
+      const qrCode =
+        res?.qr_code ?? data?.qr_code ?? mesaage?.qr_code ?? res?.verificationUrl ?? data?.verificationUrl ?? mesaage?.verificationUrl;
+      const verificationUrl = (typeof qrCode === "string" && qrCode.trim() && /^(https?:\/\/|data:)/i.test(qrCode.trim()))
+        ? qrCode.trim()
+        : (res?.verificationUrl ?? data?.verificationUrl ?? mesaage?.verificationUrl ?? null);
       const verificationCode =
-        res?.verificationCode ?? data?.verificationCode ?? mesaage?.ysdcintdata ?? res?.ysdcintdata;
+        res?.verificationCode ?? data?.verificationCode ?? mesaage?.ysdcintdata ?? res?.ysdcintdata ?? data?.ysdcintdata ?? mesaage?.verificationCode;
       const updates = {};
       if (verificationUrl && String(verificationUrl).trim()) updates.graVerificationUrl = String(verificationUrl).trim();
       if (verificationCode && String(verificationCode).trim()) updates.graVerificationCode = String(verificationCode).trim();
@@ -378,44 +381,32 @@ const InvoiceDetail = () => {
           </table>
         </div>
 
-        {/* Left: Notes + GRA QR | Right: Subtotal & tax details - same row when printing. Light mode only: white text. */}
+        {/* GRA-style: Left = Notes + SDC/verification info | Right = Tax summary + QR (like GRA sample) */}
         <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-slate-800 dark:bg-transparent text-white dark:text-black rounded-xl p-4 dark:p-0">
-          {/* Left column: Notes and GRA QR code */}
+          {/* Left column: Notes and SDC / verification block (GRA-style) */}
           <div className="flex flex-col gap-4">
             <div className="text-sm">
               <div>Notes: {invoice.notes || "-"}</div>
               <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
             </div>
-            <div className="space-y-2">
-              <div className="text-xs font-medium">GRA Verification QR</div>
-              {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
-                String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
-                  <img
-                    src={invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode}
-                    alt="GRA QR"
-                    className="w-32 h-32 object-contain border border-gray-200 rounded-xl bg-white p-2"
-                  />
-                ) : /^https?:\/\//i.test(String(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode || "")) ? (
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=112x112&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
-                    alt="GRA QR"
-                    className="w-32 h-32 object-contain border border-gray-200 rounded-xl bg-white p-2"
-                  />
-                ) : (
-                  <div className="w-32 h-32 border border-gray-200 rounded-xl bg-white p-2 inline-flex items-center justify-center overflow-hidden">
-                    <QRCode
-                      value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)}
-                      size={112}
-                      style={{ height: 112, width: 112 }}
-                    />
+            {(invoice.graVerificationCode || invoice.graVerificationUrl) && (
+              <div className="text-sm space-y-1 border border-slate-600 dark:border-slate-500 rounded-lg p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide opacity-90">SDC / GRA Verification</div>
+                {invoice.graVerificationCode && (
+                  <div>
+                    <span className="text-xs opacity-80">INTERNAL DATA: </span>
+                    <span className="font-mono text-xs break-all">{invoice.graVerificationCode}</span>
                   </div>
-                )
-              ) : (
-                <div className="w-32 h-32 border border-gray-200 dark:border-slate-600 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-xs text-gray-600 dark:text-slate-300">No QR</div>
-              )}
-            </div>
+                )}
+                {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
+                  <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
+                    Verify on GRA portal →
+                  </a>
+                )}
+              </div>
+            )}
           </div>
-          {/* Right column: Subtotal and tax details */}
+          {/* Right column: Subtotal, tax details, and GRA QR (bottom right like GRA sample) */}
           <div className="text-sm space-y-2 flex flex-col items-end">
             <div className="flex items-center justify-between w-full max-w-xs gap-4">
               <span>Subtotal</span>
@@ -514,6 +505,35 @@ const InvoiceDetail = () => {
               }>
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
+            </div>
+            {/* GRA verification QR – bottom right (like GRA sample invoice) */}
+            <div className="mt-4 flex flex-col items-end">
+              <div className="text-xs font-medium opacity-90 mb-1">GRA Verification QR</div>
+              {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
+                String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
+                  <img
+                    src={invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode}
+                    alt="GRA Verification QR Code"
+                    className="w-36 h-36 object-contain border border-slate-600 dark:border-slate-500 rounded-lg bg-white p-2"
+                  />
+                ) : /^https?:\/\//i.test(String(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode || "")) ? (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=144x144&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
+                    alt="GRA Verification QR Code"
+                    className="w-36 h-36 object-contain border border-slate-600 dark:border-slate-500 rounded-lg bg-white p-2"
+                  />
+                ) : (
+                  <div className="w-36 h-36 border border-slate-600 dark:border-slate-500 rounded-lg bg-white p-2 inline-flex items-center justify-center overflow-hidden">
+                    <QRCode
+                      value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)}
+                      size={128}
+                      style={{ height: 128, width: 128 }}
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="w-36 h-36 border border-slate-600 dark:border-slate-500 rounded-lg bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-xs text-slate-300">No QR</div>
+              )}
             </div>
           </div>
         </div>
