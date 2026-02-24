@@ -278,7 +278,7 @@ const AllInvoices = () => {
                     (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
                       ? "bg-emerald-100 text-emerald-800 group-hover:bg-emerald-200 group-hover:text-emerald-900"
                       : (invoice.status || "").toLowerCase() === "partially paid"
-                      ? "bg-sky-100 text-sky-800 group-hover:bg-sky-200 group-hover:text-sky-900"
+                      ? "bg-[#B8860B] text-white group-hover:bg-[#9a7209] group-hover:text-white"
                       : "bg-red-100 text-red-800 group-hover:bg-red-200 group-hover:text-red-900"
                   }`}>
                     {invoice.status || "Unpaid"}

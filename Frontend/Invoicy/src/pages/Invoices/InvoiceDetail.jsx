@@ -262,7 +262,7 @@ const InvoiceDetail = () => {
               (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
                 ? "bg-emerald-100 text-emerald-800"
                 : (invoice.status || "").toLowerCase() === "partially paid"
-                ? "bg-sky-100 text-sky-800"
+                ? "bg-[#B8860B] text-white"
                 : "bg-red-100 text-red-800"
             }`}>
               {invoice.status || "Unpaid"}
