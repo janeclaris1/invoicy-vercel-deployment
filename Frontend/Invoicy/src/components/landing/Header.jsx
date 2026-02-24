@@ -200,7 +200,7 @@ const Header = () => {
                 to="/Pricing"
                 className="block w-full text-left bg-gray-900 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200"
               >
-                Sign Up
+                Choose a Plan
               </Link>
             </>
           )}
