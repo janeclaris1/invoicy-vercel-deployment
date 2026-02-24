@@ -760,8 +760,8 @@ const CreateInvoice = () => {
                 )}
               </div>
             </div>
-            <div className="space-y-4 bg-slate-800 text-white rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-white">Notes</h3>
+            <div className="space-y-4 bg-slate-800 dark:bg-transparent text-white dark:text-black rounded-xl p-4 dark:p-0">
+              <h3 className="text-lg font-semibold">Notes</h3>
               <InputField
                 label="Amount Paid"
                 name="amountPaid"
@@ -771,7 +771,7 @@ const CreateInvoice = () => {
                 onChange={(e) => handleInputChange(e)}
                 placeholder="0.00"
               />
-              <div className="text-sm text-white">
+              <div className="text-sm">
                 {overpaidValue > 0
                   ? `Customer Balance: GH₵ ${overpaidValue.toFixed(2)}`
                   : `Balance Due: GH₵ ${balanceDueValue.toFixed(2)}`}
@@ -787,7 +787,7 @@ const CreateInvoice = () => {
                   { label: "Fully Paid", value: "Fully Paid" },
                 ]}
               />
-              <div className="text-sm text-white">Payment Terms: {formData.paymentTerms || "-"}</div>
+              <div className="text-sm">Payment Terms: {formData.paymentTerms || "-"}</div>
               <TextareaField
                 label="Notes"
                 name="notes"
@@ -796,7 +796,7 @@ const CreateInvoice = () => {
                 placeholder="Additional notes or terms"
               />
               <div className="space-y-2">
-                <div className="text-sm font-medium text-white">GRA Verification QR</div>
+                <div className="text-sm font-medium">GRA Verification QR</div>
                 {graQrValue ? (
                   String(graQrValue).startsWith("data:image") ? (
                     <img
@@ -810,7 +810,7 @@ const CreateInvoice = () => {
                     </div>
                   )
                 ) : (
-                  <div className="text-xs text-white">QR will appear after GRA verification.</div>
+                  <div className="text-xs">QR will appear after GRA verification.</div>
                 )}
               </div>
             </div>
