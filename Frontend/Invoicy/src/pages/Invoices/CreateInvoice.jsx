@@ -394,7 +394,7 @@ const CreateInvoice = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 pb-[100vh] bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="invoice-template space-y-8 pb-[100vh] bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div>
         <h2 className="text-xl font-semibold text-black">
           {existingInvoice ? "Edit Invoice" : "Create New Invoice"}

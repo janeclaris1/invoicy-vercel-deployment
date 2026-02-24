@@ -177,7 +177,7 @@ const AllInvoices = () => {
   }
 
   return (
-    <div className="space-y-6 bg-white dark:bg-slate-900 min-h-0">
+    <div className="invoice-template space-y-6 bg-white dark:bg-slate-900 min-h-0">
       <CreateWithAiModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
       <ReminderModal
         invoiceId={selectedInvoice?._id}
