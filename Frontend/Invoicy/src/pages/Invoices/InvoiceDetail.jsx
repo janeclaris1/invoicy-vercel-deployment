@@ -252,9 +252,9 @@ const InvoiceDetail = () => {
       
       <div className="space-y-6 print:p-0 bg-white rounded-4px ">
         <div className="flex items-center justify-between print:hidden">
-          <div>
+          <div className="invoice-detail-page-header">
             <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
-            <p className="text-sm text-black dark:text-black flex items-center gap-2 flex-wrap">
+            <p className="invoice-detail-subheading text-sm text-white dark:text-black flex items-center gap-2 flex-wrap">
               #{invoice.invoiceNumber}
               <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
                 {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}

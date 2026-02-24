@@ -60,7 +60,7 @@
 
 **Q13. How does user authentication work in your system?**  
 *Answer:* Users register with name, email, and password. Passwords are hashed with bcrypt before storage. On login, the server validates credentials and issues a JWT. The frontend sends the JWT in the `Authorization` header for protected routes. The backend middleware verifies the JWT and attaches the user to the request so only that user’s data (e.g. invoices) is accessed.
-
+ig
 **Q14. How is an invoice created and stored?**  
 *Answer:* The user submits invoice data (dates, bill from/to, line items with description, quantity, unit price, etc.). The backend validates the payload (e.g. with express-validator), computes taxes (VAT, NHIL, GETFUND) and totals, normalises line items, and saves a document to MongoDB via Mongoose. Each invoice is linked to the authenticated user’s ID so users only see and edit their own invoices.
 

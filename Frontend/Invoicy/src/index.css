@@ -128,6 +128,18 @@
     opacity: 1;
   }
 
+  /* Invoice detail: light mode only – subheading white text (on dark header for visibility) */
+  html:not(.dark) .invoice-detail-page-header {
+    background-color: #1e293b;
+    color: #ffffff;
+    padding: 0.75rem 1rem;
+    margin: -0.75rem -1rem 0 -1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+  html:not(.dark) .invoice-detail-subheading {
+    color: #ffffff !important;
+  }
+
   /* Invoice detail page header - ensure visible in dark mode */
   html.dark .invoice-detail-header,
   html.dark .invoice-detail-header h1,
