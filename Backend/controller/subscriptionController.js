@@ -213,6 +213,7 @@ exports.webhook = async (req, res) => {
                 name: pending.name,
                 email: pending.email,
                 password: typeof pending.password === 'string' ? pending.password : String(pending.password),
+                currency: pending.currency || 'GHS',
             });
             userId = user._id;
             await PendingSignup.findByIdAndDelete(pendingSignupId);

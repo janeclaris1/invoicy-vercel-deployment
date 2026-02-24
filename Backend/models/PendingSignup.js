@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+const CURRENCY_ENUM = ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'];
+
 const pendingSignupSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
@@ -8,6 +10,7 @@ const pendingSignupSchema = new mongoose.Schema(
         password: { type: String, required: true, select: false },
         plan: { type: String, required: true, enum: ['basic', 'pro'] },
         interval: { type: String, required: true, enum: ['monthly', 'annual'] },
+        currency: { type: String, default: 'GHS', enum: CURRENCY_ENUM },
     },
     { timestamps: true }
 );

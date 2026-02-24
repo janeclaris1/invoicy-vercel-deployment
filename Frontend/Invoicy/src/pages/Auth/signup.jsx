@@ -14,6 +14,7 @@ import {API_PATHS} from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { COUNTRY_CURRENCIES } from "../../utils/countriesCurrencies";
 
 
 const SignUp = () => {
@@ -51,7 +52,8 @@ const SignUp = () => {
     name: "", 
     email: "", 
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    country: "",
   });
   
   // UI state
@@ -150,9 +152,10 @@ const SignUp = () => {
     const isNameValid = formData.name.trim().length >= 2;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailValid = emailRegex.test(formData.email);
+    const isCountryValid = !!formData.country && COUNTRY_CURRENCIES.some((c) => c.country === formData.country);
     const isPasswordStrong = formData.password.length >= 6 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password);
     const isConfirmPasswordValid = formData.confirmPassword === formData.password && formData.confirmPassword.length > 0;
-    return isNameValid && isEmailValid && isPasswordStrong && isConfirmPasswordValid;
+    return isNameValid && isEmailValid && isCountryValid && isPasswordStrong && isConfirmPasswordValid;
   };
 
   // ==================== FORM SUBMISSION ====================
@@ -192,12 +195,16 @@ const SignUp = () => {
 
     try {
       if (isPayFirstFlow) {
+        const baseCurrency = formData.country
+          ? (COUNTRY_CURRENCIES.find((c) => c.country === formData.country)?.currency || "GHS")
+          : "GHS";
         const pendingRes = await axiosInstance.post(API_PATHS.AUTH.PENDING_SIGNUP, {
           name: formData.name,
           email: formData.email,
           password: formData.password,
           plan,
           interval,
+          currency: baseCurrency,
         });
         const pendingSignupId = pendingRes.data?.pendingSignupId;
         if (!pendingSignupId) {
@@ -215,10 +222,14 @@ const SignUp = () => {
         return;
       }
 
+      const baseCurrency = formData.country
+        ? (COUNTRY_CURRENCIES.find((c) => c.country === formData.country)?.currency || "GHS")
+        : "GHS";
       const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        currency: baseCurrency,
       });
 
       if (response.status === 201 || response.status === 200) {
@@ -315,6 +326,29 @@ const SignUp = () => {
             {fileErrors.email && touched.email && (
               <p className="mt-1 text-sm text-red-600">{fileErrors.email}</p>
             )}
+          </div>
+
+          {/* Country (sets base currency) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+            <select
+              name="country"
+              value={formData.country}
+              onChange={handleInputChange}
+              onBlur={handleBlur}
+              required
+              className="w-full pl-4 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-transparent outline-none transition-all bg-white"
+            >
+              <option value="">Select your country</option>
+              {COUNTRY_CURRENCIES.map((c) => (
+                <option key={c.currency} value={c.country}>
+                  {c.country} ({c.currency})
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Your base currency will be set to {formData.country ? (COUNTRY_CURRENCIES.find((c) => c.country === formData.country)?.currency || "—") : "—"} for this account.
+            </p>
           </div>
 
           {/* Password */}

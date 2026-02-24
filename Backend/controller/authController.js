@@ -33,7 +33,7 @@ const generateToken = (id) => {
 // @route   POST /api/auth/pending-signup
 // @access  Public
 exports.createPendingSignup = async (req, res, next) => {
-    const { name, email, password, plan, interval } = req.body;
+    const { name, email, password, plan, interval, currency } = req.body;
     try {
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Name, email and password are required' });
@@ -50,7 +50,8 @@ exports.createPendingSignup = async (req, res, next) => {
         if (existing) {
             return res.status(400).json({ message: 'User already exists with this email. Please log in.' });
         }
-        const pending = await PendingSignup.create({ name: name.trim(), email: emailNorm, password: passwordTrimmed, plan, interval });
+        const currencyNorm = currency && ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'].includes(currency) ? currency : 'GHS';
+        const pending = await PendingSignup.create({ name: name.trim(), email: emailNorm, password: passwordTrimmed, plan, interval, currency: currencyNorm });
         res.status(201).json({ pendingSignupId: pending._id.toString() });
     } catch (error) {
         next(error);
@@ -61,7 +62,7 @@ exports.createPendingSignup = async (req, res, next) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.registerUser = async (req, res, next) => {
-    const { name, email, password } = req.body;     
+    const { name, email, password, currency } = req.body;     
     try {
         // Validation is handled by express-validator middleware
         // check if user exists 
@@ -69,9 +70,10 @@ exports.registerUser = async (req, res, next) => {
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
         }  
+        const currencyNorm = currency && ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'].includes(currency) ? currency : 'GHS';
 
         // Create user
-        const user = await User.create({ name, email, password });
+        const user = await User.create({ name, email, password, currency: currencyNorm });
 
         if (user) {
             res.status(201).json({

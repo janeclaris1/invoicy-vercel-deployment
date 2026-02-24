@@ -6,6 +6,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import PRICING_PLANS from "../../utils/data";
+import { CURRENCY_OPTIONS as CURRENCY_OPTIONS_LIST } from "../../utils/countriesCurrencies";
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -39,6 +40,10 @@ const Settings = () => {
   });
   const [securityPassword, setSecurityPassword] = useState({ current: "", new: "", confirm: "" });
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [exchangeFrom, setExchangeFrom] = useState("GHS");
+  const [exchangeTo, setExchangeTo] = useState("USD");
+  const [exchangeRate, setExchangeRate] = useState("");
+  const [amountToConvert, setAmountToConvert] = useState("");
 
   const RESPONSIBILITIES = [
     { id: "dashboard", label: "Dashboard (view)", description: "View dashboard and insights" },
@@ -73,6 +78,7 @@ const Settings = () => {
       companyStamp: user?.companyStamp || "",
       currency: user?.currency || "GHS",
     });
+    setExchangeFrom(user?.currency || "GHS");
   }, [user]);
 
   const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
@@ -493,14 +499,14 @@ const Settings = () => {
                   </div>
                   {isAdminOrOwner && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Organization Currency
                       </label>
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         Set the default currency for your organization. This will be used throughout the application for invoices, reports, and financial calculations.
                       </p>
                       <select
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                         value={companyForm.currency}
                         onChange={(e) => setCompanyForm((prev) => ({ ...prev, currency: e.target.value }))}
                       >
@@ -512,6 +518,76 @@ const Settings = () => {
                       </select>
                     </div>
                   )}
+
+                  {/* Exchange rate conversion */}
+                  {isAdminOrOwner && (
+                    <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Exchange rate conversion</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Convert amounts between currencies when changing your organization currency. Enter the rate (e.g. 1 GHS = 0.065 USD) and an amount to see the equivalent.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">From</label>
+                          <select
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            value={exchangeFrom}
+                            onChange={(e) => setExchangeFrom(e.target.value)}
+                          >
+                            {CURRENCY_OPTIONS_LIST.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">To</label>
+                          <select
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            value={exchangeTo}
+                            onChange={(e) => setExchangeTo(e.target.value)}
+                          >
+                            {CURRENCY_OPTIONS_LIST.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-end gap-3 mb-3">
+                        <div className="flex-1 min-w-[120px]">
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Rate (1 {exchangeFrom} = ? {exchangeTo})</label>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder="e.g. 0.065"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            value={exchangeRate}
+                            onChange={(e) => setExchangeRate(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount to convert</label>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder="Amount"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            value={amountToConvert}
+                            onChange={(e) => setAmountToConvert(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      {exchangeRate !== "" && amountToConvert !== "" && !isNaN(parseFloat(exchangeRate)) && !isNaN(parseFloat(amountToConvert)) && (
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          <strong>{parseFloat(amountToConvert).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {exchangeFrom}</strong>
+                          {" = "}
+                          <strong>{(parseFloat(amountToConvert) * parseFloat(exchangeRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {exchangeTo}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60"
                     onClick={handleSaveCompany}
