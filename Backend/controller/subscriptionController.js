@@ -161,6 +161,10 @@ exports.webhook = async (req, res) => {
     try {
         const rawBody = req.rawBody || req.body;
         const signature = req.headers['x-paystack-signature'];
+        const hasSecret = !!PAYSTACK_SECRET;
+        if (!hasSecret) logger.warn('Paystack webhook: PAYSTACK_SECRET_KEY is not set');
+        if (!signature) logger.warn('Paystack webhook: missing x-paystack-signature header');
+        if (!rawBody) logger.warn('Paystack webhook: no raw body (middleware may have parsed it)');
         if (!PAYSTACK_SECRET || !signature || !rawBody) {
             return res.status(400).send('Bad request');
         }
@@ -170,6 +174,7 @@ exports.webhook = async (req, res) => {
             return res.status(401).send('Invalid signature');
         }
         const event = typeof rawBody === 'string' ? JSON.parse(rawBody) : (Buffer.isBuffer(rawBody) ? JSON.parse(rawBody.toString()) : rawBody);
+        logger.info('Paystack webhook received', { event: event.event, reference: event.data?.reference });
         if (event.event !== 'charge.success') {
             return res.status(200).send('OK');
         }
@@ -241,6 +246,7 @@ exports.webhook = async (req, res) => {
             plan,
             billingInterval: interval,
         });
+        logger.info('Paystack webhook: subscription created', { userId: userId.toString(), plan, interval, reference });
         res.status(200).send('OK');
     } catch (error) {
         logger.error('Paystack webhook error', error);
