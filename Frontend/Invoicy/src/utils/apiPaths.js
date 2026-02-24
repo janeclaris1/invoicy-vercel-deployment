@@ -122,6 +122,9 @@ export const API_PATHS = {
         GENERATE_REMINDER: "api/ai/generate-reminder",
         GET_DASHBOARD_SUMMARY: "api/ai/dashboard-summary",
         GENERATE_POLICY: "api/ai/generate-policy",
-    }
-
-    };
+    },
+    GRA: {
+        SUBMIT_INVOICE: "api/gra/submit-invoice",
+        SUBMIT_VAT_RETURN: "api/gra/submit-vat-return",
+    },
+};

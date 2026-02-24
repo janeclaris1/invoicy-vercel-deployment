@@ -24,6 +24,7 @@ const performanceTalentRoutes = require("./routes/performanceTalentRoutes");
 const recruitmentRoutes = require("./routes/recruitmentRoutes");
 const messagingRoutes = require("./routes/messagingRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const graRoutes = require("./routes/graRoutes");
 const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
 const app = express();
@@ -137,6 +138,7 @@ app.use("/api/hr-recruitment", recruitmentRoutes);
 app.use("/api/messages", messagingLimiter, messagingRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/subscriptions", authLimiter, subscriptionRoutes);
+app.use("/api/gra", authLimiter, graRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {

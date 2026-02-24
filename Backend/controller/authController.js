@@ -345,6 +345,8 @@ exports.loginUser = async (req, res, next) => {
                 createdBy: user.createdBy || null,
                 isPlatformAdmin: !!isPlatformAdmin,
                 subscription: subscription || null,
+                graCompanyReference: user.graCompanyReference || '',
+                graCredentialsConfigured: !!(user.graCompanyReference && user.graSecurityKey),
             });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
@@ -382,6 +384,8 @@ exports.getMe = async (req, res) => {
             createdBy: user.createdBy || null,
             isPlatformAdmin: !!isPlatformAdmin,
             subscription: subscription || null,
+            graCompanyReference: user.graCompanyReference || '',
+            graCredentialsConfigured: !!(user.graCompanyReference && user.graSecurityKey),
         };
         if (process.env.NODE_ENV !== 'production') {
             payload._platformAdminCheck = { envConfigured: adminEmails.length > 0 };
@@ -415,6 +419,8 @@ exports.updateUserProfile = async (req, res) => {
             user.companyLogo = req.body.companyLogo !== undefined ? req.body.companyLogo : user.companyLogo;
             user.companySignature = req.body.companySignature !== undefined ? req.body.companySignature : user.companySignature;
             user.companyStamp = req.body.companyStamp !== undefined ? req.body.companyStamp : user.companyStamp;
+            if (req.body.graCompanyReference !== undefined) user.graCompanyReference = String(req.body.graCompanyReference || '').trim();
+            if (req.body.graSecurityKey !== undefined) user.graSecurityKey = String(req.body.graSecurityKey || '').trim();
             // Only allow admin/owner to update currency
             if (req.body.currency && ['owner', 'admin'].includes(user.role)) {
                 const validCurrencies = ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'];
@@ -521,6 +527,8 @@ exports.updateUserProfile = async (req, res) => {
                 companySignature: updatedUser.companySignature,
                 companyStamp: updatedUser.companyStamp,
                 currency: updatedUser.currency || 'GHS',
+                graCompanyReference: updatedUser.graCompanyReference || '',
+                graCredentialsConfigured: !!(updatedUser.graCompanyReference && updatedUser.graSecurityKey),
                 isPlatformAdmin: !!isPlatformAdmin,
                 subscription: subscription || null,
             });

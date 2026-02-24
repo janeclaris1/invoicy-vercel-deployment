@@ -21,6 +21,8 @@ const Settings = () => {
     companySignature: "",
     companyStamp: "",
     currency: "GHS",
+    graCompanyReference: "",
+    graSecurityKey: "",
   });
   const [savingCompany, setSavingCompany] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -69,7 +71,8 @@ const Settings = () => {
   const RESPONSIBILITY_LABELS = Object.fromEntries(RESPONSIBILITIES.map((r) => [r.id, r.label]));
 
   useEffect(() => {
-    setCompanyForm({
+    setCompanyForm((prev) => ({
+      ...prev,
       businessName: user?.businessName || "",
       tin: user?.tin || "",
       address: user?.address || "",
@@ -78,7 +81,9 @@ const Settings = () => {
       companySignature: user?.companySignature || "",
       companyStamp: user?.companyStamp || "",
       currency: user?.currency || "GHS",
-    });
+      graCompanyReference: user?.graCompanyReference || "",
+      graSecurityKey: "", // Never pre-fill; user enters to set/update
+    }));
     setExchangeFrom(user?.currency || "GHS");
   }, [user]);
 
@@ -319,9 +324,11 @@ const Settings = () => {
         payload.currencyExchangeRate = exchangeRate;
         payload.currencyRateDirection = rateDirection;
       }
+      if (payload.graSecurityKey === "") delete payload.graSecurityKey;
       const response = await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, payload);
       updateUser(response.data);
-      toast.success("Company details saved. Dashboard and reports will show amounts in the new currency.");
+      setCompanyForm((prev) => ({ ...prev, graSecurityKey: "" }));
+      toast.success("Company details saved.");
     } catch (error) {
       console.error("Failed to update company profile:", error);
       toast.error(error.response?.data?.message || "Failed to save company details");
@@ -546,6 +553,42 @@ const Settings = () => {
                           </option>
                         ))}
                       </select>
+                    </div>
+                  )}
+
+                  {/* GRA (Ghana Revenue Authority) credentials */}
+                  {isAdminOrOwner && (
+                    <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">GRA API credentials</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Required for submitting invoices and VAT returns to Ghana Revenue Authority. Get your Company Reference and Security Key from GRA. Leave Security Key blank to keep the existing value.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Company Reference</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. CXX000000YY-001"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            value={companyForm.graCompanyReference}
+                            onChange={(e) => setCompanyForm((prev) => ({ ...prev, graCompanyReference: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Security Key</label>
+                          <input
+                            type="password"
+                            autoComplete="off"
+                            placeholder={user?.graCredentialsConfigured ? "Enter new key to update" : "Enter security key"}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                            value={companyForm.graSecurityKey}
+                            onChange={(e) => setCompanyForm((prev) => ({ ...prev, graSecurityKey: e.target.value }))}
+                          />
+                          {user?.graCredentialsConfigured && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Key is stored. Leave blank to keep current.</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 

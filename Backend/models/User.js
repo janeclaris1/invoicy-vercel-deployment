@@ -32,6 +32,8 @@ const userSchema = new mongoose.Schema({
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
+    graCompanyReference: { type: String, default: '' },
+    graSecurityKey: { type: String, default: '' },
 },
 { timestamps: true }
 );

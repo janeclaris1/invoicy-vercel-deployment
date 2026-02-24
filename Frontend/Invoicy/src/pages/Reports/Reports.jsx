@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { FileText, Download, Printer, Calendar, TrendingUp, DollarSign, FileCheck, Building2, Filter } from "lucide-react";
 import Button from "../../components/ui/Button";
 import moment from "moment";
-import { graApi } from "../../utils/graApi";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -445,15 +444,17 @@ const Reports = () => {
   };
 
   const handleSubmitToGRA = async () => {
+    if (!user?.graCredentialsConfigured) {
+      toast.error("Configure GRA credentials in Settings → Company (Company Reference and Security Key) to submit to GRA.");
+      return;
+    }
     setSubmitting(true);
-    
     try {
-      // Prepare VAT return data for GRA
       const vatData = {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
         totalSales: reportData.summary.taxableSales,
-        standardRatedSales: reportData.summary.taxableSales, // All sales at 15%
+        standardRatedSales: reportData.summary.taxableSales,
         zeroRatedSales: 0,
         exemptSales: 0,
         totalVAT: reportData.summary.totalVat,
@@ -464,28 +465,17 @@ const Reports = () => {
         totalTax: reportData.summary.totalTax,
         inputVAT: 0,
         netVAT: reportData.summary.totalVat,
-        invoices: [], // Add invoice details if available
+        invoices: [],
       };
-
-      // Submit to GRA VSDC API
-      const response = await graApi.submitVATReturn(vatData);
-      
-      // Store the submission response
-      setGraSubmission(response);
-      
-      // Extract invoice number from response
-      const invoiceNum = response?.response?.mesaage?.num || response?.referenceNumber || 'N/A';
-      
-      toast.success(
-        `Successfully submitted to GRA! Invoice: ${invoiceNum}`,
-        { duration: 5000 }
-      );
-      
-      console.log("GRA Submission Response:", response);
+      const response = await axiosInstance.post(API_PATHS.GRA.SUBMIT_VAT_RETURN, vatData);
+      const data = response?.data ?? response;
+      setGraSubmission(data);
+      const invoiceNum = data?.response?.mesaage?.num || data?.referenceNumber || "N/A";
+      toast.success(`Successfully submitted to GRA! Invoice: ${invoiceNum}`, { duration: 5000 });
     } catch (error) {
       console.error("GRA Submission Error:", error);
       toast.error(
-        error.message || "Failed to submit to GRA. Please try again.",
+        error.response?.data?.message || error.message || "Failed to submit to GRA. Please try again.",
         { duration: 5000 }
       );
     } finally {
@@ -789,7 +779,7 @@ const Reports = () => {
                   {submitting ? "Submitting to GRA..." : "Submit to GRA"}
                 </Button>
                 <p className="text-xs text-gray-500 mt-2">
-                  Company Reference: {import.meta.env.VITE_GRA_COMPANY_REFERENCE || "CXX000000YY-001"}
+                  Company Reference: {user?.graCompanyReference || "Not set (configure in Settings → Company)"}
                 </p>
               </div>
 

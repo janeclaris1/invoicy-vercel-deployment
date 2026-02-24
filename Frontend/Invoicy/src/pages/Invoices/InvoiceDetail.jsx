@@ -5,7 +5,6 @@ import { Loader2, Printer, Edit2, Save, X, FileText, Building2 } from "lucide-re
 import QRCode from "react-qr-code";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { graApi } from "../../utils/graApi";
 import Button from "../../components/ui/Button";
 import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
@@ -121,36 +120,18 @@ const InvoiceDetail = () => {
       toast.error("Submit to GRA is only available for tax invoices. Convert this proforma to an invoice first.");
       return;
     }
+    if (!user?.graCredentialsConfigured) {
+      toast.error("Configure GRA credentials in Settings → Company (Company Reference and Security Key) to submit to GRA.");
+      return;
+    }
     setGraSubmitting(true);
     try {
-      const itemsForGra = lineItems.map((line) => ({
-        description: line.description || line.itemDescription || "",
-        quantity: Number(line.quantity) || 0,
-        unitPrice: Number(line.unitPrice ?? line.itemPrice) || 0,
-        amount: Number(line.amount) || 0,
-        vatRate: 15,
-        vatAmount: Number(line.vat) || 0,
-      }));
-      const invoiceDateFormatted =
-        invoice.invoiceDate instanceof Date
-          ? moment(invoice.invoiceDate).format("YYYY-MM-DD")
-          : moment(invoice.invoiceDate).format("YYYY-MM-DD");
-      const graPayload = {
-        invoiceNumber: invoice.invoiceNumber,
-        invoiceDate: invoiceDateFormatted,
-        customerName: invoice.billTo?.clientName || "",
-        customerTIN: invoice.billTo?.tin || "",
-        customerAddress: [invoice.billTo?.address].filter(Boolean).join(", ") || "",
-        items: itemsForGra,
-        subtotal: invoice.subtotal ?? 0,
-        totalVAT: invoice.totalVat ?? 0,
-        total: invoice.grandTotal ?? 0,
-      };
-      const response = await graApi.submitInvoice(graPayload);
-      const res = response?.response || response;
-      const qrCode = res?.qr_code ?? response?.qr_code;
-      const verificationUrl = res?.verificationUrl ?? response?.verificationUrl ?? qrCode;
-      const verificationCode = res?.verificationCode ?? response?.verificationCode ?? res?.ysdcintdata;
+      const response = await axiosInstance.post(API_PATHS.GRA.SUBMIT_INVOICE, { invoiceId: id });
+      const data = response?.data || response;
+      const res = data?.response || data;
+      const qrCode = res?.qr_code ?? data?.qr_code;
+      const verificationUrl = res?.verificationUrl ?? data?.verificationUrl ?? qrCode;
+      const verificationCode = res?.verificationCode ?? data?.verificationCode ?? res?.ysdcintdata;
       const updates = {};
       if (verificationUrl) updates.graVerificationUrl = verificationUrl;
       if (verificationCode) updates.graVerificationCode = verificationCode;
@@ -165,7 +146,7 @@ const InvoiceDetail = () => {
       }
     } catch (err) {
       console.error("GRA submit error:", err);
-      toast.error(err?.message || err?.response?.data?.message || "Failed to submit to GRA.");
+      toast.error(err?.response?.data?.message || err?.message || "Failed to submit to GRA.");
     } finally {
       setGraSubmitting(false);
     }
