@@ -42,7 +42,7 @@ const NavigationItemWithDropdown = ({ item, activeNavItem, onClick, isCollapsed,
     const Icon = item.icon;
     const children = item.children || [];
     const hasActiveChild = children.some((c) => activeNavItem === c.id);
-    const parentActive = activeNavItem === item.id || hasActiveChild;
+    const parentActive = activeNavItem === item.id || hasActiveChild || activeNavItem.startsWith(item.id + "/");
     return (
         <div className="space-y-1">
             <div className="flex items-center">
@@ -71,7 +71,7 @@ const NavigationItemWithDropdown = ({ item, activeNavItem, onClick, isCollapsed,
                                 activeNavItem === child.id ? "bg-blue-50 text-blue-900 dark:bg-slate-800 dark:text-white" : "text-gray-600 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
                             }`}
                         >
-                            <span className="truncate">{t(navLabelKey(child.id))}</span>
+                            <span className="truncate">{child.name || t(navLabelKey(child.id))}</span>
                         </button>
                     ))}
                 </div>
@@ -116,7 +116,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeNavItem, setActiveNavItem] = useState(activeMenu || "dashboard");
-    const [hrExpanded, setHrExpanded] = useState(false);
+    const [expandedNavIds, setExpandedNavIds] = useState({ hr: false, invoices: false });
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [theme, setTheme] = useState(() => {
@@ -168,7 +168,11 @@ const DashboardLayout = ({ children, activeMenu }) => {
     useEffect(() => {
         const path = location.pathname.replace(/^\//, "") || "dashboard";
         setActiveNavItem(path);
-        if (path.startsWith("hr/")) setHrExpanded(true);
+        setExpandedNavIds((prev) => ({
+            ...prev,
+            ...(path.startsWith("hr/") && { hr: true }),
+            ...((path === "invoices" || path.startsWith("invoices/")) && { invoices: true }),
+        }));
     }, [location.pathname]);
 
     // Close dropdowns when clicking outside
@@ -256,8 +260,8 @@ const DashboardLayout = ({ children, activeMenu }) => {
                                 activeNavItem={activeNavItem}
                                 onClick={handleNavigation}
                                 isCollapsed={sidebarCollapsed}
-                                isExpanded={hrExpanded}
-                                onToggleExpand={() => setHrExpanded((v) => !v)}
+                                isExpanded={!!expandedNavIds[item.id]}
+                                onToggleExpand={() => setExpandedNavIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                                 navLabelKey={navLabelKey}
                                 t={t}
                             />

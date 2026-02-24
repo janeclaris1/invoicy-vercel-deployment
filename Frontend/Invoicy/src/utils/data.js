@@ -186,8 +186,16 @@ export const HR_RESPONSIBILITIES = [
 export const NAVIGATION_MENU = [
     { id: "dashboard", name: "Dashboard", icon: LayoutDashboard, responsibility: "dashboard" },
     { id: "clients", name: "Subscribed clients", icon: Users, responsibility: null }, // platform admin only (see canAccessNav)
-    { id: "invoices", name: "Invoices", icon: FileText, responsibility: "invoices" },
-    { id: "invoices/new", name: "Create Invoice", icon: Plus, responsibility: "invoices" },
+    {
+        id: "invoices",
+        name: "Invoices",
+        icon: FileText,
+        responsibility: "invoices",
+        children: [
+            { id: "invoices", name: "All Invoices", icon: null, responsibility: "invoices" },
+            { id: "invoices/new", name: "Create Invoice", icon: null, responsibility: "invoices" },
+        ],
+    },
     { id: "customers", name: "Customers", icon: Users, responsibility: "customers" },
     { id: "suppliers", name: "Suppliers", icon: Truck, responsibility: "suppliers" },
     { id: "categories", name: "Categories", icon: FolderOpen, responsibility: "categories" },
