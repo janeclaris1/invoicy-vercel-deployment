@@ -44,6 +44,7 @@ const Settings = () => {
   const [exchangeTo, setExchangeTo] = useState("USD");
   const [exchangeRate, setExchangeRate] = useState("");
   const [amountToConvert, setAmountToConvert] = useState("");
+  const [rateDirection, setRateDirection] = useState("toFrom"); // "toFrom" = 1 To = ? From (e.g. 1 USD = 12.5 GHS), "fromTo" = 1 From = ? To
 
   const RESPONSIBILITIES = [
     { id: "dashboard", label: "Dashboard (view)", description: "View dashboard and insights" },
@@ -524,8 +525,30 @@ const Settings = () => {
                     <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Exchange rate conversion</h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                        Convert amounts between currencies when changing your organization currency. Enter the rate (e.g. 1 GHS = 0.065 USD) and an amount to see the equivalent.
+                        Convert amounts between currencies. Choose how you enter the rate (e.g. 1 USD = 12.5 GHS or 1 GHS = 0.08 USD), then enter the rate and an amount.
                       </p>
+                      <div className="flex flex-wrap gap-4 mb-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="rateDirection"
+                            checked={rateDirection === "toFrom"}
+                            onChange={() => setRateDirection("toFrom")}
+                            className="text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">1 {exchangeTo} = ? {exchangeFrom}</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="rateDirection"
+                            checked={rateDirection === "fromTo"}
+                            onChange={() => setRateDirection("fromTo")}
+                            className="text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">1 {exchangeFrom} = ? {exchangeTo}</span>
+                        </label>
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div>
                           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">From</label>
@@ -554,19 +577,21 @@ const Settings = () => {
                       </div>
                       <div className="flex flex-wrap items-end gap-3 mb-3">
                         <div className="flex-1 min-w-[120px]">
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Rate (1 {exchangeFrom} = ? {exchangeTo})</label>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Rate ({rateDirection === "toFrom" ? `1 ${exchangeTo} = ? ${exchangeFrom}` : `1 ${exchangeFrom} = ? ${exchangeTo}`})
+                          </label>
                           <input
                             type="number"
                             step="any"
                             min="0"
-                            placeholder="e.g. 0.065"
+                            placeholder={rateDirection === "toFrom" ? "e.g. 12.5" : "e.g. 0.08"}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
                             value={exchangeRate}
                             onChange={(e) => setExchangeRate(e.target.value)}
                           />
                         </div>
                         <div className="flex-1 min-w-[120px]">
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount to convert</label>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount to convert ({exchangeFrom})</label>
                           <input
                             type="number"
                             step="any"
@@ -578,11 +603,17 @@ const Settings = () => {
                           />
                         </div>
                       </div>
-                      {exchangeRate !== "" && amountToConvert !== "" && !isNaN(parseFloat(exchangeRate)) && !isNaN(parseFloat(amountToConvert)) && (
+                      {exchangeRate !== "" && amountToConvert !== "" && !isNaN(parseFloat(exchangeRate)) && parseFloat(exchangeRate) > 0 && !isNaN(parseFloat(amountToConvert)) && (
                         <p className="text-sm text-gray-700 dark:text-gray-300">
                           <strong>{parseFloat(amountToConvert).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {exchangeFrom}</strong>
                           {" = "}
-                          <strong>{(parseFloat(amountToConvert) * parseFloat(exchangeRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {exchangeTo}</strong>
+                          <strong>
+                            {(rateDirection === "toFrom"
+                              ? parseFloat(amountToConvert) / parseFloat(exchangeRate)
+                              : parseFloat(amountToConvert) * parseFloat(exchangeRate)
+                            ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                            {exchangeTo}
+                          </strong>
                         </p>
                       )}
                     </div>
