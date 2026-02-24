@@ -253,7 +253,7 @@ const InvoiceDetail = () => {
       <div className="space-y-6 print:p-0 bg-white rounded-4px ">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
-            <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
+            <h1 className="text-2xl font-semibold text-white dark:text-black">Invoice Details</h1>
             <p className="invoice-detail-subheading text-sm text-white dark:text-black flex items-center gap-2 flex-wrap">
               #{invoice.invoiceNumber}
               <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
@@ -272,7 +272,7 @@ const InvoiceDetail = () => {
                 variant="secondary"
                 onClick={handleSubmitToGRA}
                 disabled={graSubmitting}
-                className="flex items-center gap-2 text-black dark:text-black"
+                className="flex items-center gap-2 text-white dark:text-black"
               >
                 {graSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
                 Submit to GRA
@@ -288,7 +288,7 @@ const InvoiceDetail = () => {
               <Button 
                 variant="secondary" 
                 onClick={() => setIsEditingPayment(true)} 
-                className="flex items-center gap-2 text-black dark:text-black"
+                className="flex items-center gap-2 text-white dark:text-black"
               >
                 <Edit2 className="w-4 h-4" />
                 Edit Payment
@@ -310,17 +310,17 @@ const InvoiceDetail = () => {
         )}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
           <div>
-            <h2 className="text-lg font-semibold text-black dark:text-black">Invoice</h2>
-            <div className="text-sm text-black dark:text-black">#{invoice.invoiceNumber}</div>
-            <div className="text-sm text-black dark:text-black">
+            <h2 className="text-lg font-semibold text-white dark:text-black">Invoice</h2>
+            <div className="text-sm text-white dark:text-black">#{invoice.invoiceNumber}</div>
+            <div className="text-sm text-white dark:text-black">
               Date: {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}
             </div>
-            <div className="text-sm text-black dark:text-black">
+            <div className="text-sm text-white dark:text-black">
               Due: {invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}
             </div>
           </div>
           <div className="text-sm">
-            <span className="font-medium text-black dark:text-black">Status: </span>
+            <span className="font-medium text-white dark:text-black">Status: </span>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
               (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
                 ? "bg-emerald-100 text-emerald-800"
@@ -335,8 +335,8 @@ const InvoiceDetail = () => {
 
         <div className="invoice-bill-from-to grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 mt-6">
           <div className="text-left">
-            <h3 className="text-sm font-semibold text-black mb-2">Bill From</h3>
-            <div className="text-sm text-black">
+            <h3 className="text-sm font-semibold text-white dark:text-black mb-2">Bill From</h3>
+            <div className="text-sm text-white dark:text-black">
               <div>{invoice.billFrom?.businessName || user?.businessName || "-"}</div>
               <div>{invoice.billFrom?.email || user?.email || "-"}</div>
               <div>{invoice.billFrom?.address || user?.address || "-"}</div>
@@ -345,8 +345,8 @@ const InvoiceDetail = () => {
             </div>
           </div>
           <div className="invoice-bill-to text-left">
-            <h3 className="text-sm font-semibold text-black mb-2">Bill To</h3>
-            <div className="text-sm text-black">
+            <h3 className="text-sm font-semibold text-white dark:text-black mb-2">Bill To</h3>
+            <div className="text-sm text-white dark:text-black">
               <div>{invoice.billTo?.clientName || "-"}</div>
               <div>{invoice.billTo?.email || "-"}</div>
               <div>{invoice.billTo?.address || "-"}</div>
@@ -360,25 +360,25 @@ const InvoiceDetail = () => {
           <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">#</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Qty</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Total</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {lineItems.map((item, index) => (
                 <tr key={index} className="hover:bg-teal-700 group transition-colors duration-150">
-                  <td className="px-4 py-3 text-sm text-black group-hover:text-white">{item.sn || index + 1}</td>
-                  <td className="px-4 py-3 text-sm text-black group-hover:text-white">
+                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">{item.sn || index + 1}</td>
+                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">
                     {item.description || item.itemDescription || "-"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black group-hover:text-white">{item.quantity || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-black group-hover:text-white">
+                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">{item.quantity || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">
                     {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black group-hover:text-white">
+                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">
                     {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
                   </td>
                 </tr>
@@ -544,7 +544,7 @@ const InvoiceDetail = () => {
         {/* Payment History - hidden when printing */}
         {invoice.paymentHistory && invoice.paymentHistory.length > 0 && (
           <div className="mt-6 border-t border-gray-200 pt-6 no-print">
-            <h3 className="text-sm font-semibold text-black mb-4">Payment History</h3>
+            <h3 className="text-sm font-semibold text-white dark:text-black mb-4">Payment History</h3>
             <div className="space-y-3">
               {invoice.paymentHistory
                 .slice()
@@ -556,15 +556,15 @@ const InvoiceDetail = () => {
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
-                        <span className="font-medium text-black">
+                        <span className="font-medium text-white dark:text-black">
                           {formatCurrency(payment.amount, userCurrency)}
                         </span>
-                        <span className="text-xs text-black">
+                        <span className="text-xs text-white dark:text-black">
                           {moment(payment.date).format("MMM D, YYYY h:mm A")}
                         </span>
                       </div>
                       {payment.notes && (
-                        <p className="text-sm text-black mt-1">
+                        <p className="text-sm text-white dark:text-black mt-1">
                           {payment.notes}
                         </p>
                       )}
