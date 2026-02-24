@@ -13,68 +13,42 @@
     --dashboard-stat-value: #0f172a;
   }
 
-  /* Light mode only: white text on dark background */
-  html:not(.dark) body {
+  /* Light mode: white text only on invoice detail page */
+  html:not(.dark) .invoice-detail-page {
     background-color: #0f172a;
     color: #ffffff;
   }
-  html:not(.dark) h1,
-  html:not(.dark) h2,
-  html:not(.dark) h3,
-  html:not(.dark) h4,
-  html:not(.dark) h5,
-  html:not(.dark) h6,
-  html:not(.dark) p,
-  html:not(.dark) span,
-  html:not(.dark) label,
-  html:not(.dark) small,
-  html:not(.dark) li,
-  html:not(.dark) td,
-  html:not(.dark) th {
+  html:not(.dark) .invoice-detail-page h1,
+  html:not(.dark) .invoice-detail-page h2,
+  html:not(.dark) .invoice-detail-page h3,
+  html:not(.dark) .invoice-detail-page h4,
+  html:not(.dark) .invoice-detail-page h5,
+  html:not(.dark) .invoice-detail-page h6,
+  html:not(.dark) .invoice-detail-page p,
+  html:not(.dark) .invoice-detail-page span,
+  html:not(.dark) .invoice-detail-page label,
+  html:not(.dark) .invoice-detail-page small,
+  html:not(.dark) .invoice-detail-page li,
+  html:not(.dark) .invoice-detail-page td,
+  html:not(.dark) .invoice-detail-page th {
     color: #ffffff !important;
   }
-  html:not(.dark) a {
+  html:not(.dark) .invoice-detail-page .text-black,
+  html:not(.dark) .invoice-detail-page .text-gray-900,
+  html:not(.dark) .invoice-detail-page .text-gray-800,
+  html:not(.dark) .invoice-detail-page .text-slate-900,
+  html:not(.dark) .invoice-detail-page .text-slate-800,
+  html:not(.dark) .invoice-detail-page .text-slate-700,
+  html:not(.dark) .invoice-detail-page .text-gray-700 {
+    color: #ffffff !important;
+  }
+  html:not(.dark) .invoice-detail-page .invoice-print-container,
+  html:not(.dark) .invoice-detail-page .invoice-print-container.bg-white {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+  }
+  html:not(.dark) .invoice-detail-page a:not([role="button"]):not(.btn) {
     color: #93c5fd !important;
-  }
-  html:not(.dark) input,
-  html:not(.dark) textarea,
-  html:not(.dark) select {
-    background-color: #1e293b !important;
-    color: #ffffff !important;
-    border-color: #334155 !important;
-  }
-  html:not(.dark) .text-gray-900,
-  html:not(.dark) .text-gray-800,
-  html:not(.dark) .text-gray-700,
-  html:not(.dark) .text-gray-600,
-  html:not(.dark) .text-gray-500,
-  html:not(.dark) .text-slate-900,
-  html:not(.dark) .text-slate-800,
-  html:not(.dark) .text-slate-700,
-  html:not(.dark) .text-slate-600,
-  html:not(.dark) .text-slate-500,
-  html:not(.dark) .text-black {
-    color: #ffffff !important;
-  }
-  html:not(.dark) .bg-white,
-  html:not(.dark) .bg-gray-50,
-  html:not(.dark) .bg-gray-100,
-  html:not(.dark) .bg-slate-50,
-  html:not(.dark) .bg-slate-100 {
-    background-color: #1e293b !important;
-  }
-  html:not(.dark) .border-gray-200,
-  html:not(.dark) .border-gray-300,
-  html:not(.dark) .border-slate-200,
-  html:not(.dark) .border-slate-300 {
-    border-color: #334155 !important;
-  }
-  html:not(.dark) .dashboard-stat-label,
-  html:not(.dark) .dashboard-stat-value {
-    color: #ffffff !important;
-  }
-  html:not(.dark) .stat-card-bg {
-    background-color: #1e293b !important;
   }
 
   html.dark {

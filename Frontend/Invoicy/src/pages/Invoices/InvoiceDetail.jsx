@@ -249,7 +249,7 @@ const InvoiceDetail = () => {
         }
       `}</style>
       
-      <div className="space-y-6 print:p-0 bg-white">
+      <div className="invoice-detail-page space-y-6 print:p-0 bg-white">
         <div className="flex items-center justify-between print:hidden">
           <div>
             <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
