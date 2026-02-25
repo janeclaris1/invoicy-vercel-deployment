@@ -87,7 +87,7 @@ const Settings = () => {
     setExchangeFrom(user?.currency || "GHS");
   }, [user]);
 
-  const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
+  const isOwner = user?.role === "owner";
 
   const currencyOptions = [
     { label: 'GHS - Ghana Cedis', value: 'GHS' },
@@ -304,7 +304,7 @@ const Settings = () => {
     const newCurrency = companyForm.currency || "GHS";
     const isCurrencyChanging = newCurrency !== previousCurrency;
 
-    if (isCurrencyChanging && isAdminOrOwner) {
+    if (isCurrencyChanging && isOwner) {
       const rateNum = exchangeRate !== "" ? parseFloat(exchangeRate) : NaN;
       const rateValid = Number.isFinite(rateNum) && rateNum > 0;
       const fromMatches = exchangeFrom === previousCurrency;
@@ -320,7 +320,7 @@ const Settings = () => {
     setSavingCompany(true);
     try {
       const payload = { ...companyForm };
-      if (isCurrencyChanging && isAdminOrOwner && exchangeRate !== "" && Number.isFinite(parseFloat(exchangeRate))) {
+      if (isCurrencyChanging && isOwner && exchangeRate !== "" && Number.isFinite(parseFloat(exchangeRate))) {
         payload.currencyExchangeRate = exchangeRate;
         payload.currencyRateDirection = rateDirection;
       }
@@ -346,6 +346,10 @@ const Settings = () => {
     { id: "billing", name: "Billing", icon: CreditCard },
   ];
 
+  // Only owners can see company, team, security and billing tabs
+  const ownerOnlyTabs = new Set(["company", "team", "security", "billing"]);
+  const visibleTabs = tabs.filter((tab) => !ownerOnlyTabs.has(tab.id) || isOwner);
+
   return (
     <div className="p-6">
       <div className="mb-8">
@@ -357,7 +361,7 @@ const Settings = () => {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
-            {tabs.map((tab) => {
+            {visibleTabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -421,7 +425,7 @@ const Settings = () => {
               </div>
             )}
 
-            {activeTab === "company" && (
+            {activeTab === "company" && isOwner && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Company Settings</h2>
                 <div className="space-y-4">
@@ -527,7 +531,7 @@ const Settings = () => {
                       onChange={(e) => setCompanyForm((prev) => ({ ...prev, phone: e.target.value }))}
                     />
                   </div>
-                  {isAdminOrOwner && (
+                  {isOwner && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Organization Currency
@@ -557,7 +561,7 @@ const Settings = () => {
                   )}
 
                   {/* GRA (Ghana Revenue Authority) credentials */}
-                  {isAdminOrOwner && (
+                  {isOwner && (
                     <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">GRA API credentials</h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
@@ -593,7 +597,7 @@ const Settings = () => {
                   )}
 
                   {/* Exchange rate conversion */}
-                  {isAdminOrOwner && (
+                  {isOwner && (
                     <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Exchange rate conversion</h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
@@ -702,7 +706,7 @@ const Settings = () => {
               </div>
             )}
 
-            {activeTab === "team" && (
+            {activeTab === "team" && isOwner && (
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -977,7 +981,7 @@ const Settings = () => {
               </div>
             )}
 
-            {activeTab === "security" && (
+            {activeTab === "security" && isOwner && (
               <div>
                 <h2 className="text-xl font-semibold text-black mb-6">Security Settings</h2>
                 <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
@@ -1028,7 +1032,7 @@ const Settings = () => {
               </div>
             )}
 
-            {activeTab === "billing" && (
+            {activeTab === "billing" && isOwner && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Billing & Subscription</h2>
                 <div className="space-y-6">
