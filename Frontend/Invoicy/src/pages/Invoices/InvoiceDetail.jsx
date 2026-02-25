@@ -255,11 +255,11 @@ const InvoiceDetail = () => {
             <h1 className="text-2xl font-semibold text-white dark:text-black">Invoice Details</h1>
             <p className="invoice-detail-subheading text-sm text-white dark:text-black flex items-center gap-2 flex-wrap">
               #{invoice.invoiceNumber}
-              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-600 text-white dark:bg-amber-100 dark:text-amber-800" : "bg-slate-600 text-white dark:bg-slate-100 dark:text-slate-700"}`}>
                 {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
               </span>
               {invoice.convertedTo && (
-                <Button size="small" variant="ghost" onClick={() => navigate(`/invoices/${invoice.convertedTo?._id || invoice.convertedTo}`)} className="text-xs">
+                <Button size="small" variant="ghost" onClick={() => navigate(`/invoices/${invoice.convertedTo?._id || invoice.convertedTo}`)} className="text-xs text-white dark:text-black">
                   View converted invoice →
                 </Button>
               )}
@@ -437,7 +437,7 @@ const InvoiceDetail = () => {
                       step="0.01"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white text-black"
+                      className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-slate-700 dark:bg-white text-white dark:text-black placeholder-slate-400 dark:placeholder-gray-500"
                       placeholder="0.00"
                     />
                     <Button
@@ -463,7 +463,7 @@ const InvoiceDetail = () => {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="Add payment notes (optional)..."
-                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white text-black resize-none"
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm bg-slate-700 dark:bg-white text-white dark:text-black placeholder-slate-400 dark:placeholder-gray-500 resize-none"
                     rows="2"
                   />
                 </div>
@@ -492,10 +492,10 @@ const InvoiceDetail = () => {
               </span>
               <span className={
                 balanceDue > 0 
-                  ? "text-red-200 dark:text-red-600" 
+                  ? "text-white dark:text-red-600" 
                   : balanceDue < 0 
-                  ? "text-blue-200 dark:text-blue-600" 
-                  : "text-emerald-200 dark:text-emerald-600"
+                  ? "text-white dark:text-blue-600" 
+                  : "text-white dark:text-emerald-600"
               }>
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
@@ -533,7 +533,7 @@ const InvoiceDetail = () => {
                     className="w-36 h-36 object-contain border border-slate-600 dark:border-slate-500 rounded-lg bg-white p-2 opacity-80"
                     title="Sample QR – submit to GRA to show verification QR"
                   />
-                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
+                  <p className="text-xs text-white dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
                 </>
               )}
             </div>
@@ -551,7 +551,7 @@ const InvoiceDetail = () => {
                 .map((payment, index) => (
                   <div
                     key={index}
-                    className="flex items-start justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="flex items-start justify-between p-3 bg-slate-700 dark:bg-gray-50 rounded-lg border border-slate-600 dark:border-gray-200"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
