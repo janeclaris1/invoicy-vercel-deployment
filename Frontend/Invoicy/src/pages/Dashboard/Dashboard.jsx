@@ -425,7 +425,7 @@ const Dashboard = () => {
             </div>
             <h3 className="text-lg font-medium text-slate-900 mb-2">No invoices yet</h3>
             <p className="text-slate-500 mb-6 max-w-md">Create and send invoices to your clients to see them here.</p>
-            <Button onClick={() => navigate('/invoices/create')} className="flex items-center gap-2 mx-auto">
+            <Button onClick={() => navigate('/invoices/new')} className="flex items-center gap-2 mx-auto">
               <Plus size={16} />
               Create Invoice
             </Button>
