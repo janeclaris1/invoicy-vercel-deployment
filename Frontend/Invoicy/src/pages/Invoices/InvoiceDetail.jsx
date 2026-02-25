@@ -278,7 +278,7 @@ const InvoiceDetail = () => {
               </Button>
             )}
             {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
-              <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2">
+              <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2 text-white dark:text-black">
                 {convertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Convert to invoice
               </Button>
@@ -296,7 +296,7 @@ const InvoiceDetail = () => {
           </div>
         </div>
 
-        <div className="invoice-print-container bg-white dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-6 print:border-0 print:shadow-none shadow-sm">
+        <div className="invoice-print-container bg-slate-800 dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-6 print:border-0 print:shadow-none shadow-sm text-white dark:text-black">
           {/* Logo centered at top */}
         {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
           <div className="invoice-logo-wrap flex justify-center mb-6">
@@ -322,10 +322,10 @@ const InvoiceDetail = () => {
             <span className="font-medium text-white dark:text-black">Status: </span>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
               (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
-                ? "bg-emerald-100 text-emerald-800"
+                ? "bg-emerald-600 text-white dark:bg-emerald-100 dark:text-emerald-800"
                 : (invoice.status || "").toLowerCase() === "partially paid"
                 ? "bg-[#B8860B] text-white"
-                : "bg-red-100 text-red-800"
+                : "bg-red-600 text-white dark:bg-red-100 dark:text-red-800"
             }`}>
               {invoice.status || "Unpaid"}
             </span>
@@ -357,7 +357,7 @@ const InvoiceDetail = () => {
 
         <div className="mt-6 overflow-x-auto">
           <table className="w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-slate-700 dark:bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">#</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Description</th>
@@ -366,7 +366,7 @@ const InvoiceDetail = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Total</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-slate-800 dark:bg-white divide-y divide-gray-200 dark:divide-gray-200">
               {lineItems.map((item, index) => (
                 <tr key={index} className="hover:bg-teal-700 group transition-colors duration-150">
                   <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">{item.sn || index + 1}</td>
