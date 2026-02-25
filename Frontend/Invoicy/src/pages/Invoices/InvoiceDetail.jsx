@@ -172,7 +172,7 @@ const InvoiceDetail = () => {
   }
 
   if (!invoice) {
-    return <div className="text-white">{errorMessage || "Invoice not found."}</div>;
+    return <div className="text-black">{errorMessage || "Invoice not found."}</div>;
   }
 
   return (
@@ -198,6 +198,7 @@ const InvoiceDetail = () => {
           .print\\:hidden,
           .no-print,
           button,
+         
           .btn {
             display: none !important;
             visibility: hidden !important;
