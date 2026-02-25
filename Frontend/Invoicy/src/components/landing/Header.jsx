@@ -105,7 +105,7 @@ const Header = () => {
                 to="/signup"
                 className="bg-gradient-to-r from-blue-950 to-blue-900 hover:bg-gray-800 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
               >
-                Sign Up
+                Try for Free
               </Link>
             </>
           )}
