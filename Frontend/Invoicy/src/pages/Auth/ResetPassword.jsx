@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, Lock, FileText, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { API_PATHS } from "../../utils/apiPaths";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -53,9 +53,7 @@ const ResetPassword = () => {
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-950 to-blue-900 rounded-xl mx-auto mb-6 flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
+          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-14 w-auto object-contain mx-auto mb-6" />
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Set new password</h1>
           <p className="text-gray-600 text-sm">Enter your new password below.</p>
         </div>

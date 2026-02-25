@@ -5,10 +5,8 @@ import {
   Loader2,
   Mail,
   Lock,
-  FileText,
- ArrowRight,
- User
-
+  ArrowRight,
+  User
 } from "lucide-react";
 import {API_PATHS} from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
@@ -241,9 +239,7 @@ const SignUp = () => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-950 to-blue-900 rounded-xl mx-auto mb-6 flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
+          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-14 w-auto object-contain mx-auto mb-6" />
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
           <p className="text-gray-600 text-sm">
             Fill in your details to start your 7-day free trial. You&apos;ll complete payment after the trial to keep using Invoicy.

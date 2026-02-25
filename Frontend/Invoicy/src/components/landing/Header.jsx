@@ -1,6 +1,6 @@
 import {useState, useEffect} from "react";
 import {Link} from "react-router-dom";
-import {FileText, Menu, X} from "lucide-react";
+import {Menu, X} from "lucide-react";
 import ProfileDropdown from "../layout/ProfileDropdown"; 
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../context/AuthContext";
@@ -33,12 +33,10 @@ const Header = () => {
       <div className="flex items-center justify-between h-16 lg:h-20">
         
         {/* Logo */}
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-900 rounded-md flex items-center justify-center">
-            <FileText className="w-4 h-4 text-white" />
-          </div>
+        <Link to="/" className="flex items-center space-x-2">
+          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-8 w-auto object-contain" />
           <span className="text-xl font-bold text-gray-900">Invoicy</span>
-        </div>
+        </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex lg:items-center lg:space-x-8">

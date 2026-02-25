@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import {
-    Briefcase,
     ChevronDown,
     ChevronRight,
     LogOut,
@@ -225,12 +224,10 @@ const DashboardLayout = ({ children, activeMenu }) => {
                     sidebarCollapsed ? "w-20" : "w-64"
                 } bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden`}
             >
-                {/* Company Logo - fixed at top */}
+                {/* App Logo - fixed at top */}
                 <div className="flex-shrink-0 flex items-center h-16 border-b border-gray-200 dark:border-slate-800 px-4">
                     <Link className="flex items-center space-x-3" to="/dashboard">
-                        <div className="h-8 w-8 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
-                            <Briefcase className="w-5 h-5 text-white" />
-                        </div>
+                        <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-8 w-8 object-contain rounded-lg flex-shrink-0" />
                         {!sidebarCollapsed && (
                             <span className="text-gray-900 dark:text-slate-100 font-bold text-xl">{t("appName")}</span>
                         )}

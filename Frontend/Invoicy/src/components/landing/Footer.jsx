@@ -1,5 +1,5 @@
 import {Link} from "react-router-dom";
-import {Twitter, Github, Linkedin, FileText} from "lucide-react";
+import {Twitter, Github, Linkedin} from "lucide-react";
 
 const FooterLink = ({href, to, children, className = ""}) => {
     const linkClassName = "block text-gray-400 hover:text-white transition-colors duration-200 " + className;
@@ -27,10 +27,8 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <div className="space-y-4 md:col-span-2 lg:col-span-1">
                         <Link to="/" className="flex items-center space-x-2 mb-6">
-                            <div className="w-8 h-8 bg-blue-950 rounded-md flex items-center justify-center">
-                                <FileText className="w-4 h-4 text-white" />
-                                <span className="text-xl font-bold">Invoicy</span>
-                            </div>
+                            <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-8 w-auto object-contain" />
+                            <span className="text-xl font-bold">Invoicy</span>
                         </Link>
                         <p className="text-gray-400  leading-relaxed max-w-sm">
                             The simplest way to create and manage invoices for your business.
