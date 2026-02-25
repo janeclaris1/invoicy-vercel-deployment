@@ -5,8 +5,6 @@ import {
     ChevronRight,
     LogOut,
     Menu,
-    Moon,
-    Sun,
     X,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -119,11 +117,6 @@ const DashboardLayout = ({ children, activeMenu }) => {
     const [expandedNavIds, setExpandedNavIds] = useState({ hr: false, invoices: false });
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [theme, setTheme] = useState(() => {
-        const stored = localStorage.getItem("theme");
-        if (stored) return stored;
-        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    });
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
     const prevUnreadRef = useRef(-1);
 
@@ -159,11 +152,10 @@ const DashboardLayout = ({ children, activeMenu }) => {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
+    // Ensure dark class is never applied (single theme only)
     useEffect(() => {
-        const isDark = theme === "dark";
-        document.documentElement.classList.toggle("dark", isDark);
-        localStorage.setItem("theme", theme);
-    }, [theme]);
+        document.documentElement.classList.remove("dark");
+    }, []);
 
     useEffect(() => {
         const path = location.pathname.replace(/^\//, "") || "dashboard";
@@ -341,24 +333,13 @@ const DashboardLayout = ({ children, activeMenu }) => {
                                 i18n.changeLanguage(next);
                                 localStorage.setItem("lang", next);
                             }}
-                            className="h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-slate-100"
+                            className="h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700"
                             aria-label={t("language.label")}
                         >
                             <option value="en">{t("language.en")}</option>
                             <option value="fr">{t("language.fr")}</option>
                             <option value="zh">{t("language.zh")}</option>
                         </select>
-                        <button
-                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors duration-200"
-                            aria-label="Toggle dark mode"
-                        >
-                            {theme === "dark" ? (
-                                <Sun className="h-5 w-5 text-slate-300" />
-                            ) : (
-                                <Moon className="h-5 w-5 text-gray-600" />
-                            )}
-                        </button>
                         <ProfileDropdown
                             isOpen={profileDropdownOpen}
                             onToggle={(e) => {

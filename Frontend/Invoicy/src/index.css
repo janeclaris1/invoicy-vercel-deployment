@@ -13,165 +13,42 @@
     --dashboard-stat-value: #0f172a;
   }
 
-  html.dark {
-    --dashboard-stat-label: #ffffff;
-    --dashboard-stat-value: #ffffff;
-  }
-
   body {
     background-color: #fcfbfc;
     color: #111827;
   }
 
-  html.dark body {
-    background-color: #0b1220;
-    color: #ffffff;
-  }
-
-  html.dark,
-  html.dark body {
-    color: #ffffff;
-  }
-
-  /* Primary and heading text: soft white for readability (avoid pure white everywhere) */
-  html.dark h1,
-  html.dark h2,
-  html.dark h3,
-  html.dark h4,
-  html.dark h5,
-  html.dark h6 {
-    color: #f1f5f9 !important;
-  }
-
-  html.dark .bg-white,
-  html.dark .bg-white\/80,
-  html.dark .bg-white\/90,
-  html.dark .bg-gray-50,
-  html.dark .bg-gray-100,
-  html.dark .bg-slate-50,
-  html.dark .bg-slate-100,
-  html.dark .bg-blue-50,
-  html.dark .bg-emerald-100,
-  html.dark .bg-amber-100,
-  html.dark .bg-red-100 {
-    background-color: #0f172a !important;
-  }
-
-
-  /* Body and neutral text: readable light gray (do not override semantic colors like text-blue-600) */
-  html.dark p,
-  html.dark span,
-  html.dark label,
-  html.dark small,
-  html.dark li,
-  html.dark td,
-  html.dark th {
-    color: #e2e8f0 !important;
-  }
-
-  html.dark a {
-    color: #93c5fd !important;
-  }
-
-  html.dark input,
-  html.dark textarea,
-  html.dark select {
-    background-color: #0f172a !important;
-    color: #ffffff !important;
-    border-color: #1f2937 !important;
-  }
-
-  html.dark .bg-white {
-    background-color: #0f172a;
-  }
-
-  html.dark .bg-gray-50,
-  html.dark .bg-slate-50 {
-    background-color: #0b1220;
-  }
-
-  html.dark .text-gray-900,
-  html.dark .text-gray-800,
-  html.dark .text-slate-900,
-  html.dark .text-slate-800 {
-    color: #e2e8f0;
-  }
-
-  html.dark .text-gray-700,
-  html.dark .text-slate-700 {
-    color: #cbd5e1;
-  }
-
-  html.dark .text-gray-600,
-  html.dark .text-gray-500,
-  html.dark .text-slate-600,
-  html.dark .text-slate-500 {
-    color: #94a3b8;
-  }
-
-  html.dark .text-gray-400,
-  html.dark .text-slate-400 {
-    color: #64748b;
-  }
-
-  html.dark .border-gray-200,
-  html.dark .border-slate-200 {
-    border-color: #1f2937;
-  }
-
-  html:not(.dark) input.date-icon-white {
+  input.date-icon-white {
     color-scheme: dark;
   }
 
-  html:not(.dark) input.date-icon-white::-webkit-calendar-picker-indicator {
+  input.date-icon-white::-webkit-calendar-picker-indicator {
     filter: invert(1) brightness(2);
     opacity: 1;
   }
 
-  /* Invoice detail: light mode only – subheading white text (on dark header for visibility) */
-  html:not(.dark) .invoice-detail-page-header {
+  /* Invoice detail page header */
+  .invoice-detail-page-header {
     background-color: #1e293b;
     color: #ffffff;
     padding: 0.75rem 1rem;
     margin: -0.75rem -1rem 0 -1rem;
     border-radius: 0.5rem 0.5rem 0 0;
   }
-  html:not(.dark) .invoice-detail-subheading {
+  .invoice-detail-subheading {
     color: #ffffff !important;
   }
 
-  /* Invoice detail page header - ensure visible in dark mode */
-  html.dark .invoice-detail-header,
-  html.dark .invoice-detail-header h1,
-  html.dark .invoice-detail-header p {
-    color: #f8fafc !important;
-  }
-
-  /* Dashboard stat cards: clear contrast in both themes (light: dark text, dark: white text); icons keep semantic color */
-  html:not(.dark) .dashboard-stat-label {
+  /* Dashboard stat cards */
+  .dashboard-stat-label {
     color: var(--dashboard-stat-label) !important;
   }
-  html:not(.dark) .dashboard-stat-value {
+  .dashboard-stat-value {
     color: var(--dashboard-stat-value) !important;
   }
-  html.dark .dashboard-stat-label,
-  html.dark .dashboard-stat-value {
-    color: #ffffff !important;
-  }
 
-  /* Stat cards: white bg in both themes (custom class, not .bg-white, so global dark override does not apply) */
   .stat-card-bg {
     background-color: #ffffff;
-  }
-  html.dark .stat-card-bg {
-    background-color: #ffffff !important;
-  }
-  html.dark .stat-card-bg .dashboard-stat-label,
-  html.dark .stat-card-bg .dashboard-stat-value {
-    color: #0f172a !important;
-  }
-  html.dark .stat-card-bg .dashboard-stat-label {
-    color: #334155 !important;
   }
 
   /* Print styles - hide layout elements when printing */
@@ -263,21 +140,3 @@
   }
 }
 
-/* Charts: always black text on white background (even in dark mode) */
-html.dark .dashboard-chart-section,
-html.dark .dashboard-chart-section h3,
-html.dark .dashboard-chart-section p,
-html.dark .dashboard-chart-section span,
-html.dark .dashboard-chart-section .text-slate-500,
-html.dark .dashboard-chart-section .text-slate-600,
-html.dark .dashboard-chart-section .text-slate-900 {
-  color: #111827 !important;
-}
-html.dark .dashboard-chart-section .bg-white {
-  background-color: #ffffff !important;
-}
-/* Recharts axis and label text */
-html.dark .dashboard-chart-section .recharts-text,
-html.dark .dashboard-chart-section .recharts-cartesian-axis-tick-value {
-  fill: #111827 !important;
-}
