@@ -24,9 +24,9 @@ const SignUp = () => {
 
   const { isAuthenticated } = useAuth();
 
-  const plan = searchParams.get("plan");
-  const interval = searchParams.get("interval");
-  const hasValidPlan = plan && interval && ["basic", "pro"].includes(plan) && ["monthly", "annual"].includes(interval);
+    const plan = searchParams.get("plan");
+    const interval = searchParams.get("interval");
+    const hasValidPlan = plan && interval && ["basic", "pro"].includes(plan) && ["monthly", "annual"].includes(interval);
 
   // Require plan: redirect to pricing if none chosen
   React.useEffect(() => {
@@ -189,39 +189,7 @@ const SignUp = () => {
     setError("");
     setSuccess("");
 
-    const plan = searchParams.get("plan");
-    const interval = searchParams.get("interval");
-    const isPayFirstFlow = plan && interval && ["basic", "pro"].includes(plan) && ["monthly", "annual"].includes(interval);
-
     try {
-      if (isPayFirstFlow) {
-        const baseCurrency = formData.country
-          ? (COUNTRY_CURRENCIES.find((c) => c.country === formData.country)?.currency || "GHS")
-          : "GHS";
-        const pendingRes = await axiosInstance.post(API_PATHS.AUTH.PENDING_SIGNUP, {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          plan,
-          interval,
-          currency: baseCurrency,
-        });
-        const pendingSignupId = pendingRes.data?.pendingSignupId;
-        if (!pendingSignupId) {
-          setError("Could not start signup. Please try again.");
-          return;
-        }
-        const payRes = await axiosInstance.post(API_PATHS.SUBSCRIPTIONS.INITIALIZE_GUEST, { pendingSignupId });
-        const url = payRes.data?.authorizationUrl;
-        if (url) {
-          setSuccess("Redirecting to payment…");
-          window.location.href = url;
-          return;
-        }
-        setError(payRes.data?.message || "Could not start payment. Please try again.");
-        return;
-      }
-
       const baseCurrency = formData.country
         ? (COUNTRY_CURRENCIES.find((c) => c.country === formData.country)?.currency || "GHS")
         : "GHS";
@@ -229,6 +197,8 @@ const SignUp = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        plan,
+        interval,
         currency: baseCurrency,
       });
 
@@ -276,7 +246,7 @@ const SignUp = () => {
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
           <p className="text-gray-600 text-sm">
-            Fill in your details, then proceed to pay. After payment you can log in and access your account.
+            Fill in your details to start your 7-day free trial. You&apos;ll complete payment after the trial to keep using Invoicy.
           </p>
         </div>
 
@@ -449,11 +419,11 @@ const SignUp = () => {
             {isloading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Redirecting to payment…
+                Creating your account…
               </>
             ) : (
               <>
-                Continue to payment
+                Enter payment details
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </>
             )}

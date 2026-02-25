@@ -33,8 +33,17 @@ export const AuthProvider = ({ children }) => {
                 if (hasPaymentSuccess) {
                     const fetchProfile = () => axiosInstance.get(API_PATHS.AUTH.GET_PROFILE).then((r) => r.data);
                     const hasValidSub = (data) => {
-                        const s = (data?.subscription?.status || "").toLowerCase();
-                        return data?.subscription && (s === "active" || s === "trialing");
+                        const sub = data?.subscription;
+                        if (!sub) return false;
+                        const s = (sub.status || "").toLowerCase();
+                        if (s === "active") return true;
+                        if (s === "trialing") {
+                            if (!sub.currentPeriodEnd) return false;
+                            const now = new Date();
+                            const end = new Date(sub.currentPeriodEnd);
+                            return end.getTime() > now.getTime();
+                        }
+                        return false;
                     };
                     let data = null;
                     try {

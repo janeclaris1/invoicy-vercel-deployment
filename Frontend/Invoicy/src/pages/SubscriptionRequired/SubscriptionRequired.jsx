@@ -21,9 +21,16 @@ const SubscriptionRequired = () => {
             navigate("/dashboard", { replace: true });
             return;
         }
-        const status = user.subscription?.status;
-        if (status === "active" || status === "trialing") {
-            navigate("/dashboard", { replace: true });
+        const sub = user.subscription;
+        if (sub) {
+            const status = (sub.status || "").toLowerCase();
+            const now = new Date();
+            const end = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+            const isActive = status === "active";
+            const isTrialValid = status === "trialing" && end && end.getTime() > now.getTime();
+            if (isActive || isTrialValid) {
+                navigate("/dashboard", { replace: true });
+            }
         }
     }, [user, isAuthenticated, loading, navigate]);
 
@@ -75,9 +82,26 @@ const SubscriptionRequired = () => {
         );
     }
 
-    if (user.isPlatformAdmin || user.subscription?.status === "active" || user.subscription?.status === "trialing") {
+    if (user.isPlatformAdmin) {
         return null;
     }
+    if (user.subscription) {
+        const status = (user.subscription.status || "").toLowerCase();
+        const now = new Date();
+        const end = user.subscription.currentPeriodEnd ? new Date(user.subscription.currentPeriodEnd) : null;
+        const isActive = status === "active";
+        const isTrialValid = status === "trialing" && end && end.getTime() > now.getTime();
+        if (isActive || isTrialValid) {
+            return null;
+        }
+    }
+
+    const isExpiredTrial = (() => {
+        const sub = user.subscription;
+        if (!sub || (sub.status || "").toLowerCase() !== "trialing") return false;
+        const end = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+        return end && end.getTime() <= new Date().getTime();
+    })();
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950 p-4">
@@ -89,7 +113,9 @@ const SubscriptionRequired = () => {
                     Subscription required
                 </h1>
                 <p className="text-gray-600 dark:text-slate-400 mb-6">
-                    Your subscription is inactive or payment could not be completed. Please update your payment method or choose a plan to continue using the app.
+                    {isExpiredTrial
+                        ? "Your 7-day free trial has ended. Please complete payment to continue using Invoicy."
+                        : "Your subscription is inactive or payment could not be completed. Please update your payment method or choose a plan to continue using the app."}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Link

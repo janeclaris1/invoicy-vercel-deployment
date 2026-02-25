@@ -9,6 +9,7 @@ const Invoice = require('../models/invoice');
 const Item = require('../models/Item');
 const Salary = require('../models/Salary');
 const Payroll = require('../models/Payroll');
+const { getAmount, getCurrency } = require('../config/plans');
 
 const getTeamMemberIds = async (currentUserId) => {
     const currentUser = await User.findById(currentUserId).select('createdBy').lean();
@@ -66,18 +67,46 @@ exports.createPendingSignup = async (req, res, next) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.registerUser = async (req, res, next) => {
-    const { name, email, password, currency } = req.body;     
+    const { name, email, password, currency, plan, interval } = req.body;
     try {
         // Validation is handled by express-validator middleware
-        // check if user exists 
+        // check if user exists
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
-        }  
-        const currencyNorm = currency && ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'].includes(currency) ? currency : 'GHS';
+        }
+        const currencyNorm =
+            currency && ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'].includes(currency)
+                ? currency
+                : 'GHS';
 
         // Create user
         const user = await User.create({ name, email, password, currency: currencyNorm });
+
+        let subscription = null;
+        // If plan and interval are provided, start a 7-day free trial subscription
+        const hasPlan =
+            plan && interval && ['basic', 'pro'].includes(plan) && ['monthly', 'annual'].includes(interval);
+        if (user && hasPlan) {
+            const amount = getAmount(plan, interval);
+            const subCurrency = getCurrency(plan, interval);
+            const now = new Date();
+            const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+            subscription = await Subscription.findOneAndUpdate(
+                { user: user._id },
+                {
+                    user: user._id,
+                    plan,
+                    billingInterval: interval,
+                    status: 'trialing',
+                    amount: amount != null ? amount : 0,
+                    currency: subCurrency || currencyNorm,
+                    currentPeriodEnd: trialEnd,
+                },
+                { upsert: true, new: true }
+            ).lean();
+        }
 
         if (user) {
             res.status(201).json({
@@ -85,11 +114,11 @@ exports.registerUser = async (req, res, next) => {
                 name: user.name,
                 email: user.email,
                 token: generateToken(user._id),
+                subscription: subscription,
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });
         }
-
     } catch (error) {
         next(error); // Pass to error handler middleware
     }

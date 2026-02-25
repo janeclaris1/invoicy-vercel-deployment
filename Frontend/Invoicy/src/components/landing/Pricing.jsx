@@ -79,7 +79,7 @@ const Pricing = () => {
                                         to={`/signup?plan=${planId}&interval=${interval}`}
                                         className="block w-full bg-gradient-to-r from-blue-950 to-blue-900 text-white py-3 rounded-lg font-medium hover:bg-blue-800 transition-all duration-200 hover:scale-105 hover:shadow-lg text-center"
                                     >
-                                        Choose {plan.name}
+                                        Try free for 7 days
                                     </Link>
                                 )}
                             </div>

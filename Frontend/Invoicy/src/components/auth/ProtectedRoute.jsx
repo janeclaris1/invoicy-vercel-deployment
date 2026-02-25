@@ -18,9 +18,20 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const hasValidSubscription =
-    user?.isPlatformAdmin ||
-    (user?.subscription && ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscription.status));
+  const hasValidSubscription = (() => {
+    if (user?.isPlatformAdmin) return true;
+    const sub = user?.subscription;
+    if (!sub) return false;
+    const status = (sub.status || "").toLowerCase();
+    if (status === "active") return true;
+    if (status === "trialing") {
+      if (!sub.currentPeriodEnd) return false;
+      const now = new Date();
+      const end = new Date(sub.currentPeriodEnd);
+      return end.getTime() > now.getTime();
+    }
+    return false;
+  })();
 
   if (!hasValidSubscription && !isCheckoutPage) {
     const search = location.search || "";

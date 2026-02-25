@@ -16,9 +16,20 @@ const Checkout = () => {
     const [error, setError] = useState("");
     const [planInfo, setPlanInfo] = useState(null);
 
-    const hasValidSubscription =
-        user?.isPlatformAdmin ||
-        (user?.subscription && ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscription.status));
+    const hasValidSubscription = (() => {
+        if (user?.isPlatformAdmin) return true;
+        const sub = user?.subscription;
+        if (!sub) return false;
+        const status = (sub.status || "").toLowerCase();
+        if (status === "active") return true;
+        if (status === "trialing") {
+            if (!sub.currentPeriodEnd) return false;
+            const now = new Date();
+            const end = new Date(sub.currentPeriodEnd);
+            return end.getTime() > now.getTime();
+        }
+        return false;
+    })();
 
     const planId = searchParams.get("plan") || (() => { try { return JSON.parse(sessionStorage.getItem("checkoutPlan") || "{}").plan; } catch { return null; } })();
     const interval = searchParams.get("interval") || (() => { try { return JSON.parse(sessionStorage.getItem("checkoutPlan") || "{}").interval; } catch { return null; } })();
@@ -107,7 +118,11 @@ const Checkout = () => {
                     <ArrowLeft className="w-4 h-4" /> Back to dashboard
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Complete your subscription</h1>
-                <p className="text-gray-600 mb-6">You will be redirected to Paystack to pay securely.</p>
+                {user?.subscription?.status === "trialing" && user?.subscription?.currentPeriodEnd && new Date(user.subscription.currentPeriodEnd).getTime() <= Date.now() ? (
+                    <p className="text-gray-600 mb-6">Your 7-day free trial has ended. Complete payment below to keep using Invoicy. You will be redirected to Paystack to pay securely.</p>
+                ) : (
+                    <p className="text-gray-600 mb-6">You will be redirected to Paystack to pay securely.</p>
+                )}
                 <div className="bg-gray-50 rounded-xl p-4 mb-6">
                     <p className="font-semibold text-gray-900">{planInfo.name} – {planInfo.interval === "annual" ? "Annual" : "Monthly"}</p>
                     <p className="text-2xl font-bold text-gray-900 mt-1">
