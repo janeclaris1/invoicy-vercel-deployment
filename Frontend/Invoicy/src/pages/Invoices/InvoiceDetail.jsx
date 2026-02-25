@@ -252,14 +252,14 @@ const InvoiceDetail = () => {
       <div className="space-y-6 print:p-0 bg-white">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
-            <h1 className="text-2xl font-semibold text-white dark:text-black">Invoice Details</h1>
-            <p className="invoice-detail-subheading text-sm text-white dark:text-black flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-semibold text-slate-800 dark:text-black">Invoice Details</h1>
+            <p className="invoice-detail-subheading text-sm text-slate-800 dark:text-black flex items-center gap-2 flex-wrap">
               #{invoice.invoiceNumber}
-              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-600 text-white dark:bg-amber-100 dark:text-amber-800" : "bg-slate-600 text-white dark:bg-slate-100 dark:text-slate-700"}`}>
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800 dark:bg-amber-100 dark:text-amber-800" : "bg-slate-100 text-slate-700 dark:bg-slate-100 dark:text-slate-700"}`}>
                 {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
               </span>
               {invoice.convertedTo && (
-                <Button size="small" variant="ghost" onClick={() => navigate(`/invoices/${invoice.convertedTo?._id || invoice.convertedTo}`)} className="text-xs text-white dark:text-black">
+                <Button size="small" variant="ghost" onClick={() => navigate(`/invoices/${invoice.convertedTo?._id || invoice.convertedTo}`)} className="text-xs text-slate-800 dark:text-black">
                   View converted invoice →
                 </Button>
               )}
@@ -271,14 +271,14 @@ const InvoiceDetail = () => {
                 variant="secondary"
                 onClick={handleSubmitToGRA}
                 disabled={graSubmitting}
-                className="flex items-center gap-2 text-white dark:text-black"
+                className="flex items-center gap-2 text-slate-800 dark:text-black"
               >
                 {graSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
                 Submit to GRA
               </Button>
             )}
             {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
-              <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2 text-white dark:text-black">
+              <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2 text-slate-800 dark:text-black">
                 {convertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Convert to invoice
               </Button>
@@ -287,7 +287,7 @@ const InvoiceDetail = () => {
               <Button 
                 variant="secondary" 
                 onClick={() => setIsEditingPayment(true)} 
-                className="flex items-center gap-2 text-white dark:text-black"
+                className="flex items-center gap-2 text-slate-800 dark:text-black"
               >
                 <Edit2 className="w-4 h-4" />
                 Edit Payment
@@ -296,7 +296,7 @@ const InvoiceDetail = () => {
           </div>
         </div>
 
-        <div className="invoice-print-container bg-slate-800 dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-6 print:border-0 print:shadow-none shadow-sm text-white dark:text-black">
+        <div className="invoice-print-container bg-white dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-6 print:border-0 print:shadow-none shadow-sm text-slate-800 dark:text-black">
           {/* Logo centered at top */}
         {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
           <div className="invoice-logo-wrap flex justify-center mb-6">
@@ -309,23 +309,23 @@ const InvoiceDetail = () => {
         )}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
           <div>
-            <h2 className="text-lg font-semibold text-white dark:text-black">Invoice</h2>
-            <div className="text-sm text-white dark:text-black">#{invoice.invoiceNumber}</div>
-            <div className="text-sm text-white dark:text-black">
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-black">Invoice</h2>
+            <div className="text-sm text-slate-800 dark:text-black">#{invoice.invoiceNumber}</div>
+            <div className="text-sm text-slate-800 dark:text-black">
               Date: {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}
             </div>
-            <div className="text-sm text-white dark:text-black">
+            <div className="text-sm text-slate-800 dark:text-black">
               Due: {invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}
             </div>
           </div>
           <div className="text-sm">
-            <span className="font-medium text-white dark:text-black">Status: </span>
+            <span className="font-medium text-slate-800 dark:text-black">Status: </span>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
               (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
-                ? "bg-emerald-600 text-white dark:bg-emerald-100 dark:text-emerald-800"
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-100 dark:text-emerald-800"
                 : (invoice.status || "").toLowerCase() === "partially paid"
-                ? "bg-[#B8860B] text-white"
-                : "bg-red-600 text-white dark:bg-red-100 dark:text-red-800"
+                ? "bg-amber-100 text-amber-800"
+                : "bg-red-100 text-red-800 dark:bg-red-100 dark:text-red-800"
             }`}>
               {invoice.status || "Unpaid"}
             </span>
@@ -334,8 +334,8 @@ const InvoiceDetail = () => {
 
         <div className="invoice-bill-from-to grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 mt-6">
           <div className="text-left">
-            <h3 className="text-sm font-semibold text-white dark:text-black mb-2">Bill From</h3>
-            <div className="text-sm text-white dark:text-black">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-black mb-2">Bill From</h3>
+            <div className="text-sm text-slate-800 dark:text-black">
               <div>{invoice.billFrom?.businessName || user?.businessName || "-"}</div>
               <div>{invoice.billFrom?.email || user?.email || "-"}</div>
               <div>{invoice.billFrom?.address || user?.address || "-"}</div>
@@ -344,8 +344,8 @@ const InvoiceDetail = () => {
             </div>
           </div>
           <div className="invoice-bill-to text-left">
-            <h3 className="text-sm font-semibold text-white dark:text-black mb-2">Bill To</h3>
-            <div className="text-sm text-white dark:text-black">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-black mb-2">Bill To</h3>
+            <div className="text-sm text-slate-800 dark:text-black">
               <div>{invoice.billTo?.clientName || "-"}</div>
               <div>{invoice.billTo?.email || "-"}</div>
               <div>{invoice.billTo?.address || "-"}</div>
@@ -357,27 +357,27 @@ const InvoiceDetail = () => {
 
         <div className="mt-6 overflow-x-auto">
           <table className="w-full divide-y divide-gray-200">
-            <thead className="bg-slate-700 dark:bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white dark:text-black uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-800 dark:text-black uppercase tracking-wider">#</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-800 dark:text-black uppercase tracking-wider">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-800 dark:text-black uppercase tracking-wider">Qty</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-800 dark:text-black uppercase tracking-wider">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-800 dark:text-black uppercase tracking-wider">Total</th>
               </tr>
             </thead>
-            <tbody className="bg-slate-800 dark:bg-white divide-y divide-gray-200 dark:divide-gray-200">
+            <tbody className="bg-white dark:bg-white divide-y divide-gray-200 dark:divide-gray-200">
               {lineItems.map((item, index) => (
-                <tr key={index} className="hover:bg-teal-700 group transition-colors duration-150">
-                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">{item.sn || index + 1}</td>
-                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">
+                <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-100 group transition-colors duration-150">
+                  <td className="px-4 py-3 text-sm text-slate-800 dark:text-black group-hover:text-slate-900">{item.sn || index + 1}</td>
+                  <td className="px-4 py-3 text-sm text-slate-800 dark:text-black group-hover:text-slate-900">
                     {item.description || item.itemDescription || "-"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">{item.quantity || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">
+                  <td className="px-4 py-3 text-sm text-slate-800 dark:text-black group-hover:text-slate-900">{item.quantity || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-800 dark:text-black group-hover:text-slate-900">
                     {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-white dark:text-black group-hover:text-white">
+                  <td className="px-4 py-3 text-sm text-slate-800 dark:text-black group-hover:text-slate-900">
                     {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
                   </td>
                 </tr>
@@ -387,7 +387,7 @@ const InvoiceDetail = () => {
         </div>
 
         {/* Left: Notes | Right: Tax summary + QR */}
-        <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-slate-800 dark:bg-transparent text-white dark:text-black rounded-xl p-4 dark:p-0">
+        <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-gray-100 dark:bg-transparent text-slate-800 dark:text-black rounded-xl p-4 dark:p-0">
           {/* Left column: Notes */}
           <div className="flex flex-col gap-4">
             <div className="text-sm">
@@ -437,7 +437,7 @@ const InvoiceDetail = () => {
                       step="0.01"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-slate-700 dark:bg-white text-white dark:text-black placeholder-slate-400 dark:placeholder-gray-500"
+                      className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-slate-800 dark:text-black placeholder-gray-500 dark:placeholder-gray-500"
                       placeholder="0.00"
                     />
                     <Button
@@ -463,7 +463,7 @@ const InvoiceDetail = () => {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="Add payment notes (optional)..."
-                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm bg-slate-700 dark:bg-white text-white dark:text-black placeholder-slate-400 dark:placeholder-gray-500 resize-none"
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-slate-800 dark:text-black placeholder-gray-500 dark:placeholder-gray-500 resize-none"
                     rows="2"
                   />
                 </div>
@@ -492,17 +492,17 @@ const InvoiceDetail = () => {
               </span>
               <span className={
                 balanceDue > 0 
-                  ? "text-white dark:text-red-600" 
+                  ? "text-red-700 dark:text-red-600" 
                   : balanceDue < 0 
-                  ? "text-white dark:text-blue-600" 
-                  : "text-white dark:text-emerald-600"
+                  ? "text-blue-700 dark:text-blue-600" 
+                  : "text-emerald-700 dark:text-emerald-600"
               }>
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
             </div>
             {/* GRA verification QR – bottom right (like GRA sample invoice) */}
             <div className="mt-4 flex flex-col items-end">
-              <div className="text-xs font-medium opacity-90 mb-1">GRA Verification QR</div>
+              <div className="text-xs font-medium text-slate-800 dark:text-black opacity-90 mb-1">GRA Verification QR</div>
               {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
                 String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                   <img
@@ -533,7 +533,7 @@ const InvoiceDetail = () => {
                     className="w-36 h-36 object-contain border border-slate-600 dark:border-slate-500 rounded-lg bg-white p-2 opacity-80"
                     title="Sample QR – submit to GRA to show verification QR"
                   />
-                  <p className="text-xs text-white dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
                 </>
               )}
             </div>
@@ -543,7 +543,7 @@ const InvoiceDetail = () => {
         {/* Payment History - hidden when printing */}
         {invoice.paymentHistory && invoice.paymentHistory.length > 0 && (
           <div className="mt-6 border-t border-gray-200 pt-6 no-print">
-            <h3 className="text-sm font-semibold text-white dark:text-black mb-4">Payment History</h3>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-black mb-4">Payment History</h3>
             <div className="space-y-3">
               {invoice.paymentHistory
                 .slice()
@@ -551,19 +551,19 @@ const InvoiceDetail = () => {
                 .map((payment, index) => (
                   <div
                     key={index}
-                    className="flex items-start justify-between p-3 bg-slate-700 dark:bg-gray-50 rounded-lg border border-slate-600 dark:border-gray-200"
+                    className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-50 rounded-lg border border-gray-200 dark:border-gray-200"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
-                        <span className="font-medium text-white dark:text-black">
+                        <span className="font-medium text-slate-800 dark:text-black">
                           {formatCurrency(payment.amount, userCurrency)}
                         </span>
-                        <span className="text-xs text-white dark:text-black">
+                        <span className="text-xs text-slate-800 dark:text-black">
                           {moment(payment.date).format("MMM D, YYYY h:mm A")}
                         </span>
                       </div>
                       {payment.notes && (
-                        <p className="text-sm text-white dark:text-black mt-1">
+                        <p className="text-sm text-slate-800 dark:text-black mt-1">
                           {payment.notes}
                         </p>
                       )}
