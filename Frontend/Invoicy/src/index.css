@@ -29,14 +29,14 @@
 
   /* Invoice detail page header */
   .invoice-detail-page-header {
-    background-color: #1e293b;
-    color: #ffffff;
-    padding: 0.75rem 1rem;
-    margin: -0.75rem -1rem 0 -1rem;
-    border-radius: 0.5rem 0.5rem 0 0;
+    background-color: #ffffff; /* match card background */
+    color: inherit;
+    padding: 0; /* let component spacing control layout */
+    margin: 0;
+    border-radius: 0;
   }
   .invoice-detail-subheading {
-    color: #ffffff !important;
+    color: inherit !important;
   }
 
   /* Dashboard stat cards */
