@@ -103,7 +103,7 @@ export const FAQS = [
 export const TEAM_MEMBERS = [
     {
         name: "Enow A. Tabi",
-        role: "Founder & Lead Developer",
+        role: "Lead Developer",
         photo: teamPhoto1,
         bio: "Enow is a visionary leader with over 2 years of experience in the tech industry. He is passionate about leveraging AI to simplify business processes.",
     },
