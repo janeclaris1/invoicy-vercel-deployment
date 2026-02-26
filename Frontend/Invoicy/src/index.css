@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Times New Roman", Times, serif;
+  --font-display: "Bodoni MT", "Bodoni 72", Bodoni, "Times New Roman", Times, serif;
   --breakpoint-3xl: 1920px;
   --color-primary: #ff9324;
 }
