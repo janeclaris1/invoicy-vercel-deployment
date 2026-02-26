@@ -1,16 +1,26 @@
-import {useState, useEffect} from "react";
-import {Link} from "react-router-dom";
-import {Menu, X} from "lucide-react";
-import ProfileDropdown from "../layout/ProfileDropdown"; 
-import {useNavigate} from "react-router-dom";
-import {useAuth} from "../../context/AuthContext";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import ProfileDropdown from "../layout/ProfileDropdown";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Header = () => {
-
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const {isAuthenticated, user, logout} = useAuth();
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+
+    const goToPricing = () => {
+        if (pathname === "/") {
+            window.location.hash = "#pricing";
+            document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+        } else {
+            navigate("/#pricing");
+        }
+        setIsMenuOpen(false);
+    };
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);  
     useEffect(() => {
         const handleScroll = () => {
@@ -99,12 +109,13 @@ const Header = () => {
                 Login
               </Link>
 
-              <Link
-                to="/#pricing"
+              <button
+                type="button"
+                onClick={goToPricing}
                 className="bg-gradient-to-r from-blue-950 to-blue-900 hover:bg-gray-800 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
               >
                 Try for Free
-              </Link>
+              </button>
             </>
           )}
         </div>
@@ -194,12 +205,13 @@ const Header = () => {
               >
                 Login
               </Link>
-              <Link
-                to="/#pricing"
+              <button
+                type="button"
+                onClick={goToPricing}
                 className="block w-full text-left bg-gray-900 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200"
               >
                 Choose a Plan
-              </Link>
+              </button>
             </>
           )}
 

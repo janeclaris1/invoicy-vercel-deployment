@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "../../components/landing/Header";
 import Hero from "../../components/landing/Hero";
 import Features from "../../components/landing/Features";
@@ -9,7 +10,17 @@ import Pricing from "../../components/landing/Pricing";
 import Footer from "../../components/landing/Footer";
 
 
-const LandingPage= () => {
+const LandingPage = () => {
+  const location = useLocation();
+
+  // Scroll to pricing when URL hash is #pricing (e.g. "Try for Free" or nav "Pricing")
+  useEffect(() => {
+    if (location.hash === "#pricing") {
+      const el = document.getElementById("pricing");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [location.hash]);
+
   return (
     <div className="bg-[#ffffff] text-gray-600 min-h-screen">
       <Header />
