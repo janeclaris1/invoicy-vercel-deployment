@@ -1,11 +1,12 @@
-import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users, Truck, FolderOpen, Package, Boxes, FileCheck, MessageCircle } from "lucide-react";
+import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users, Truck, FolderOpen, Package, Boxes, FileCheck, MessageCircle, Megaphone, Share2, Target, TrendingUp, Plug } from "lucide-react";
 
 // Import assets so the bundler includes them and production URLs work (string paths like "src/assets/..." 404 in deployed builds)
-import avatarBusinessMan from "../assets/bussiness-man.png";
 import avatarUser from "../assets/user.png";
-import teamPhoto1 from "../assets/41650481-19d6-47d3-8a9e-3f32df66bbce.png";
-import teamPhoto2 from "../assets/WhatsApp Image 2026-02-24 at 12.49.22 (1).jpeg";
-import teamPhoto3 from "../assets/Angela-Kyerematen-Jimoh-1.jpg";
+// bussiness-man.png was missing; reusing user.png for testimonial avatars (replace with business-man.png when added)
+const avatarBusinessMan = avatarUser;
+import teamPhoto1 from "../assets/WhatsApp Image 2026-02-26 at 21.01.02.jpeg";
+import teamPhoto2 from "../assets/WhatsApp Image 2026-02-26 at 21.01.18.jpeg";
+import teamPhoto3 from "../assets/WhatsApp Image 2026-02-26 at 21.01.22.jpeg";
 
 export const FEATURES = [
     {
@@ -202,6 +203,19 @@ export const NAVIGATION_MENU = [
     { id: "items", name: "Items", icon: Package, responsibility: "items" },
     { id: "stock", name: "Stock Management", icon: Boxes, responsibility: "items" },
     { id: "reports", name: "Reports", icon: FileCheck, responsibility: "reports" },
+    {
+        id: "growth",
+        name: "Growth",
+        icon: TrendingUp,
+        responsibility: null,
+        children: [
+            { id: "marketing", name: "Marketing", icon: null, responsibility: null },
+            { id: "social", name: "Social Media", icon: null, responsibility: null },
+            { id: "crm", name: "CRM", icon: null, responsibility: null },
+            { id: "analytics", name: "Analytics", icon: null, responsibility: null },
+            { id: "integrations", name: "Integrations", icon: null, responsibility: null },
+        ],
+    },
     {
         id: "hr",
         name: "HR",
