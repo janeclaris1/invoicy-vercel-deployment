@@ -6,7 +6,6 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import PRICING_PLANS from "../../utils/data";
-import { CURRENCY_OPTIONS as CURRENCY_OPTIONS_LIST } from "../../utils/countriesCurrencies";
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -42,11 +41,7 @@ const Settings = () => {
   });
   const [securityPassword, setSecurityPassword] = useState({ current: "", new: "", confirm: "" });
   const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [exchangeFrom, setExchangeFrom] = useState("GHS");
-  const [exchangeTo, setExchangeTo] = useState("USD");
   const [exchangeRate, setExchangeRate] = useState("");
-  const [amountToConvert, setAmountToConvert] = useState("");
-  const [rateDirection, setRateDirection] = useState("toFrom"); // "toFrom" = 1 To = ? From (e.g. 1 USD = 12.5 GHS), "fromTo" = 1 From = ? To
 
   const RESPONSIBILITIES = [
     { id: "dashboard", label: "Dashboard (view)", description: "View dashboard and insights" },
@@ -84,7 +79,6 @@ const Settings = () => {
       graCompanyReference: user?.graCompanyReference || "",
       graSecurityKey: "", // Never pre-fill; user enters to set/update
     }));
-    setExchangeFrom(user?.currency || "GHS");
   }, [user]);
 
   const isOwner = user?.role === "owner";
@@ -306,13 +300,8 @@ const Settings = () => {
 
     if (isCurrencyChanging && isOwner) {
       const rateNum = exchangeRate !== "" ? parseFloat(exchangeRate) : NaN;
-      const rateValid = Number.isFinite(rateNum) && rateNum > 0;
-      const fromMatches = exchangeFrom === previousCurrency;
-      const toMatches = exchangeTo === newCurrency;
-      if (!rateValid || !fromMatches || !toMatches) {
-        toast.error(
-          "When changing currency you must set the exchange rate: choose From = current currency, To = new currency, and enter a valid rate (e.g. 1 USD = 12.5 GHS)."
-        );
+      if (!Number.isFinite(rateNum) || rateNum <= 0) {
+        toast.error("Enter the exchange rate: 1 " + newCurrency + " = ? " + previousCurrency + " (e.g. 12.5)");
         return;
       }
     }
@@ -322,12 +311,16 @@ const Settings = () => {
       const payload = { ...companyForm };
       if (isCurrencyChanging && isOwner && exchangeRate !== "" && Number.isFinite(parseFloat(exchangeRate))) {
         payload.currencyExchangeRate = exchangeRate;
-        payload.currencyRateDirection = rateDirection;
+        payload.currencyRateDirection = "toFrom"; // 1 new currency = rate × current currency → we divide by rate
       }
       if (payload.graSecurityKey === "") delete payload.graSecurityKey;
       const response = await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, payload);
       updateUser(response.data);
       setCompanyForm((prev) => ({ ...prev, graSecurityKey: "" }));
+      if (isCurrencyChanging) {
+        window.dispatchEvent(new CustomEvent("currencyChanged"));
+        window.dispatchEvent(new CustomEvent("invoicesUpdated"));
+      }
       toast.success("Company details saved.");
     } catch (error) {
       console.error("Failed to update company profile:", error);
@@ -545,10 +538,7 @@ const Settings = () => {
                         onChange={(e) => {
                           const next = e.target.value;
                           setCompanyForm((prev) => ({ ...prev, currency: next }));
-                          if (next !== (user?.currency || "GHS")) {
-                            setExchangeFrom(user?.currency || "GHS");
-                            setExchangeTo(next);
-                          }
+                          if (next !== (user?.currency || "GHS")) setExchangeRate("");
                         }}
                       >
                         {currencyOptions.map((option) => (
@@ -596,102 +586,28 @@ const Settings = () => {
                     </div>
                   )}
 
-                  {/* Exchange rate conversion */}
-                  {isOwner && (
+                  {/* Exchange rate — only when changing currency */}
+                  {isOwner && (companyForm.currency || "GHS") !== (user?.currency || "GHS") && (
                     <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Exchange rate conversion</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                        Convert amounts between currencies. Choose how you enter the rate (e.g. 1 USD = 12.5 GHS or 1 GHS = 0.08 USD), then enter the rate and an amount.
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                        Exchange rate (required)
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Enter how many {user?.currency || "GHS"} equal 1 {companyForm.currency || "GHS"}. Example: 1 USD = 12.5 GHS → enter 12.5
                       </p>
-                      <div className="flex flex-wrap gap-4 mb-3">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="rateDirection"
-                            checked={rateDirection === "toFrom"}
-                            onChange={() => setRateDirection("toFrom")}
-                            className="text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">1 {exchangeTo} = ? {exchangeFrom}</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="rateDirection"
-                            checked={rateDirection === "fromTo"}
-                            onChange={() => setRateDirection("fromTo")}
-                            className="text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">1 {exchangeFrom} = ? {exchangeTo}</span>
-                        </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">1 {companyForm.currency || "GHS"} =</span>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          placeholder="e.g. 12.5"
+                          className="w-28 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                          value={exchangeRate}
+                          onChange={(e) => setExchangeRate(e.target.value)}
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{user?.currency || "GHS"}</span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">From</label>
-                          <select
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
-                            value={exchangeFrom}
-                            onChange={(e) => setExchangeFrom(e.target.value)}
-                          >
-                            {CURRENCY_OPTIONS_LIST.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">To</label>
-                          <select
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
-                            value={exchangeTo}
-                            onChange={(e) => setExchangeTo(e.target.value)}
-                          >
-                            {CURRENCY_OPTIONS_LIST.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-end gap-3 mb-3">
-                        <div className="flex-1 min-w-[120px]">
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            Rate ({rateDirection === "toFrom" ? `1 ${exchangeTo} = ? ${exchangeFrom}` : `1 ${exchangeFrom} = ? ${exchangeTo}`})
-                          </label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            placeholder={rateDirection === "toFrom" ? "e.g. 12.5" : "e.g. 0.08"}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
-                            value={exchangeRate}
-                            onChange={(e) => setExchangeRate(e.target.value)}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-[120px]">
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount to convert ({exchangeFrom})</label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            placeholder="Amount"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
-                            value={amountToConvert}
-                            onChange={(e) => setAmountToConvert(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      {exchangeRate !== "" && amountToConvert !== "" && !isNaN(parseFloat(exchangeRate)) && parseFloat(exchangeRate) > 0 && !isNaN(parseFloat(amountToConvert)) && (
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                          <strong>{parseFloat(amountToConvert).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {exchangeFrom}</strong>
-                          {" = "}
-                          <strong>
-                            {(rateDirection === "toFrom"
-                              ? parseFloat(amountToConvert) / parseFloat(exchangeRate)
-                              : parseFloat(amountToConvert) * parseFloat(exchangeRate)
-                            ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                            {exchangeTo}
-                          </strong>
-                        </p>
-                      )}
                     </div>
                   )}
 

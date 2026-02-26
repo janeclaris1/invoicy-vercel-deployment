@@ -2,16 +2,49 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Invoice = require('../models/invoice');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const parseInvoiceFromText = async (req, res) => {
-    const { text } = req.body || {};
+    const { text, itemsList } = req.body || {};
 
     // Basic request validation
     if (!text || typeof text !== 'string' || !text.trim()) {
         return res.status(400).json({ message: 'Text input is required' });
     }
 
+    const hasItemList = Array.isArray(itemsList) && itemsList.length > 0;
+    const validIds = hasItemList ? itemsList.map((i) => String(i.id || i._id || '')).filter(Boolean) : [];
+
     try {
-        // AI Prompt: instruct model to return only a JSON object of expected shape
-        const prompt = `
+        let prompt;
+        if (hasItemList) {
+            const itemsDesc = itemsList.map((i) => `- id: "${i.id || i._id}" name: "${i.name || ''}" price: ${i.price ?? 0}`).join('\n');
+            prompt = `
+You are an expert invoice data extraction AI. Analyze the following text and extract invoice details.
+
+The user can ONLY bill products from this list. Do not invent products.
+AVAILABLE PRODUCTS (use only these):
+${itemsDesc}
+
+Rules:
+- For each line item in the text, pick the BEST MATCHING product from the list above by name (or description). Return that product's "id" and the quantity.
+- If the text mentions something that does not match any product in the list, OMIT it (do not add it to items).
+- Output MUST be valid JSON only, no markdown or explanation.
+
+Output shape:
+{
+  "clientName": "string (from text)",
+  "clientEmail": "string or empty",
+  "address": "string or empty",
+  "items": [
+    { "itemId": "string (must be one of the ids from the list)", "quantity": number }
+  ]
+}
+
+Text to parse:
+--- TEXT START ---
+${text}
+--- TEXT END ---
+`;
+        } else {
+            prompt = `
 You are an expert invoice data extraction AI. Analyze the following text and extract the relevant information to create an invoice.
 The output MUST be a valid JSON object in this shape:
 {
@@ -32,48 +65,52 @@ ${text}
 --- TEXT END ---
 Extract the data and provide ONLY the JSON object. Do not add any explanation or markdown formatting. If any fields are missing, output an empty string, empty array or null as appropriate.
 `;
+        }
 
-        // Get generative model
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         console.log('Calling Gemini API...');
-        // Generate content from prompt
         const result = await model.generateContent(prompt);
         console.log('Gemini API responded');
         const responseText = await result.response.text();
         console.log('AI Response:', responseText.substring(0, 200));
 
-        // Remove possible code block markdown from Gemini output
         const cleanedJson = responseText.replace(/```json|```/g, '').trim();
-
-        // Try parsing Gemini output as JSON
         let parsedData;
         try {
             parsedData = JSON.parse(cleanedJson);
             console.log('Successfully parsed JSON');
         } catch (jsonErr) {
             console.log('Failed to parse JSON:', jsonErr.message);
-            // Return AI output for debugging if not valid JSON
             return res.status(422).json({
                 message: "AI did not return a valid JSON object.",
                 ai_output: responseText
             });
         }
 
-        // (Optional) Validate structure here if desired (basic)
-        if (
-            !parsedData ||
-            typeof parsedData !== 'object' ||
-            !parsedData.items ||
-            !Array.isArray(parsedData.items)
-        ) {
-            console.log('Invalid structure');
+        if (!parsedData || typeof parsedData !== 'object') {
             return res.status(422).json({
                 message: "AI output did not match expected structure.",
                 ai_output: parsedData
             });
         }
 
-        // Respond with parsed invoice data
+        if (hasItemList && Array.isArray(parsedData.items)) {
+            parsedData.items = parsedData.items.filter(
+                (line) => line && validIds.includes(String(line.itemId))
+            );
+            if (parsedData.items.length === 0) {
+                return res.status(422).json({
+                    message: "No line items could be matched to your product list. Add products in Items first, or use text that mentions those product names.",
+                    ai_output: parsedData
+                });
+            }
+        } else if (!hasItemList && (!parsedData.items || !Array.isArray(parsedData.items))) {
+            return res.status(422).json({
+                message: "AI output did not match expected structure.",
+                ai_output: parsedData
+            });
+        }
+
         console.log('Sending response with parsed data');
         res.status(200).json(parsedData);
 

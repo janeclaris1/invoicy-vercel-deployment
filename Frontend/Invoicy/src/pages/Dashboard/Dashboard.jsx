@@ -135,7 +135,11 @@ const Dashboard = () => {
   useEffect(() => {
     const handler = () => fetchDashboardData();
     window.addEventListener("invoicesUpdated", handler);
-    return () => window.removeEventListener("invoicesUpdated", handler);
+    window.addEventListener("currencyChanged", handler);
+    return () => {
+      window.removeEventListener("invoicesUpdated", handler);
+      window.removeEventListener("currencyChanged", handler);
+    };
   }, []);
 
   const statsData = [

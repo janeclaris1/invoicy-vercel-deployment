@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import moment from "moment";
 import { Loader2, Printer, Edit2, Save, X, FileText, Building2 } from "lucide-react";
@@ -25,23 +25,36 @@ const InvoiceDetail = () => {
   const [convertLoading, setConvertLoading] = useState(false);
   const [graSubmitting, setGraSubmitting] = useState(false);
 
-  useEffect(() => {
-    const fetchInvoice = async () => {
-      try {
-        const response = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
-        const invoiceData = response.data || null;
-        setInvoice(invoiceData);
-        setPaymentAmount(invoiceData?.amountPaid || 0);
-        setErrorMessage("");
-      } catch (error) {
-        console.error("Failed to fetch invoice:", error);
-        setErrorMessage(error.response?.data?.message || "Failed to load invoice.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInvoice();
+  const fetchInvoice = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
+      const invoiceData = response.data || null;
+      setInvoice(invoiceData);
+      setPaymentAmount(invoiceData?.amountPaid || 0);
+      setErrorMessage("");
+    } catch (error) {
+      console.error("Failed to fetch invoice:", error);
+      setErrorMessage(error.response?.data?.message || "Failed to load invoice.");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchInvoice();
+  }, [fetchInvoice]);
+
+  useEffect(() => {
+    const handler = () => fetchInvoice();
+    window.addEventListener("currencyChanged", handler);
+    window.addEventListener("invoicesUpdated", handler);
+    return () => {
+      window.removeEventListener("currencyChanged", handler);
+      window.removeEventListener("invoicesUpdated", handler);
+    };
+  }, [fetchInvoice]);
 
   const lineItems = useMemo(() => {
     if (!invoice) return [];

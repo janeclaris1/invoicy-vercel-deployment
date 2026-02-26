@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"; 
+import React, { useState, useEffect, useMemo, useCallback } from "react"; 
 import axiosinstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText } from "lucide-react";
@@ -26,36 +26,45 @@ const AllInvoices = () => {
   const [convertLoading, setConvertLoading] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axiosinstance.get(API_PATHS.INVOICES.GET_ALL_INVOICES);
-        
-        if (response.data && Array.isArray(response.data)) {
-          const sortedInvoices = response.data.sort((a, b) => {
-            const dateA = a.invoiceDate ? new Date(a.invoiceDate) : new Date(0);
-            const dateB = b.invoiceDate ? new Date(b.invoiceDate) : new Date(0);
-            return dateB - dateA;
-          });
-          setInvoices(sortedInvoices);
-        } else {
-          setInvoices([]);
-        }
-      } catch (error) {
-        console.error("Error fetching invoices:", error);
-        const errorMessage = error.response?.data?.message || error.message || "Error fetching invoices";
-        setError(errorMessage);
-        toast.error(errorMessage);
-        setInvoices([]); // Set empty array on error
-      } finally {
-        setLoading(false);
+  const fetchInvoices = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axiosinstance.get(API_PATHS.INVOICES.GET_ALL_INVOICES);
+      if (response.data && Array.isArray(response.data)) {
+        const sortedInvoices = response.data.sort((a, b) => {
+          const dateA = a.invoiceDate ? new Date(a.invoiceDate) : new Date(0);
+          const dateB = b.invoiceDate ? new Date(b.invoiceDate) : new Date(0);
+          return dateB - dateA;
+        });
+        setInvoices(sortedInvoices);
+      } else {
+        setInvoices([]);
       }
-    };
-
-    fetchInvoices();
+    } catch (err) {
+      console.error("Error fetching invoices:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Error fetching invoices";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  useEffect(() => {
+    const handler = () => fetchInvoices();
+    window.addEventListener("invoicesUpdated", handler);
+    window.addEventListener("currencyChanged", handler);
+    return () => {
+      window.removeEventListener("invoicesUpdated", handler);
+      window.removeEventListener("currencyChanged", handler);
+    };
+  }, [fetchInvoices]);
 
   const handleDelete = async (id) => {
     if(window.confirm('Are you sure you want to delete this invoice?')) {

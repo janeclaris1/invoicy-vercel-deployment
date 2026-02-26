@@ -37,6 +37,7 @@ const Reports = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const getCustomerName = (invoice) => {
     return (
@@ -108,6 +109,16 @@ const Reports = () => {
     return () => {
       isMounted = false;
       clearInterval(interval);
+    };
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    const handler = () => setRefreshTrigger((t) => t + 1);
+    window.addEventListener("invoicesUpdated", handler);
+    window.addEventListener("currencyChanged", handler);
+    return () => {
+      window.removeEventListener("invoicesUpdated", handler);
+      window.removeEventListener("currencyChanged", handler);
     };
   }, []);
 

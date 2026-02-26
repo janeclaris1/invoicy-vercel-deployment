@@ -1,19 +1,91 @@
-import {useState} from "react";
-import {Sparkles} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles } from "lucide-react";
 import Button from "../ui/Button";
 import TextareaField from "../ui/TextareaField";
 import axiosInstance from "../../utils/axiosInstance";
-import {API_PATHS} from "../../utils/apiPaths";
+import { API_PATHS } from "../../utils/apiPaths";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-
 
 const CreateWithAiModal = ({ isOpen, onClose }) => {
     const [text, setText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [itemsCatalog, setItemsCatalog] = useState([]);
     const navigate = useNavigate();
 
-    const handleGenerate = async () => {};
+    useEffect(() => {
+        if (!isOpen) return;
+        axiosInstance.get(API_PATHS.ITEMS.GET_ALL).then((res) => {
+            setItemsCatalog(Array.isArray(res.data) ? res.data : []);
+        }).catch(() => setItemsCatalog([]));
+    }, [isOpen]);
+
+    const handleGenerate = async () => {
+        const trimmed = (text || "").trim();
+        if (!trimmed) {
+            toast.error("Please paste or enter some text to parse.");
+            return;
+        }
+        if (itemsCatalog.length === 0) {
+            toast.error("Add products in Items first. AI will only bill products from your list.");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const itemsList = itemsCatalog.map((i) => ({
+                id: i._id || i.id,
+                name: i.name || "",
+                price: Number(i.price) || 0,
+            }));
+            const { data } = await axiosInstance.post(API_PATHS.AI.PARSE_INVOICE_TEXT, {
+                text: trimmed,
+                itemsList,
+            });
+            if (!data || !Array.isArray(data.items)) {
+                toast.error("Could not extract invoice data from the text. Try different or more detailed text.");
+                return;
+            }
+            const catalogById = new Map(itemsCatalog.map((i) => [String(i._id || i.id), i]));
+            const mappedItems = data.items
+                .filter((line) => line && line.itemId != null)
+                .map((line, idx) => {
+                    const catalogItem = catalogById.get(String(line.itemId));
+                    if (!catalogItem) return null;
+                    const qty = Math.max(1, Number(line.quantity) || 1);
+                    const price = Number(catalogItem.price) || 0;
+                    return {
+                        sn: idx + 1,
+                        catalogId: catalogItem._id || catalogItem.id,
+                        itemDescription: catalogItem.name || "",
+                        itemPrice: price,
+                        quantity: qty,
+                        amount: price * qty,
+                    };
+                })
+                .filter(Boolean);
+            if (mappedItems.length === 0) {
+                toast.error("No products from your list matched the text. Mention your product names in the text.");
+                return;
+            }
+            onClose();
+            navigate("/invoices/new", {
+                state: {
+                    aiData: {
+                        clientName: data.clientName || "",
+                        email: data.clientEmail ?? data.email ?? "",
+                        address: data.address || "",
+                        items: mappedItems,
+                    },
+                },
+            });
+            toast.success("Invoice draft created from your product list. Review and save.");
+        } catch (err) {
+            const msg = err.response?.data?.message || err.message || "Failed to parse text. Please try again.";
+            toast.error(msg);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -32,7 +104,7 @@ const CreateWithAiModal = ({ isOpen, onClose }) => {
                     </div>
                     <div className="mb-6">
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                            Paste any text that contains invoice details and AI will attempt to create an invoice for you.
+                            Paste any text (e.g. order or email). AI will match line items to your <strong>Items</strong> list so you only bill products you have. Add products in Items first if the list is empty.
                         </p>
                         <TextareaField
                             name="invoiceText"

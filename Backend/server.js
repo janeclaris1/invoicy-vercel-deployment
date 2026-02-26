@@ -25,6 +25,19 @@ const recruitmentRoutes = require("./routes/recruitmentRoutes");
 const messagingRoutes = require("./routes/messagingRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
 const graRoutes = require("./routes/graRoutes");
+const campaignRoutes = require("./routes/campaignRoutes");
+const landingPageRoutes = require("./routes/landingPageRoutes");
+const workflowRoutes = require("./routes/workflowRoutes");
+const marketingListRoutes = require("./routes/marketingListRoutes");
+const formRoutes = require("./routes/formRoutes");
+const emailTemplateRoutes = require("./routes/emailTemplateRoutes");
+const marketingAnalyticsRoutes = require("./routes/marketingAnalyticsRoutes");
+const contactRoutes = require("./routes/contactRoutes");
+const companyRoutes = require("./routes/companyRoutes");
+const leadRoutes = require("./routes/leadRoutes");
+const dealRoutes = require("./routes/dealRoutes");
+const activityRoutes = require("./routes/activityRoutes");
+const crmReportsRoutes = require("./routes/crmReportsRoutes");
 const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
 const app = express();
@@ -139,6 +152,19 @@ app.use("/api/messages", messagingLimiter, messagingRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/subscriptions", authLimiter, subscriptionRoutes);
 app.use("/api/gra", authLimiter, graRoutes);
+app.use("/api/marketing/campaigns", authLimiter, campaignRoutes);
+app.use("/api/marketing/landing-pages", authLimiter, landingPageRoutes);
+app.use("/api/marketing/workflows", authLimiter, workflowRoutes);
+app.use("/api/marketing/lists", authLimiter, marketingListRoutes);
+app.use("/api/marketing/forms", authLimiter, formRoutes);
+app.use("/api/marketing/templates", authLimiter, emailTemplateRoutes);
+app.use("/api/marketing/analytics", authLimiter, marketingAnalyticsRoutes);
+app.use("/api/crm/contacts", authLimiter, contactRoutes);
+app.use("/api/crm/companies", authLimiter, companyRoutes);
+app.use("/api/crm/leads", authLimiter, leadRoutes);
+app.use("/api/crm/deals", authLimiter, dealRoutes);
+app.use("/api/crm/activities", authLimiter, activityRoutes);
+app.use("/api/crm/reports", authLimiter, crmReportsRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {
