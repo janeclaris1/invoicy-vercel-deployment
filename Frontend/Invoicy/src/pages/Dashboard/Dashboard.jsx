@@ -254,8 +254,8 @@ const Dashboard = () => {
               <BarChart data={summaryChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `GH₵ ${Number(value).toFixed(2)}`} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, userCurrency)} />
+                <Tooltip formatter={(value) => formatCurrency(value, userCurrency)} />
                 <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -270,7 +270,7 @@ const Dashboard = () => {
           <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
             <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <PieChart>
-                <Tooltip formatter={(value) => `GH₵ ${Number(value).toFixed(2)}`} />
+                <Tooltip formatter={(value) => formatCurrency(value, userCurrency)} />
                 <Pie
                   data={paymentStatusData}
                   dataKey="value"
@@ -315,8 +315,8 @@ const Dashboard = () => {
               <BarChart data={taxSummaryData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `GH₵ ${Number(value).toFixed(2)}`} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, userCurrency)} />
+                <Tooltip formatter={(value) => formatCurrency(value, userCurrency)} />
                 <Bar dataKey="value" fill="#f59e0b" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -334,10 +334,10 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" hide />
                 <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => formatCurrency(value, userCurrency)} />
                 <Tooltip
                   formatter={(value, name) =>
-                    name === "total" ? `GH₵ ${Number(value).toFixed(2)}` : value
+                    name === "total" ? formatCurrency(value, userCurrency) : value
                   }
                   labelFormatter={() => ""}
                 />
