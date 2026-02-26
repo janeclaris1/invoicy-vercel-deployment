@@ -1,4 +1,5 @@
-export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Ensure trailing slash so axios builds correct URLs (baseURL + "api/..." => correct path)
+export const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/?$/, "/");
 
 // Log API base so you can verify in DevTools which backend you're hitting (localhost = local, other = deployed)
 if (typeof window !== "undefined") {

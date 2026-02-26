@@ -36,27 +36,6 @@ import HrCompliance from "./pages/HR/HrCompliance";
 import Messages from "./pages/Messages/Messages";
 import Clients from "./pages/Clients/Clients";
 import Checkout from "./pages/Checkout/Checkout";
-import MarketingLayout from "./pages/Marketing/MarketingLayout";
-import CampaignsPage from "./pages/Marketing/CampaignsPage";
-import CampaignTemplateSelectPage from "./pages/Marketing/CampaignTemplateSelectPage";
-import CampaignEditorPage from "./pages/Marketing/CampaignEditorPage";
-import LandingPagesPage from "./pages/Marketing/LandingPagesPage";
-import AutomationPage from "./pages/Marketing/AutomationPage";
-import ListsPage from "./pages/Marketing/ListsPage";
-import FormsPage from "./pages/Marketing/FormsPage";
-import AnalyticsPage from "./pages/Marketing/AnalyticsPage";
-import TemplatesPage from "./pages/Marketing/TemplatesPage";
-import CRMLayout from "./pages/CRM/CRMLayout";
-import ContactsPage from "./pages/CRM/ContactsPage";
-import ContactDetailPage from "./pages/CRM/ContactDetailPage";
-import LeadDetailPage from "./pages/CRM/LeadDetailPage";
-import DealDetailPage from "./pages/CRM/DealDetailPage";
-import CompaniesPage from "./pages/CRM/CompaniesPage";
-import CompanyDetailPage from "./pages/CRM/CompanyDetailPage";
-import LeadsPage from "./pages/CRM/LeadsPage";
-import DealsPage from "./pages/CRM/DealsPage";
-import MeetingsPage from "./pages/CRM/MeetingsPage";
-import CRMReportsPage from "./pages/CRM/CRMReportsPage";
 import SubscriptionRequired from "./pages/SubscriptionRequired/SubscriptionRequired";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
@@ -108,34 +87,6 @@ const App = () => {
             <Route path="hr/self-service" element={<HrSelfService />} />
             <Route path="hr/compliance" element={<HrCompliance />} />
             <Route path="messages" element={<Messages />} />
-            <Route path="marketing" element={<MarketingLayout />}>
-              <Route index element={<Navigate to="campaigns" replace />} />
-              <Route path="campaigns/templates/select" element={<CampaignTemplateSelectPage />} />
-              <Route path="campaigns/:id/editor" element={<CampaignEditorPage />} />
-              <Route path="campaigns" element={<CampaignsPage />} />
-              <Route path="landing-pages" element={<LandingPagesPage />} />
-              <Route path="automation" element={<AutomationPage />} />
-              <Route path="lists" element={<ListsPage />} />
-              <Route path="forms" element={<FormsPage />} />
-              <Route path="templates" element={<TemplatesPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-            </Route>
-            <Route path="social" element={<Navigate to="/dashboard" replace />} />
-            <Route path="crm" element={<CRMLayout />}>
-              <Route index element={<Navigate to="contacts" replace />} />
-              <Route path="contacts" element={<ContactsPage />} />
-              <Route path="contacts/:id" element={<ContactDetailPage />} />
-              <Route path="companies" element={<CompaniesPage />} />
-              <Route path="companies/:id" element={<CompanyDetailPage />} />
-              <Route path="leads" element={<LeadsPage />} />
-              <Route path="leads/:id" element={<LeadDetailPage />} />
-              <Route path="deals" element={<DealsPage />} />
-              <Route path="deals/:id" element={<DealDetailPage />} />
-              <Route path="meetings" element={<MeetingsPage />} />
-              <Route path="reports" element={<CRMReportsPage />} />
-            </Route>
-            <Route path="analytics" element={<Navigate to="/dashboard" replace />} />
-            <Route path="integrations" element={<Navigate to="/dashboard" replace />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="support" element={<Support />} />
