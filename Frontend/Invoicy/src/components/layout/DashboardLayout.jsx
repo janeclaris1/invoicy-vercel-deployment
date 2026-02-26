@@ -158,11 +158,14 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     useEffect(() => {
         const path = location.pathname.replace(/^\//, "") || "dashboard";
-        setActiveNavItem(path);
+        const navItem = path.startsWith("marketing/") ? "marketing" : path.startsWith("crm/") ? "crm" : path;
+        setActiveNavItem(navItem);
         setExpandedNavIds((prev) => ({
             ...prev,
             ...(path.startsWith("hr/") && { hr: true }),
             ...((path === "invoices" || path.startsWith("invoices/")) && { invoices: true }),
+            ...((path === "marketing" || path.startsWith("marketing/")) && { marketing: true }),
+            ...(path === "crm" || path.startsWith("crm/") ? { crm: true } : {}),
         }));
     }, [location.pathname]);
 
