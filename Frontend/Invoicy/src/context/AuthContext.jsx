@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 import { API_PATHS } from '../utils/apiPaths';
 
 const AuthContext = createContext();
+
+/** Auto sign-out after this many ms of no user activity (default 5 minutes) */
+const INACTIVITY_MS = 5 * 60 * 1000;
 
 export const useAuth = () => {
     const context = useContext (AuthContext);
@@ -110,7 +113,32 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
         window.location.href = "/";
 
-    }
+    };
+
+    const logoutRef = useRef(logout);
+    logoutRef.current = logout;
+
+    // Auto sign-out after 5 minutes of inactivity (only when authenticated)
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        let timeoutId = setTimeout(() => {
+            logoutRef.current();
+        }, INACTIVITY_MS);
+
+        const resetTimer = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => logoutRef.current(), INACTIVITY_MS);
+        };
+
+        const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+        events.forEach((ev) => window.addEventListener(ev, resetTimer));
+
+        return () => {
+            clearTimeout(timeoutId);
+            events.forEach((ev) => window.removeEventListener(ev, resetTimer));
+        };
+    }, [isAuthenticated]);
 
     const updateUser = (updatedUserData) => {
         const newUserData = { ...user, ...updatedUserData };
