@@ -70,6 +70,8 @@ app.use(helmet({
 const isProduction = process.env.NODE_ENV === 'production';
 const prodOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean) : [];
 const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+// Vercel preview URLs: https://project-<hash>-<scope>.vercel.app (allow same app's production + previews)
+const isVercelPreviewOrigin = (origin) => typeof origin === 'string' && /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -78,6 +80,7 @@ app.use(cors({
       if (isLocalOrigin(origin)) return callback(null, true);
     }
     if (prodOrigins.indexOf(origin) !== -1) return callback(null, true);
+    if (isProduction && isVercelPreviewOrigin(origin)) return callback(null, true);
     if (isProduction && prodOrigins.length === 0 && isLocalOrigin(origin)) return callback(null, true);
     logger.warn(`CORS rejected origin: ${origin}. Add it to ALLOWED_ORIGINS on Render.`);
     const err = new Error('Not allowed by CORS');
@@ -157,7 +160,7 @@ try {
   app.use("/api-docs", serveSwagger, setupSwagger);
   logger.info("Swagger UI available at /api-docs");
 } catch (e) {
-  logger.warn("Swagger not loaded:", e.message);
+  logger.warn("Swagger not loaded: " + String(e && e.message || e));
 }
 
 // Define Routes Here

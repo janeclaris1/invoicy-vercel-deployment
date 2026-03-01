@@ -98,7 +98,14 @@ const spec = {
                   type: "object",
                   properties: {
                     data: { type: "array", items: { $ref: "#/components/schemas/AuditLog" } },
-                    pagination: { type: "object", properties: { page: {}, limit: {}, total: {} } },
+                    pagination: {
+                      type: "object",
+                      properties: {
+                        page: { type: "integer" },
+                        limit: { type: "integer" },
+                        total: { type: "integer" },
+                      },
+                    },
                   },
                 },
               },
