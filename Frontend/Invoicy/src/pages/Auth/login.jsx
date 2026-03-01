@@ -135,7 +135,7 @@ const Login = () => {
                   }
                   setVerifyingSubscription(false);
                   setSuccess("Subscription confirmed! Taking you to dashboard…");
-                  setTimeout(() => { window.location.href = "/dashboard"; }, 600);
+                  setTimeout(() => navigate("/dashboard"), 600);
                   done = true;
                   break;
                 }
@@ -145,7 +145,7 @@ const Login = () => {
             if (!done) {
               setVerifyingSubscription(false);
               setSuccess("Taking you to dashboard…");
-              setTimeout(() => { window.location.href = "/dashboard?payment=success"; }, 1200);
+              setTimeout(() => navigate("/dashboard?payment=success"), 1200);
             }
           } else {
             setSuccess("Login successful");
@@ -158,7 +158,7 @@ const Login = () => {
                 redirect = `/checkout?plan=${encodeURIComponent(plan)}&interval=${encodeURIComponent(interval)}`;
               }
             } catch (_) {}
-            setTimeout(() => { window.location.href = redirect; }, 1500);
+            setTimeout(() => navigate(redirect), 800);
           }
         } else {
           setError(response.data.message || "Invalid credentials");
