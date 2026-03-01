@@ -112,9 +112,7 @@ const Login = () => {
     try {
       const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, formData);
       if(response.status === 200){
-        const {token} = response.data;
-        if (token) {
-          login(response.data, token);
+        login(response.data);
           const paymentSuccess = searchParams.get("payment") === "success";
 
           if (paymentSuccess) {
@@ -133,7 +131,7 @@ const Login = () => {
                 if (hasAccess) {
                   if (data.subscription) {
                     const updated = { ...response.data, ...data };
-                    login(updated, token);
+                    login(updated);
                   }
                   setVerifyingSubscription(false);
                   setSuccess("Subscription confirmed! Taking you to dashboard…");
@@ -165,11 +163,12 @@ const Login = () => {
         } else {
           setError(response.data.message || "Invalid credentials");
         }
-      }
     } catch (err) {
       console.error("Login error:", err);
       if (err.response?.status === 429) {
         setError(err.response?.data?.message || "Too many login attempts. Please try again in 15 minutes.");
+      } else if (err.response?.status === 503) {
+        setError("Service unavailable. The backend is not responding. Make sure the server is running (e.g. run the Backend with npm run dev).");
       } else if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else if (err.code === "ERR_NETWORK" || err.message.includes("Network Error")) {

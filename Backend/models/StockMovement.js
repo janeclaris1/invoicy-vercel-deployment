@@ -5,7 +5,9 @@ const stockMovementSchema = new mongoose.Schema({
   type: { type: String, enum: ['in', 'out', 'adjustment'], required: true },
   quantity: { type: Number, required: true },
   reason: { type: String, default: '' },
-  reference: { type: String, default: '' }, // e.g. invoice id, PO number
+  reference: { type: String, default: '' },
+  referenceType: { type: String, default: '' },
+  warehouse: { type: mongoose.Schema.Types.ObjectId, ref: 'Warehouse', default: null },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 

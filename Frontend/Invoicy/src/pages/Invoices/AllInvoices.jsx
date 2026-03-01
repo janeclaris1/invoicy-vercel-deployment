@@ -3,15 +3,16 @@ import axiosinstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText } from "lucide-react";
 import moment from "moment";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import CreateWithAiModal from "../../components/invoices/CreateWithAiModal";
 import ReminderModal from "../../components/invoices/ReminderModal";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
-const AllInvoices = () => {
+const AllInvoices = ({ typeFilter }) => {
   const { user } = useAuth();
+  const isQuotationsView = typeFilter === "quotation";
   const canEditInvoice = ["owner", "admin"].includes(user?.role || "");
   const canDeleteInvoice = ["owner", "admin"].includes(user?.role || "");
   const [invoices, setInvoices] = useState([]);
@@ -24,13 +25,36 @@ const AllInvoices = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [statusChangeLoading, setStatusChangeLoading] = useState(null);
   const [convertLoading, setConvertLoading] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [branchFilter, setBranchFilter] = useState("");
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const branchFromUrl = searchParams.get("branch");
+    if (branchFromUrl) setBranchFilter(branchFromUrl);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await axiosinstance.get(API_PATHS.BRANCHES.GET_ALL);
+        setBranches(Array.isArray(res.data) ? res.data : []);
+      } catch {
+        setBranches([]);
+      }
+    };
+    load();
+  }, []);
 
   const fetchInvoices = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axiosinstance.get(API_PATHS.INVOICES.GET_ALL_INVOICES);
+      const url = branchFilter
+        ? `${API_PATHS.INVOICES.GET_ALL_INVOICES}?branch=${encodeURIComponent(branchFilter)}`
+        : API_PATHS.INVOICES.GET_ALL_INVOICES;
+      const response = await axiosinstance.get(url);
       if (response.data && Array.isArray(response.data)) {
         const sortedInvoices = response.data.sort((a, b) => {
           const dateA = a.invoiceDate ? new Date(a.invoiceDate) : new Date(0);
@@ -50,7 +74,7 @@ const AllInvoices = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [branchFilter]);
 
   useEffect(() => {
     fetchInvoices();
@@ -119,7 +143,7 @@ const AllInvoices = () => {
   };
 
   const handleConvertToInvoice = async (invoice) => {
-    if (!invoice?.convertedTo && (invoice?.status === "Fully Paid" || invoice?.status === "Paid") && invoice?.type === "proforma") {
+    if (!invoice?.convertedTo && (invoice?.status === "Fully Paid" || invoice?.status === "Paid") && (invoice?.type === "proforma" || invoice?.type === "quotation")) {
       setConvertLoading(invoice._id);
       try {
         const res = await axiosinstance.post(API_PATHS.INVOICES.CONVERT_TO_INVOICE(invoice._id));
@@ -174,8 +198,9 @@ const AllInvoices = () => {
       .filter((invoice) =>
         (invoice.invoiceNumber || "").toLowerCase().includes(query) ||
         (invoice.billTo?.clientName || "").toLowerCase().includes(query)
-      );
-  }, [invoices, statusFilter, searchTerm]);
+      )
+      .filter((invoice) => !typeFilter || (invoice.type || "invoice").toLowerCase() === typeFilter.toLowerCase());
+  }, [invoices, statusFilter, searchTerm, typeFilter]);
 
   if (loading) {
     return (
@@ -195,12 +220,17 @@ const AllInvoices = () => {
       />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-2">
         <div className="min-w-0 bg-white dark:bg-transparent rounded-md pr-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">All Invoices</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-snug">Manage all your invoices in one place</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">{isQuotationsView ? "Quotations" : "All Invoices"}</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-snug">{isQuotationsView ? "Manage your price estimates and quotations" : "Manage all your invoices in one place"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setIsAiModalOpen(true)} icon={Sparkles}>
-            Create Invoice with Ai
+          {!isQuotationsView && (
+            <Button variant="secondary" onClick={() => setIsAiModalOpen(true)} icon={Sparkles}>
+              Create Invoice with Ai
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => navigate("/invoices/new", { state: { type: "quotation" } })} icon={FileText}>
+            Create Quotation
           </Button>
           <Button onClick={() => navigate("/invoices/new")} icon={Plus}>
             Create Invoice
@@ -235,6 +265,20 @@ const AllInvoices = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            {branches.length > 0 && (
+              <div className="flex-shrink-0">
+                <select
+                  className="w-full sm:w-auto h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={branchFilter}
+                  onChange={(e) => setBranchFilter(e.target.value)}
+                >
+                  <option value="">All Branches</option>
+                  {branches.map((b) => (
+                    <option key={b._id} value={b._id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="flex-shrink-0">
               <select 
                 className="w-full sm:w-auto h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -271,10 +315,10 @@ const AllInvoices = () => {
             {filteredInvoices.map((invoice) => (
               <tr key={invoice._id} className="hover:bg-teal-700 group transition-colors duration-150 cursor-pointer" onClick={() => navigate(`/invoices/${invoice._id}`)}>
                 <td className="px-4 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
-                    {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "quotation" ? "bg-blue-100 text-blue-800" : (invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
+                    {(invoice.type || "invoice") === "quotation" ? "Quotation" : (invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
                   </span>
-                  {invoice.convertedTo && (invoice.type || "") === "proforma" && (
+                  {invoice.convertedTo && ((invoice.type || "") === "proforma" || (invoice.type || "") === "quotation") && (
                     <span className="ml-1 text-xs text-slate-500">Converted</span>
                   )}
                 </td>
@@ -296,7 +340,7 @@ const AllInvoices = () => {
                 <td className="px-4 py-4 text-sm text-black group-hover:text-white">{invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}</td>
                 <td className="px-4 py-4 text-sm text-black">
                   <div className="flex items-center justify-end gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                    {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
+                    {((invoice.type || "invoice") === "proforma" || (invoice.type || "invoice") === "quotation") && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
                       <Button
                         size="small"
                         variant="secondary"

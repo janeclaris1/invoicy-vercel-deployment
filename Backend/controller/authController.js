@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -26,12 +28,27 @@ const getTeamMemberIds = async (currentUserId) => {
 
 
 
-//Helper function to generate JWT
-
+// Helper function to generate JWT
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '7d',
     });
+};
+
+// Cookie options for auth token (HTTP-only, 7 days)
+const AUTH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // seconds
+const setAuthCookie = (res, token) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'strict' : 'lax',
+        path: '/',
+        maxAge: AUTH_COOKIE_MAX_AGE * 1000,
+    });
+};
+const clearAuthCookie = (res) => {
+    res.clearCookie('token', { path: '/', httpOnly: true });
 };
 
 // @desc    Create pending signup (before payment) – used when customer pays before account exists
@@ -109,11 +126,13 @@ exports.registerUser = async (req, res, next) => {
         }
 
         if (user) {
+            const token = generateToken(user._id);
+            setAuthCookie(res, token);
             res.status(201).json({
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                token: generateToken(user._id),
+                token,
                 subscription: subscription,
             });
         } else {
@@ -356,11 +375,13 @@ exports.loginUser = async (req, res, next) => {
             const userEmailNorm = (user.email || '').trim().toLowerCase();
             const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
             const subscription = await Subscription.findOne({ user: user._id }).lean();
+            const token = generateToken(user._id);
+            setAuthCookie(res, token);
             res.json({
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                token: generateToken(user._id),
+                token,
                 businessName: user.businessName || '',
                 tin: user.tin || '',
                 address: user.address || '',
@@ -376,6 +397,7 @@ exports.loginUser = async (req, res, next) => {
                 subscription: subscription || null,
                 graCompanyReference: user.graCompanyReference || '',
                 graCredentialsConfigured: !!(user.graCompanyReference && user.graSecurityKey),
+                graVatScenario: user.graVatScenario || 'inclusive',
             });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
@@ -383,6 +405,14 @@ exports.loginUser = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+};
+
+// @desc   Logout - clear auth cookie
+// @route  POST /api/auth/logout
+// @access Public
+exports.logout = (req, res) => {
+    clearAuthCookie(res);
+    res.json({ message: 'Logged out' });
 };
 
     //@desc Get current Logged-in user
@@ -407,6 +437,7 @@ exports.getMe = async (req, res) => {
             companyLogo: user.companyLogo || '',
             companySignature: user.companySignature || '',
             companyStamp: user.companyStamp || '',
+            profilePicture: user.profilePicture || '',
             currency: user.currency || 'GHS',
             role: user.role || 'owner',
             responsibilities: user.responsibilities || [],
@@ -415,6 +446,7 @@ exports.getMe = async (req, res) => {
             subscription: subscription || null,
             graCompanyReference: user.graCompanyReference || '',
             graCredentialsConfigured: !!(user.graCompanyReference && user.graSecurityKey),
+            graVatScenario: user.graVatScenario || 'inclusive',
         };
         if (process.env.NODE_ENV !== 'production') {
             payload._platformAdminCheck = { envConfigured: adminEmails.length > 0 };
@@ -448,8 +480,10 @@ exports.updateUserProfile = async (req, res) => {
             user.companyLogo = req.body.companyLogo !== undefined ? req.body.companyLogo : user.companyLogo;
             user.companySignature = req.body.companySignature !== undefined ? req.body.companySignature : user.companySignature;
             user.companyStamp = req.body.companyStamp !== undefined ? req.body.companyStamp : user.companyStamp;
+            if (req.body.profilePicture !== undefined) user.profilePicture = req.body.profilePicture;
             if (req.body.graCompanyReference !== undefined) user.graCompanyReference = String(req.body.graCompanyReference || '').trim();
             if (req.body.graSecurityKey !== undefined) user.graSecurityKey = String(req.body.graSecurityKey || '').trim();
+            if (req.body.graVatScenario !== undefined && ['inclusive', 'exclusive'].includes(req.body.graVatScenario)) user.graVatScenario = req.body.graVatScenario;
             // Only allow admin/owner to update currency
             if (req.body.currency && ['owner', 'admin'].includes(user.role)) {
                 const validCurrencies = ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'];
@@ -555,9 +589,11 @@ exports.updateUserProfile = async (req, res) => {
                 companyLogo: updatedUser.companyLogo,
                 companySignature: updatedUser.companySignature,
                 companyStamp: updatedUser.companyStamp,
+                profilePicture: updatedUser.profilePicture || '',
                 currency: updatedUser.currency || 'GHS',
                 graCompanyReference: updatedUser.graCompanyReference || '',
                 graCredentialsConfigured: !!(updatedUser.graCompanyReference && updatedUser.graSecurityKey),
+                graVatScenario: updatedUser.graVatScenario || 'inclusive',
                 isPlatformAdmin: !!isPlatformAdmin,
                 subscription: subscription || null,
             });
@@ -565,6 +601,80 @@ exports.updateUserProfile = async (req, res) => {
             res.status(404).json({ message: 'User not found' });
         }  
     } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const { UPLOAD_DIR: PROFILE_UPLOAD_DIR } = require('../middlewares/uploadProfilePicture');
+
+// @desc    Upload profile picture
+// @route   POST /api/auth/me/profile-picture
+// @access  Private
+exports.uploadProfilePicture = async (req, res) => {
+    try {
+        if (!req.file || !req.file.filename) {
+            return res.status(400).json({ message: 'No image uploaded. Use form field "photo".' });
+        }
+        const user = await User.findById(req.user._id || req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        const oldFilename = user.profilePicture;
+        user.profilePicture = req.file.filename;
+        await user.save();
+        if (oldFilename) {
+            const oldPath = path.join(PROFILE_UPLOAD_DIR, oldFilename);
+            try {
+                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+            } catch (_) {}
+        }
+        const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+        const userEmailNorm = user.email || '';
+        const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm.toLowerCase());
+        const subscription = await Subscription.findOne({ user: user._id }).lean();
+        const payload = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            businessName: user.businessName || '',
+            tin: user.tin || '',
+            address: user.address || '',
+            phone: user.phone || '',
+            companyLogo: user.companyLogo || '',
+            companySignature: user.companySignature || '',
+            companyStamp: user.companyStamp || '',
+            profilePicture: user.profilePicture || '',
+            currency: user.currency || 'GHS',
+            role: user.role || 'owner',
+            responsibilities: user.responsibilities || [],
+            createdBy: user.createdBy || null,
+            isPlatformAdmin: !!isPlatformAdmin,
+            subscription: subscription || null,
+            graCompanyReference: user.graCompanyReference || '',
+            graCredentialsConfigured: !!(user.graCompanyReference && user.graSecurityKey),
+            graVatScenario: user.graVatScenario || 'inclusive',
+        };
+        res.json(payload);
+    } catch (error) {
+        console.error('Upload profile picture error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Serve profile picture file
+// @route   GET /api/auth/profile-picture/:filename
+// @access  Private
+exports.getProfilePicture = async (req, res) => {
+    try {
+        const { filename } = req.params;
+        if (!filename || filename.includes('..') || path.isAbsolute(filename)) {
+            return res.status(400).json({ message: 'Invalid filename' });
+        }
+        const filePath = path.join(PROFILE_UPLOAD_DIR, filename);
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+        res.sendFile(path.resolve(filePath));
+    } catch (error) {
+        console.error('Get profile picture error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -592,9 +702,15 @@ exports.getAllClients = async (req, res) => {
             { $match: { user: { $in: userIds } } },
             { $group: { _id: '$user', total: { $sum: '$amount' } } },
         ]);
+        // Paid invoice revenue (includes formal invoices created from converted quotations/proformas – admin only)
+        const invoiceRevenue = await Invoice.aggregate([
+            { $match: { user: { $in: userIds }, type: 'invoice', status: { $in: ['Paid', 'Fully Paid'] } } },
+            { $group: { _id: '$user', total: { $sum: '$grandTotal' } } },
+        ]);
         const revenueByUser = {};
-        payments.forEach((p) => { revenueByUser[p._id.toString()] = p.total; });
-        const totalRevenue = payments.reduce((sum, p) => sum + p.total, 0);
+        payments.forEach((p) => { revenueByUser[p._id.toString()] = (revenueByUser[p._id.toString()] || 0) + p.total; });
+        invoiceRevenue.forEach((r) => { revenueByUser[r._id.toString()] = (revenueByUser[r._id.toString()] || 0) + r.total; });
+        const totalRevenue = Object.values(revenueByUser).reduce((sum, v) => sum + v, 0);
         const clientsWithSub = clients.map((c) => ({
             ...c,
             subscription: subByUser[c._id.toString()] || null,

@@ -158,13 +158,14 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     useEffect(() => {
         const path = location.pathname.replace(/^\//, "") || "dashboard";
-        const navItem = path.startsWith("marketing/") ? "marketing" : path.startsWith("crm/") ? "crm" : path;
+        const navItem = path.startsWith("marketing/") ? "marketing" : path.startsWith("crm/") ? "crm" : path.startsWith("social/") ? "social" : path.startsWith("integrations/") ? "integrations" : path.startsWith("accounting/") ? "accounting" : path === "quotations" ? "quotations" : path;
         setActiveNavItem(navItem);
         setExpandedNavIds((prev) => ({
             ...prev,
             ...(path.startsWith("hr/") && { hr: true }),
-            ...((path === "invoices" || path.startsWith("invoices/")) && { invoices: true }),
-            ...((path === "marketing" || path.startsWith("marketing/") || ["social", "crm", "analytics", "integrations"].includes(path)) && { growth: true }),
+            ...((path === "invoices" || path.startsWith("invoices/") || path === "quotations") && { invoices: true }),
+            ...((path === "accounting" || path.startsWith("accounting/")) && { accounting: true }),
+            ...((path === "crm" || path.startsWith("crm/") || path === "analytics" || path.startsWith("analytics")) && { growth: true }),
         }));
     }, [location.pathname]);
 
@@ -191,6 +192,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const navLabelKey = (id) => {
         if (id === "invoices/new") return "nav.create_invoice";
+        if (id === "quotations") return "nav.quotations";
         if (id === "stock") return "nav.stock";
         if (id === "hr") return "nav.hr";
         if (id === "hr/records") return "nav.hr_records";
@@ -202,6 +204,23 @@ const DashboardLayout = ({ children, activeMenu }) => {
         if (id === "hr/self-service") return "nav.hr_self_service";
         if (id === "hr/compliance") return "nav.hr_compliance";
         if (id === "hr/team") return "nav.hr_team";
+        if (id === "accounting/chart-of-accounts") return "nav.accounting_chart_of_accounts";
+        if (id === "accounting/journal-entries") return "nav.accounting_journal_entries";
+        if (id === "accounting/expenditures") return "nav.accounting_expenditures";
+        if (id === "accounting/general-ledger") return "nav.accounting_general_ledger";
+        if (id === "accounting/trial-balance") return "nav.accounting_trial_balance";
+        if (id === "accounting/profit-loss") return "nav.accounting_profit_loss";
+        if (id === "accounting/balance-sheet") return "nav.accounting_balance_sheet";
+        if (id === "production/work-orders") return "nav.production_work_orders";
+        if (id === "production/bom") return "nav.production_bom";
+        if (id === "production/resources") return "nav.production_resources";
+        if (id === "production/maintenance") return "nav.production_maintenance";
+        if (id === "supply-chain") return "nav.supply_chain";
+        if (id === "supply-chain/inventory") return "nav.supply_chain_inventory";
+        if (id === "supply-chain/procurement") return "nav.supply_chain_procurement";
+        if (id === "supply-chain/suppliers") return "nav.supply_chain_suppliers";
+        if (id === "supply-chain/warehouses") return "nav.supply_chain_warehouses";
+        if (id === "supply-chain/forecasting") return "nav.supply_chain_forecasting";
         return `nav.${id.replace(/\//g, "_")}`;
     };
 

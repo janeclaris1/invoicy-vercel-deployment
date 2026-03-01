@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { MessageCircle, Send, User, Search, Paperclip, X, FileText, Image as ImageIcon, Users, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MessageCircle, Send, User, Search, Paperclip, X, FileText, Image as ImageIcon, Users, MoreVertical, Pencil, Trash2, Reply, Smile } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
@@ -69,10 +69,14 @@ const Messages = () => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupParticipantIds, setGroupParticipantIds] = useState([]);
+  const [replyingToMessage, setReplyingToMessage] = useState(null);
+  const [otherReplying, setOtherReplying] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const lastPollCountRef = useRef(-1);
   const messagesEndRef = useRef(null);
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
+  const messageInputRef = useRef(null);
 
   const fetchContacts = async () => {
     try {
@@ -137,6 +141,10 @@ const Messages = () => {
   }, [selected?.type, selected?.id]);
 
   useEffect(() => {
+    setReplyingToMessage(null);
+  }, [selected?.id, selected?.type]);
+
+  useEffect(() => {
     if (!myId) return;
     const poll = () => {
       axiosInstance.get(API_PATHS.MESSAGES.UNREAD_COUNT).then((res) => {
@@ -156,6 +164,46 @@ const Messages = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Notify backend when user is replying (so other party can see "X is replying")
+  useEffect(() => {
+    if (!selected || selected.type !== "user" || !toId(selected.id)) return;
+    const withId = toId(selected.id);
+    if (replyingToMessage) {
+      const payload = { withUserId: withId, replyToMessageId: replyingToMessage._id || null };
+      axiosInstance.post(API_PATHS.MESSAGES.SET_REPLYING, payload).catch(() => {});
+      const t = setInterval(() => {
+        axiosInstance.post(API_PATHS.MESSAGES.SET_REPLYING, payload).catch(() => {});
+      }, 8000);
+      return () => {
+        clearInterval(t);
+        axiosInstance.post(API_PATHS.MESSAGES.SET_REPLYING, { withUserId: withId, clear: true }).catch(() => {});
+      };
+    } else {
+      axiosInstance.post(API_PATHS.MESSAGES.SET_REPLYING, { withUserId: withId, clear: true }).catch(() => {});
+    }
+  }, [selected?.type, selected?.id, replyingToMessage]);
+
+  // Poll to show "other party is replying" in 1:1
+  useEffect(() => {
+    if (!selected || selected.type !== "user" || !toId(selected.id)) {
+      setOtherReplying(null);
+      return;
+    }
+    const withId = toId(selected.id);
+    const poll = () => {
+      axiosInstance.get(`${API_PATHS.MESSAGES.GET_REPLYING}?with=${encodeURIComponent(withId)}`).then((res) => {
+        if (res.data?.replying) {
+          setOtherReplying({ name: res.data.name || "Someone", replyToMessageId: res.data.replyToMessageId });
+        } else {
+          setOtherReplying(null);
+        }
+      }).catch(() => setOtherReplying(null));
+    };
+    poll();
+    const t = setInterval(poll, 3000);
+    return () => clearInterval(t);
+  }, [selected?.type, selected?.id]);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -181,18 +229,20 @@ const Messages = () => {
       return;
     }
     setSending(true);
+    const replyId = replyingToMessage?._id || null;
     try {
       let res;
       if (selectedFiles.length === 0) {
         const payload = selected.type === "group"
-          ? { groupId: id, body }
-          : { recipientId: id, body };
+          ? { groupId: id, body, replyToMessageId: replyId }
+          : { recipientId: id, body, replyToMessageId: replyId };
         res = await axiosInstance.post(API_PATHS.MESSAGES.SEND, payload);
       } else {
         const formData = new FormData();
         if (selected.type === "group") formData.append("groupId", id);
         else formData.append("recipientId", id);
         formData.append("body", body);
+        if (replyId) formData.append("replyToMessageId", replyId);
         selectedFiles.forEach((file) => formData.append("attachments", file));
         res = await axiosInstance.post(API_PATHS.MESSAGES.SEND, formData, {
           headers: { "Content-Type": undefined },
@@ -202,6 +252,10 @@ const Messages = () => {
       setMessages((prev) => [...prev, res.data]);
       setNewMessage("");
       setSelectedFiles([]);
+      setReplyingToMessage(null);
+      if (selected.type === "user" && id) {
+        axiosInstance.post(API_PATHS.MESSAGES.SET_REPLYING, { withUserId: id, clear: true }).catch(() => {});
+      }
       fetchConversations(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to send");
@@ -399,12 +453,17 @@ const Messages = () => {
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${selected.type === "group" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
                   {selected.type === "group" ? <Users className="w-4 h-4 text-amber-800 dark:text-amber-300" /> : <User className="w-4 h-4 text-blue-900 dark:text-blue-300" />}
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-gray-900 dark:text-white">
                     {selected.type === "group" ? (selectedGroup?.name || "Group") : getDisplayName(selectedContact)}
                   </p>
                   {selected.type === "user" && selectedContact?.email && (
                     <p className="text-xs text-gray-500 dark:text-slate-400">{selectedContact.email}</p>
+                  )}
+                  {selected.type === "user" && otherReplying && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      {otherReplying.name} is {otherReplying.replyToMessageId ? "replying to your message" : "typing"}…
+                    </p>
                   )}
                 </div>
               </div>
@@ -429,6 +488,14 @@ const Messages = () => {
                               : "bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-bl-md"
                           }`}
                         >
+                          {m.replyTo && (
+                            <div className={`mb-2 pl-2 border-l-2 ${isMe ? "border-blue-200" : "border-slate-500"} opacity-90`}>
+                              <p className="text-xs font-medium truncate">
+                                {(m.replyTo.sender && (m.replyTo.sender.name || m.replyTo.sender.email)) || "Message"}
+                              </p>
+                              <p className="text-xs truncate opacity-80">{m.replyTo.body || "(attachment)"}</p>
+                            </div>
+                          )}
                           {editingId === m._id ? (
                             <div className="space-y-2">
                               <textarea
@@ -455,6 +522,16 @@ const Messages = () => {
                                 </div>
                               )}
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {!isMe && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setReplyingToMessage(m)}
+                                    className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                                    title="Reply"
+                                  >
+                                    <Reply className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 <p className={`text-xs ${isMe ? "text-blue-200" : "text-gray-500 dark:text-slate-400"}`}>
                                   {moment(m.createdAt).format("MMM D, h:mm A")}
                                   {!isMe && m.readAt && " · Read"}
@@ -472,6 +549,9 @@ const Messages = () => {
                                     {menuOpenId === m._id && (
                                       <>
                                         <div className="absolute right-0 top-full mt-1 py-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-600 z-10 min-w-[100px]">
+                                          <button type="button" onClick={() => { setReplyingToMessage(m); setMenuOpenId(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+                                            <Reply className="w-4 h-4" /> Reply
+                                          </button>
                                           <button type="button" onClick={() => { setEditingId(m._id); setEditBody(m.body || ""); setMenuOpenId(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
                                             <Pencil className="w-4 h-4" /> Edit
                                           </button>
@@ -503,6 +583,17 @@ const Messages = () => {
                   onChange={handleFileChange}
                   className="hidden"
                 />
+                {replyingToMessage && (
+                  <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <Reply className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <p className="text-sm text-gray-700 dark:text-slate-300 truncate flex-1 min-w-0">
+                      Replying to: {replyingToMessage.body ? ((replyingToMessage.body || "").slice(0, 60) + (replyingToMessage.body.length > 60 ? "…" : "")) : "(attachment)"}
+                    </p>
+                    <button type="button" onClick={() => setReplyingToMessage(null)} className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 text-gray-600 dark:text-slate-400" aria-label="Cancel reply">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 {selectedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-2 p-2 rounded-lg bg-gray-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600">
                     {selectedFiles.map((file, i) => (
@@ -520,7 +611,7 @@ const Messages = () => {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -529,13 +620,53 @@ const Messages = () => {
                   >
                     <Paperclip className="w-5 h-5" />
                   </button>
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
-                  />
+                  <div className="flex-1 relative">
+                    <input
+                      ref={messageInputRef}
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
+                    />
+                    {showEmojiPicker && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} aria-hidden="true" />
+                        <div className="absolute bottom-full left-0 mb-1 p-2 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-lg z-20 grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                          {["😀","😊","🥲","😎","😢","😡","❤️","👍","👎","🙏","🔥","✨","😂","🥳","😇","🤔","👋","💯","✅","❌","📌","📎","💼","🎉","🚀","💡","⭐","🌈","😁","🤗","😴","🤩","😭","🙂","😉","😋","🤭","😤","💪","👏","🙌","💙","💚","💛","🧡","💜","🖤","🤍","🤎","📝","📋","📁","📂","🗂️","📅","📆","⏰","🔔","💬","🗨️","📧","📬","🎯","🔒","🔓","⚡","🌟","💫","🌙","☀️","🌈","🌤️","⛈️","🌊","🍕","☕","🎂","🍰","🎁","🎈","🎊","🏆","🥇","🎵","🎶","📷","🎬","📱","💻","🖥️","⌨️","🖱️"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              className="p-1.5 text-lg hover:bg-gray-100 dark:hover:bg-slate-700 rounded"
+                              onClick={() => {
+                                const input = messageInputRef.current;
+                                if (input) {
+                                  const start = input.selectionStart ?? newMessage.length;
+                                  const end = input.selectionEnd ?? newMessage.length;
+                                  const next = newMessage.slice(0, start) + emoji + newMessage.slice(end);
+                                  setNewMessage(next);
+                                  setTimeout(() => { input.focus(); input.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+                                } else {
+                                  setNewMessage((prev) => prev + emoji);
+                                }
+                                setShowEmojiPicker(false);
+                              }}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker((v) => !v)}
+                    className="p-2 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 shrink-0"
+                    title="Emoji"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
                   <button
                     type="submit"
                     disabled={sending || (!newMessage.trim() && selectedFiles.length === 0) || !selected}

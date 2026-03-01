@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Loader2, User, Mail, Building, Phone, MapPin, CreditCard, DollarSign } from 'lucide-react';
+import { Loader2, User, Mail, Building, Phone, MapPin, CreditCard, DollarSign, Camera } from 'lucide-react';
 import axiosInstance from '../../utils/axiosInstance';
-import { API_PATHS } from '../../utils/apiPaths';
+import { API_PATHS, BASE_URL } from '../../utils/apiPaths';
 import toast from 'react-hot-toast';
 import InputField from '../../components/ui/InputField';
 import TextareaField from '../../components/ui/TextareaField';
@@ -12,6 +12,10 @@ import SelectField from '../../components/ui/SelectField';
 const ProfilePage = () => {
   const { user, loading, updateUser } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+  const avatarBlobUrlRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,6 +39,63 @@ const ProfilePage = () => {
       });
     }
   }, [user]);
+
+  // Load profile picture as blob URL (so credentials are sent)
+  useEffect(() => {
+    if (!user?.profilePicture) {
+      if (avatarBlobUrlRef.current) {
+        URL.revokeObjectURL(avatarBlobUrlRef.current);
+        avatarBlobUrlRef.current = null;
+      }
+      setAvatarUrl(null);
+      return;
+    }
+    const url = `${BASE_URL}${API_PATHS.AUTH.PROFILE_PICTURE(user.profilePicture)}`;
+    axiosInstance.get(url, { responseType: 'blob' })
+      .then((res) => {
+        if (avatarBlobUrlRef.current) URL.revokeObjectURL(avatarBlobUrlRef.current);
+        const objectUrl = URL.createObjectURL(res.data);
+        avatarBlobUrlRef.current = objectUrl;
+        setAvatarUrl(objectUrl);
+      })
+      .catch(() => setAvatarUrl(null));
+    return () => {
+      if (avatarBlobUrlRef.current) {
+        URL.revokeObjectURL(avatarBlobUrlRef.current);
+        avatarBlobUrlRef.current = null;
+      }
+    };
+  }, [user?.profilePicture]);
+
+  const handleProfilePhotoChange = (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image (JPEG, PNG, GIF or WebP)');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be 2MB or smaller');
+      return;
+    }
+    setUploadingPhoto(true);
+    const formDataPhoto = new FormData();
+    formDataPhoto.append('photo', file);
+    axiosInstance.post(API_PATHS.AUTH.PROFILE_PICTURE_UPLOAD, formDataPhoto, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+      .then((res) => {
+        updateUser(res.data);
+        toast.success('Profile picture updated');
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || 'Failed to upload picture');
+      })
+      .finally(() => {
+        setUploadingPhoto(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      });
+  };
 
   const isAdminOrOwner = user?.role === 'owner' || user?.role === 'admin';
 
@@ -87,6 +148,45 @@ const ProfilePage = () => {
         </div>
 
         <form onSubmit={handleUpdateProfile} className="p-6 space-y-6 bg-white dark:bg-white">
+          {/* Profile picture */}
+          <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4 pb-6 border-b border-gray-200 dark:border-gray-200">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleProfilePhotoChange}
+              disabled={uploadingPhoto}
+            />
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-300 bg-gray-100 dark:bg-gray-700 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-12 h-12 text-gray-500 dark:text-gray-400" />
+                )}
+              </button>
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {uploadingPhoto ? (
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-8 h-8 text-white" />
+                )}
+              </span>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-sm font-medium text-black dark:text-black">Profile picture</p>
+              <p className="text-xs text-gray-500 dark:text-gray-600 mt-0.5">
+                Click the photo to change. JPEG, PNG, GIF or WebP, max 2MB.
+              </p>
+            </div>
+          </div>
+
           {/* Email Field (Read-only) */}
           <div className="bg-white dark:bg-white">
             <label className="block text-sm font-medium text-black dark:text-black mb-1">

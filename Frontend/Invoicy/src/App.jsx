@@ -25,6 +25,33 @@ import Categories from "./pages/Categories/Categories";
 import Items from "./pages/Items/Items";
 import Stock from "./pages/Stock/Stock";
 import Reports from "./pages/Reports/Reports";
+import BranchesPage from "./pages/Branches/BranchesPage";
+import AccountingLayout from "./pages/Accounting/AccountingLayout";
+import ChartOfAccountsPage from "./pages/Accounting/ChartOfAccountsPage";
+import JournalEntriesPage from "./pages/Accounting/JournalEntriesPage";
+import ExpendituresPage from "./pages/Accounting/ExpendituresPage";
+import BillsPage from "./pages/Accounting/BillsPage";
+import BudgetsPage from "./pages/Accounting/BudgetsPage";
+import TaxAndCurrencyPage from "./pages/Accounting/TaxAndCurrencyPage";
+import GeneralLedgerPage from "./pages/Accounting/GeneralLedgerPage";
+import TrialBalancePage from "./pages/Accounting/TrialBalancePage";
+import ProfitLossPage from "./pages/Accounting/ProfitLossPage";
+import BalanceSheetPage from "./pages/Accounting/BalanceSheetPage";
+import ProjectsLayout from "./pages/Projects/ProjectsLayout";
+import ProjectsListPage from "./pages/Projects/ProjectsListPage";
+import ProjectDetailPage from "./pages/Projects/ProjectDetailPage";
+import TimeEntriesPage from "./pages/Projects/TimeEntriesPage";
+import ProductionLayout from "./pages/Production/ProductionLayout";
+import WorkOrdersPage from "./pages/Production/WorkOrdersPage";
+import BOMPage from "./pages/Production/BOMPage";
+import ResourcesPage from "./pages/Production/ResourcesPage";
+import MaintenancePage from "./pages/Production/MaintenancePage";
+import SupplyChainLayout from "./pages/SupplyChain/SupplyChainLayout";
+import InventoryPage from "./pages/SupplyChain/InventoryPage";
+import ProcurementPage from "./pages/SupplyChain/ProcurementPage";
+import SupplyChainSuppliersPage from "./pages/SupplyChain/SupplyChainSuppliersPage";
+import WarehousesPage from "./pages/SupplyChain/WarehousesPage";
+import ForecastingPage from "./pages/SupplyChain/ForecastingPage";
 import HrRecords from "./pages/HR/HrRecords";
 import HrOnboarding from "./pages/HR/HrOnboarding";
 import HrAttendance from "./pages/HR/HrAttendance";
@@ -37,6 +64,17 @@ import Messages from "./pages/Messages/Messages";
 import Clients from "./pages/Clients/Clients";
 import Checkout from "./pages/Checkout/Checkout";
 import ComingSoonPage from "./pages/Growth/ComingSoonPage";
+import SocialLayout from "./pages/Social/SocialLayout";
+import SocialAccountsPage from "./pages/Social/SocialAccountsPage";
+import SocialSchedulePage from "./pages/Social/SocialSchedulePage";
+import SocialPostsPage from "./pages/Social/SocialPostsPage";
+import SocialAnalyticsPage from "./pages/Social/SocialAnalyticsPage";
+import SocialAdsPage from "./pages/Social/SocialAdsPage";
+import IntegrationsLayout from "./pages/Integrations/IntegrationsLayout";
+import IntegrationsConnectedPage from "./pages/Integrations/IntegrationsConnectedPage";
+import IntegrationsAvailablePage from "./pages/Integrations/IntegrationsAvailablePage";
+import IntegrationsApiKeysPage from "./pages/Integrations/IntegrationsApiKeysPage";
+import IntegrationsWebhooksPage from "./pages/Integrations/IntegrationsWebhooksPage";
 import MarketingLayout from "./pages/Marketing/MarketingLayout";
 import CampaignsPage from "./pages/Marketing/CampaignsPage";
 import CampaignTemplateSelectPage from "./pages/Marketing/CampaignTemplateSelectPage";
@@ -92,6 +130,7 @@ const App = () => {
             <Route path="clients" element={<Clients />} />
             <Route path="checkout" element={<Checkout />} />
             <Route path="invoices" element={<AllInvoices />} />
+            <Route path="quotations" element={<AllInvoices typeFilter="quotation" />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />
             <Route path="customers" element={<Customers />} />
@@ -100,6 +139,40 @@ const App = () => {
             <Route path="items" element={<Items />} />
             <Route path="stock" element={<Stock />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="branches" element={<BranchesPage />} />
+            <Route path="accounting" element={<AccountingLayout />}>
+              <Route index element={<Navigate to="chart-of-accounts" replace />} />
+              <Route path="chart-of-accounts" element={<ChartOfAccountsPage />} />
+              <Route path="journal-entries" element={<JournalEntriesPage />} />
+              <Route path="expenditures" element={<ExpendituresPage />} />
+              <Route path="bills" element={<BillsPage />} />
+              <Route path="budgets" element={<BudgetsPage />} />
+              <Route path="tax-and-currency" element={<TaxAndCurrencyPage />} />
+              <Route path="general-ledger" element={<GeneralLedgerPage />} />
+              <Route path="trial-balance" element={<TrialBalancePage />} />
+              <Route path="profit-loss" element={<ProfitLossPage />} />
+              <Route path="balance-sheet" element={<BalanceSheetPage />} />
+            </Route>
+            <Route path="projects" element={<ProjectsLayout />}>
+              <Route index element={<ProjectsListPage />} />
+              <Route path="time" element={<TimeEntriesPage />} />
+              <Route path=":id" element={<ProjectDetailPage />} />
+            </Route>
+            <Route path="production" element={<ProductionLayout />}>
+              <Route index element={<Navigate to="work-orders" replace />} />
+              <Route path="work-orders" element={<WorkOrdersPage />} />
+              <Route path="bom" element={<BOMPage />} />
+              <Route path="resources" element={<ResourcesPage />} />
+              <Route path="maintenance" element={<MaintenancePage />} />
+            </Route>
+            <Route path="supply-chain" element={<SupplyChainLayout />}>
+              <Route index element={<Navigate to="inventory" replace />} />
+              <Route path="inventory" element={<InventoryPage />} />
+              <Route path="procurement" element={<ProcurementPage />} />
+              <Route path="suppliers" element={<SupplyChainSuppliersPage />} />
+              <Route path="warehouses" element={<WarehousesPage />} />
+              <Route path="forecasting" element={<ForecastingPage />} />
+            </Route>
             <Route path="hr/records" element={<HrRecords />} />
             <Route path="hr/onboarding" element={<HrOnboarding />} />
             <Route path="hr/attendance" element={<HrAttendance />} />
@@ -121,7 +194,14 @@ const App = () => {
               <Route path="templates" element={<TemplatesPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
             </Route>
-            <Route path="social" element={<ComingSoonPage section="social" />} />
+            <Route path="social" element={<SocialLayout />}>
+              <Route index element={<Navigate to="accounts" replace />} />
+              <Route path="accounts" element={<SocialAccountsPage />} />
+              <Route path="schedule" element={<SocialSchedulePage />} />
+              <Route path="posts" element={<SocialPostsPage />} />
+              <Route path="ads" element={<SocialAdsPage />} />
+              <Route path="analytics" element={<SocialAnalyticsPage />} />
+            </Route>
             <Route path="crm" element={<CRMLayout />}>
               <Route index element={<Navigate to="contacts" replace />} />
               <Route path="contacts" element={<ContactsPage />} />
@@ -136,7 +216,13 @@ const App = () => {
               <Route path="reports" element={<CRMReportsPage />} />
             </Route>
             <Route path="analytics" element={<ComingSoonPage section="analytics" />} />
-            <Route path="integrations" element={<ComingSoonPage section="integrations" />} />
+            <Route path="integrations" element={<IntegrationsLayout />}>
+              <Route index element={<Navigate to="connected" replace />} />
+              <Route path="connected" element={<IntegrationsConnectedPage />} />
+              <Route path="available" element={<IntegrationsAvailablePage />} />
+              <Route path="api-keys" element={<IntegrationsApiKeysPage />} />
+              <Route path="webhooks" element={<IntegrationsWebhooksPage />} />
+            </Route>
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="support" element={<Support />} />

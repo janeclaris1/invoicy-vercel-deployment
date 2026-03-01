@@ -111,7 +111,8 @@ const InvoiceDetail = () => {
   };
 
   const handleConvertToInvoice = async () => {
-    if (!invoice || (invoice.type || "invoice") !== "proforma" || invoice.convertedTo) return;
+    const docType = (invoice?.type || "invoice").toLowerCase();
+    if (!invoice || (docType !== "proforma" && docType !== "quotation") || invoice.convertedTo) return;
     const statusNorm = (invoice.status || "").toLowerCase();
     if (statusNorm !== "paid" && statusNorm !== "fully paid") return;
     setConvertLoading(true);
@@ -129,8 +130,8 @@ const InvoiceDetail = () => {
   const handleSubmitToGRA = async () => {
     if (!invoice || !id) return;
     const invType = (invoice.type || "invoice").toLowerCase();
-    if (invType === "proforma") {
-      toast.error("Submit to GRA is only available for tax invoices. Convert this proforma to an invoice first.");
+    if (invType === "proforma" || invType === "quotation") {
+      toast.error("Submit to GRA is only available for tax invoices. Convert this document to an invoice first.");
       return;
     }
     if (!user?.graCredentialsConfigured) {
@@ -141,9 +142,12 @@ const InvoiceDetail = () => {
     try {
       const response = await axiosInstance.post(API_PATHS.GRA.SUBMIT_INVOICE, { invoiceId: id });
       const data = response?.data || response;
+
+      // Show success immediately when GRA accepts (no throw = success)
+      toast.success("Invoice submitted to GRA successfully.");
+
       const res = data?.response || data;
       const mesaage = res?.mesaage || res?.message || data?.response?.mesaage;
-      // Capture verification URL from any common GRA response fields
       const qrCode =
         res?.qr_code ?? data?.qr_code ?? mesaage?.qr_code ?? res?.verificationUrl ?? data?.verificationUrl ?? mesaage?.verificationUrl;
       const verificationUrl = (typeof qrCode === "string" && qrCode.trim() && /^(https?:\/\/|data:)/i.test(qrCode.trim()))
@@ -160,17 +164,23 @@ const InvoiceDetail = () => {
       if (mesaage?.ysdctime) updates.graReceiptDateTime = mesaage.ysdctime;
       if (mesaage?.mrc) updates.graMrc = String(mesaage.mrc).trim();
       if (mesaage?.receiptSignature || mesaage?.signature) updates.graReceiptSignature = String(mesaage.receiptSignature || mesaage.signature || "").trim();
-      if (Object.keys(updates).length === 0) {
-        toast.success("Invoice submitted to GRA. No verification URL/code returned; check GRA portal.");
-      } else {
+
+      if (Object.keys(updates).length > 0) {
         await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(id), updates);
         const refresh = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
         setInvoice(refresh.data);
-        toast.success("Submitted to GRA and verification data saved.");
       }
     } catch (err) {
-      console.error("GRA submit error:", err);
-      toast.error(err?.response?.data?.message || err?.message || "Failed to submit to GRA.");
+      const res = err?.response?.data;
+      // Prefer backend message (GRA error text); 502 = GRA rejected the request
+      let msg =
+        res?.message ||
+        (err?.response?.status === 502 ? "GRA could not process the invoice. Check credentials and payload." : null) ||
+        err?.message ||
+        "Failed to submit to GRA.";
+      if (res?.graStatus != null) msg += ` (GRA status: ${res.graStatus})`;
+      if (res?.graStatus === 401) msg += " Check Company Reference and Security Key in Settings → Company.";
+      toast.error(msg);
     } finally {
       setGraSubmitting(false);
     }
@@ -269,8 +279,8 @@ const InvoiceDetail = () => {
             <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
             <p className="invoice-detail-subheading text-sm text-black dark:text-black flex items-center gap-2 flex-wrap">
               #{invoice.invoiceNumber}
-              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800 dark:bg-amber-100 dark:text-amber-800" : "bg-slate-100 text-slate-700 dark:bg-slate-100 dark:text-slate-700"}`}>
-                {(invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "quotation" ? "bg-blue-100 text-blue-800 dark:bg-blue-100 dark:text-blue-800" : (invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800 dark:bg-amber-100 dark:text-amber-800" : "bg-slate-100 text-slate-700 dark:bg-slate-100 dark:text-slate-700"}`}>
+                {(invoice.type || "invoice") === "quotation" ? "Quotation" : (invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
               </span>
               {invoice.convertedTo && (
                 <Button size="small" variant="ghost" onClick={() => navigate(`/invoices/${invoice.convertedTo?._id || invoice.convertedTo}`)} className="text-xs text-black dark:text-black">
@@ -291,7 +301,7 @@ const InvoiceDetail = () => {
                 Submit to GRA
               </Button>
             )}
-            {(invoice.type || "invoice") === "proforma" && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
+            {((invoice.type || "invoice") === "proforma" || (invoice.type || "invoice") === "quotation") && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
               <Button variant="secondary" onClick={handleConvertToInvoice} disabled={convertLoading} className="flex items-center gap-2 text-black dark:text-black">
                 {convertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Convert to invoice
@@ -321,31 +331,6 @@ const InvoiceDetail = () => {
               />
           </div>
         )}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-          <div>
-            <h2 className="text-lg font-semibold text-black dark:text-black">Invoice</h2>
-            <div className="text-sm text-black dark:text-black">#{invoice.invoiceNumber}</div>
-            <div className="text-sm text-black dark:text-black">
-              Date: {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}
-            </div>
-            <div className="text-sm text-black dark:text-black">
-              Due: {invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}
-            </div>
-          </div>
-          <div className="text-sm">
-            <span className="font-medium text-black dark:text-black">Status: </span>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
-                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-100 dark:text-emerald-800"
-                : (invoice.status || "").toLowerCase() === "partially paid"
-                ? "bg-amber-100 text-amber-800"
-                : "bg-red-100 text-red-800 dark:bg-red-100 dark:text-red-800"
-            }`}>
-              {invoice.status || "Unpaid"}
-            </span>
-          </div>
-        </div>
-
         <div className="invoice-bill-from-to grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 mt-6">
           <div className="text-left">
             <h3 className="text-sm font-semibold text-black dark:text-black mb-2">Bill From</h3>
@@ -359,6 +344,23 @@ const InvoiceDetail = () => {
           </div>
           <div className="invoice-bill-to text-left">
             <h3 className="text-sm font-semibold text-black dark:text-black mb-2">Bill To</h3>
+            <div className="text-sm text-black dark:text-black space-y-1 mb-3">
+              <div>#{invoice.invoiceNumber}</div>
+              <div>Date: {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</div>
+              <div>Due: {invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</div>
+              <div>
+                Status:{" "}
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                  (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-100 dark:text-emerald-800"
+                    : (invoice.status || "").toLowerCase() === "partially paid"
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-red-100 text-red-800 dark:bg-red-100 dark:text-red-800"
+                }`}>
+                  {invoice.status || "Unpaid"}
+                </span>
+              </div>
+            </div>
             <div className="text-sm text-black dark:text-black">
               <div>{invoice.billTo?.clientName || "-"}</div>
               <div>{invoice.billTo?.email || "-"}</div>
@@ -416,6 +418,11 @@ const InvoiceDetail = () => {
           </div>
           {/* Right column: Subtotal, tax details, and GRA QR (bottom right like GRA sample) */}
           <div className="text-sm space-y-2 flex flex-col items-end">
+            {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 w-full max-w-xs text-right">
+                {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
+              </p>
+            )}
             <div className="flex items-center justify-between w-full max-w-xs gap-4">
               <span>Subtotal</span>
               <span>{formatCurrency(invoice.subtotal, userCurrency)}</span>
@@ -443,7 +450,7 @@ const InvoiceDetail = () => {
             <div className="flex items-center justify-between w-full max-w-xs gap-4">
               <span>Amount Paid</span>
               {isEditingPayment ? (
-                <div className="flex flex-col items-end gap-2 w-full max-w-md">
+                <div className="flex flex-col items-end gap-2 w-full max-w-xs">
                   <div className="flex items-center gap-2 w-full">
                     <input
                       type="number"
@@ -451,7 +458,7 @@ const InvoiceDetail = () => {
                       step="0.01"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500"
+                      className="w-24 min-w-0 flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500"
                       placeholder="0.00"
                     />
                     <Button

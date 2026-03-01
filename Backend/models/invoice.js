@@ -44,6 +44,7 @@ const invoiceSchema = new mongoose.Schema({
         email: String,
         address: String,
         phone: String,
+        tin: String,
     },
     companyLogo: {
         type: String,
@@ -93,9 +94,10 @@ const invoiceSchema = new mongoose.Schema({
     }],
     type: {
         type: String,
-        enum: ['invoice', 'proforma'],
+        enum: ['invoice', 'proforma', 'quotation'],
         default: 'invoice'
     },
+    branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
     convertedFromProforma: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
     convertedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
     graQrCode: { type: String },
@@ -106,6 +108,7 @@ const invoiceSchema = new mongoose.Schema({
     graReceiptDateTime: { type: Date },
     graMrc: { type: String },
     graReceiptSignature: { type: String },
+    vatScenario: { type: String, enum: ['inclusive', 'exclusive'], default: 'inclusive' },
 }, { timestamps: true }
 
 );

@@ -5,6 +5,13 @@ const Subscription = require('../models/Subscription');
 const SubscriptionPayment = require('../models/SubscriptionPayment');
 const PendingSignup = require('../models/PendingSignup');
 const { getAmount, getCurrency } = require('../config/plans');
+
+// Amount from plans is in pesewas (GHS); convert to major unit for storage
+const getAmountMajor = (planId, interval) => {
+    const raw = getAmount(planId, interval);
+    if (raw == null) return null;
+    return raw / 100; // 50000 -> 500 GHS
+};
 const logger = require('../utils/logger');
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
@@ -136,6 +143,103 @@ exports.initializeGuestPayment = async (req, res) => {
         });
     } catch (error) {
         logger.error('Initialize guest payment error', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Platform admin check helper
+const isPlatformAdmin = (req) => {
+    const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+    const userEmail = (req.user?.email || '').trim().toLowerCase();
+    return adminEmails.length > 0 && adminEmails.includes(userEmail);
+};
+
+// @desc    Create or update a subscription for a subscriber (platform admin only). Supports Basic, Pro, or Custom.
+// @route   POST /api/subscriptions/custom
+// @body    { userId, plan?, billingInterval?, amount?, currency?, durationMonths? } — for custom: amount, currency, durationMonths; for basic/pro: plan, billingInterval
+// @access  Private (platform admin only)
+exports.createOrUpdateCustomSubscription = async (req, res) => {
+    try {
+        if (!isPlatformAdmin(req)) {
+            return res.status(403).json({ message: 'Only platform admin can create custom subscriptions' });
+        }
+        const { userId, email, plan: planParam, billingInterval: intervalParam, amount, currency, durationMonths } = req.body;
+        let targetUser = null;
+        if (userId) {
+            targetUser = await User.findById(userId).select('-password').lean();
+        } else if (email && typeof email === 'string') {
+            const emailNorm = email.trim().toLowerCase();
+            targetUser = await User.findOne({ email: emailNorm }).select('-password').lean();
+        }
+        if (!targetUser) {
+            return res.status(404).json({ message: 'User not found. Provide a valid userId or email.' });
+        }
+        const targetUserId = targetUser._id;
+        const planNorm = (planParam && typeof planParam === 'string') ? planParam.trim().toLowerCase() : 'custom';
+        const intervalNorm = (intervalParam && typeof intervalParam === 'string') ? intervalParam.trim().toLowerCase() : null;
+
+        let finalPlan = 'custom';
+        let finalInterval = 'custom';
+        let amountNum = 0;
+        let currencyCode = (currency && typeof currency === 'string') ? currency.trim().toUpperCase() : 'GHS';
+        let periodEnd = new Date();
+
+        if (planNorm === 'basic' || planNorm === 'pro') {
+            if (!['monthly', 'annual'].includes(intervalNorm)) {
+                return res.status(400).json({ message: 'For Basic/Pro, billingInterval must be monthly or annual.' });
+            }
+            const fromPlan = getAmountMajor(planNorm, intervalNorm);
+            if (fromPlan == null) {
+                return res.status(400).json({ message: 'Invalid plan or interval.' });
+            }
+            finalPlan = planNorm;
+            finalInterval = intervalNorm;
+            amountNum = fromPlan;
+            currencyCode = getCurrency(planNorm, intervalNorm) || 'GHS';
+            periodEnd = new Date();
+            if (intervalNorm === 'monthly') periodEnd.setMonth(periodEnd.getMonth() + 1);
+            else periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        } else {
+            const amountNumInput = Number(amount);
+            if (!Number.isFinite(amountNumInput) || amountNumInput < 0) {
+                return res.status(400).json({ message: 'Valid amount is required (number >= 0) for custom plan.' });
+            }
+            amountNum = amountNumInput;
+            const months = Number(durationMonths);
+            if (!Number.isInteger(months) || months < 1) {
+                return res.status(400).json({ message: 'durationMonths must be a positive integer (e.g. 24 for 2 years).' });
+            }
+            periodEnd = new Date();
+            periodEnd.setMonth(periodEnd.getMonth() + months);
+        }
+
+        const updated = await Subscription.findOneAndUpdate(
+            { user: targetUserId },
+            {
+                user: targetUserId,
+                plan: finalPlan,
+                billingInterval: finalInterval,
+                status: 'active',
+                amount: amountNum,
+                currency: currencyCode,
+                currentPeriodEnd: periodEnd,
+                paystackReference: null,
+            },
+            { upsert: true, new: true }
+        ).lean();
+
+        await SubscriptionPayment.create({
+            user: targetUserId,
+            amount: amountNum,
+            currency: currencyCode,
+            paystackReference: null,
+            plan: finalPlan,
+            billingInterval: finalInterval,
+        });
+
+        res.json(updated);
+    } catch (error) {
+        logger.error('Create/update custom subscription error', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

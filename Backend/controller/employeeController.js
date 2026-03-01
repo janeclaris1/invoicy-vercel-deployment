@@ -45,7 +45,9 @@ const getEmployees = async (req, res) => {
         { user: { $in: teamMemberIds } },
         { createdBy: { $in: teamMemberIds } },
       ],
-    }).sort({ createdAt: -1 });
+    })
+      .populate("branch", "name")
+      .sort({ createdAt: -1 });
     res.json(employees);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -80,7 +82,7 @@ const createEmployee = async (req, res) => {
       const count = await Employee.countDocuments({ $or: [{ user: { $in: teamMemberIds } }, { createdBy: { $in: teamMemberIds } }] });
       employeeId = `EMP-${String(count + 1).padStart(4, '0')}`;
     }
-    const fields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'country', 'department', 'position', 'hireDate', 'status', 'emergencyContact', 'emergencyPhone', 'taxId', 'nationalId', 'complianceNotes', 'notes'];
+    const fields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'country', 'department', 'position', 'hireDate', 'status', 'emergencyContact', 'emergencyPhone', 'taxId', 'nationalId', 'complianceNotes', 'notes', 'branch'];
     const payload = { createdBy: req.user._id, user: null, employeeId };
     fields.forEach(f => { if (req.body[f] !== undefined) payload[f] = req.body[f]; });
     if (payload.dateOfBirth === '') payload.dateOfBirth = null;
@@ -100,7 +102,7 @@ const updateEmployee = async (req, res) => {
     const canAccess = (employee.user && teamMemberIds.some(id => id.toString() === employee.user.toString())) ||
       (employee.createdBy && teamMemberIds.some(id => id.toString() === employee.createdBy.toString()));
     if (!canAccess) return res.status(403).json({ message: 'Not authorized' });
-    const fields = ['employeeId', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'country', 'department', 'position', 'hireDate', 'status', 'emergencyContact', 'emergencyPhone', 'taxId', 'nationalId', 'complianceNotes', 'notes'];
+    const fields = ['employeeId', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'country', 'department', 'position', 'hireDate', 'status', 'emergencyContact', 'emergencyPhone', 'taxId', 'nationalId', 'complianceNotes', 'notes', 'branch'];
     fields.forEach(f => { if (req.body[f] !== undefined) employee[f] = req.body[f]; });
     await employee.save();
     res.json(employee);

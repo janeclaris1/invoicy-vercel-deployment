@@ -38,6 +38,17 @@ const leadRoutes = require("./routes/leadRoutes");
 const dealRoutes = require("./routes/dealRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const crmReportsRoutes = require("./routes/crmReportsRoutes");
+const integrationRoutes = require("./routes/integrationRoutes");
+const accountingRoutes = require("./routes/accountingRoutes");
+const branchRoutes = require("./routes/branchRoutes");
+const auditRoutes = require("./routes/auditRoutes");
+const permissionRoutes = require("./routes/permissionRoutes");
+const customFieldsRoutes = require("./routes/customFieldsRoutes");
+const documentRoutes = require("./routes/documentRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const productionRoutes = require("./routes/productionRoutes");
+const supplyChainRoutes = require("./routes/supplyChainRoutes");
+const { attachAudit } = require("./middlewares/auditMiddleware");
 const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
 const app = express();
@@ -124,6 +135,11 @@ app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }),
 // Middleware to parse JSON (allow larger payloads e.g. base64 images)
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
+
+// Attach audit logger to req (req.auditLog({ action, resource, resourceId, changes }))
+app.use(attachAudit);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -134,6 +150,15 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   });
 });
+
+// OpenAPI / Swagger documentation (ERP API)
+try {
+  const { serveSwagger, setupSwagger } = require("./config/swagger");
+  app.use("/api-docs", serveSwagger, setupSwagger);
+  logger.info("Swagger UI available at /api-docs");
+} catch (e) {
+  logger.warn("Swagger not loaded:", e.message);
+}
 
 // Define Routes Here
 app.use("/api/auth", authLimiter, authRoutes);
@@ -165,6 +190,16 @@ app.use("/api/crm/leads", authLimiter, leadRoutes);
 app.use("/api/crm/deals", authLimiter, dealRoutes);
 app.use("/api/crm/activities", authLimiter, activityRoutes);
 app.use("/api/crm/reports", authLimiter, crmReportsRoutes);
+app.use("/api/integrations", authLimiter, integrationRoutes);
+app.use("/api/accounting", authLimiter, accountingRoutes);
+app.use("/api/branches", authLimiter, branchRoutes);
+app.use("/api/audit-logs", authLimiter, auditRoutes);
+app.use("/api/erp", authLimiter, permissionRoutes);
+app.use("/api/custom-fields", authLimiter, customFieldsRoutes);
+app.use("/api/documents", authLimiter, documentRoutes);
+app.use("/api/projects", authLimiter, projectRoutes);
+app.use("/api/production", authLimiter, productionRoutes);
+app.use("/api/supply-chain", authLimiter, supplyChainRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {

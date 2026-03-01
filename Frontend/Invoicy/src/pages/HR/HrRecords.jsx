@@ -14,8 +14,9 @@ const HrRecords = () => {
   const [formData, setFormData] = useState({
     firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", city: "", country: "",
     department: "", position: "", hireDate: "", status: "Active", emergencyContact: "", emergencyPhone: "",
-    taxId: "", nationalId: "", complianceNotes: "", notes: "",
+    taxId: "", nationalId: "", complianceNotes: "", notes: "", branch: "",
   });
+  const [branches, setBranches] = useState([]);
 
   const fetchEmployees = async () => {
     try {
@@ -32,12 +33,24 @@ const HrRecords = () => {
 
   useEffect(() => { fetchEmployees(); }, []);
 
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await axiosInstance.get(API_PATHS.BRANCHES.GET_ALL);
+        setBranches(Array.isArray(res.data) ? res.data : []);
+      } catch {
+        setBranches([]);
+      }
+    };
+    load();
+  }, []);
+
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const resetForm = () => setFormData({
     firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", city: "", country: "",
     department: "", position: "", hireDate: "", status: "Active", emergencyContact: "", emergencyPhone: "",
-    taxId: "", nationalId: "", complianceNotes: "", notes: "",
+    taxId: "", nationalId: "", complianceNotes: "", notes: "", branch: "",
   });
 
   const handleEdit = (emp) => {
@@ -49,6 +62,7 @@ const HrRecords = () => {
       hireDate: emp.hireDate ? moment(emp.hireDate).format("YYYY-MM-DD") : "", status: emp.status || "Active",
       emergencyContact: emp.emergencyContact || "", emergencyPhone: emp.emergencyPhone || "", taxId: emp.taxId || "",
       nationalId: emp.nationalId || "", complianceNotes: emp.complianceNotes || "", notes: emp.notes || "",
+      branch: emp.branch?._id || emp.branch || "",
     });
     setShowModal(true);
   };
@@ -67,7 +81,12 @@ const HrRecords = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...formData, dateOfBirth: formData.dateOfBirth || null, hireDate: formData.hireDate || null };
+      const payload = {
+        ...formData,
+        dateOfBirth: formData.dateOfBirth || null,
+        hireDate: formData.hireDate || null,
+        branch: formData.branch || null,
+      };
       if (editingEmployee) {
         const res = await axiosInstance.put(API_PATHS.EMPLOYEES.UPDATE(editingEmployee._id || editingEmployee.id), payload);
         setEmployees((prev) => prev.map((em) => ((em._id || em.id) === (editingEmployee._id || editingEmployee.id) ? res.data : em)));
@@ -130,8 +149,11 @@ const HrRecords = () => {
                 {emp.phone && <div className="flex items-center gap-2"><Phone className="w-4 h-4 flex-shrink-0" /><span>{emp.phone}</span></div>}
                 {emp.address && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 flex-shrink-0" /><span>{emp.address}{emp.city ? `, ${emp.city}` : ""}</span></div>}
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center text-sm">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-2 text-sm">
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${emp.status === "Active" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" : emp.status === "On Leave" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-700 dark:bg-slate-600 dark:text-slate-200"}`}>{emp.status || "Active"}</span>
+                {(emp.branch?.name || emp.branchName) && (
+                  <span className="flex items-center gap-1 text-gray-500"><Building2 className="w-3.5 h-3.5" />{emp.branch?.name || emp.branchName}</span>
+                )}
                 {emp.hireDate && <span className="text-gray-500">Hired {moment(emp.hireDate).format("MMM YYYY")}</span>}
               </div>
             </div>
@@ -165,6 +187,17 @@ const HrRecords = () => {
                     <div key={name}><label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{name.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</label><input type={name === "email" ? "email" : "text"} name={name} value={formData[name]} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white" /></div>
                   )
                 ))}
+                {branches.length > 0 && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Branch</label>
+                  <select name="branch" value={formData.branch} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white">
+                    <option value="">No branch</option>
+                    {branches.map((b) => (
+                      <option key={b._id} value={b._id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
                 <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Compliance Notes</label><textarea name="complianceNotes" value={formData.complianceNotes} onChange={handleInputChange} rows={2} className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white resize-none" /></div>
                 <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Notes</label><textarea name="notes" value={formData.notes} onChange={handleInputChange} rows={2} className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white resize-none" /></div>
               </div>

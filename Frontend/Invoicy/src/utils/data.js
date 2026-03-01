@@ -1,4 +1,4 @@
-import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users, Truck, FolderOpen, Package, Boxes, FileCheck, MessageCircle, Megaphone, Target, TrendingUp } from "lucide-react";
+import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users, Truck, FolderOpen, Package, Boxes, FileCheck, MessageCircle, Megaphone, Target, TrendingUp, Calculator, Building2, FolderKanban, Cog, Warehouse, ClipboardList } from "lucide-react";
 
 // Import assets so the bundler includes them and production URLs work (string paths like "src/assets/..." 404 in deployed builds)
 import avatarUser from "../assets/user.png";
@@ -194,6 +194,7 @@ export const NAVIGATION_MENU = [
         responsibility: "invoices",
         children: [
             { id: "invoices", name: "All Invoices", icon: null, responsibility: "invoices" },
+            { id: "quotations", name: "Quotations", icon: null, responsibility: "invoices" },
             { id: "invoices/new", name: "Create Invoice", icon: null, responsibility: "invoices" },
         ],
     },
@@ -203,17 +204,65 @@ export const NAVIGATION_MENU = [
     { id: "items", name: "Items", icon: Package, responsibility: "items" },
     { id: "stock", name: "Stock Management", icon: Boxes, responsibility: "items" },
     { id: "reports", name: "Reports", icon: FileCheck, responsibility: "reports" },
+    { id: "branches", name: "Branches", icon: Building2, responsibility: "settings" },
+    {
+        id: "projects",
+        name: "Project Management",
+        icon: FolderKanban,
+        responsibility: null,
+        children: [
+            { id: "projects", name: "All Projects", icon: null, responsibility: null },
+            { id: "projects/time", name: "Time Entries", icon: null, responsibility: null },
+        ],
+    },
+    {
+        id: "production",
+        name: "Production & Operations",
+        icon: Cog,
+        responsibility: null,
+        children: [
+            { id: "production/work-orders", name: "Work Orders", icon: null, responsibility: null },
+            { id: "production/bom", name: "Bill of Materials", icon: null, responsibility: null },
+            { id: "production/resources", name: "Resources", icon: null, responsibility: null },
+            { id: "production/maintenance", name: "Maintenance", icon: null, responsibility: null },
+        ],
+    },
+    {
+        id: "supply-chain",
+        name: "Supply Chain & Inventory",
+        icon: Truck,
+        responsibility: null,
+        children: [
+            { id: "supply-chain/inventory", name: "Inventory", icon: null, responsibility: null },
+            { id: "supply-chain/procurement", name: "Procurement", icon: null, responsibility: null },
+            { id: "supply-chain/suppliers", name: "Suppliers", icon: null, responsibility: null },
+            { id: "supply-chain/warehouses", name: "Warehouses", icon: null, responsibility: null },
+            { id: "supply-chain/forecasting", name: "Forecasting", icon: null, responsibility: null },
+        ],
+    },
+    {
+        id: "accounting",
+        name: "Accounting",
+        icon: Calculator,
+        responsibility: "accounting",
+        children: [
+            { id: "accounting/chart-of-accounts", name: "Chart of Accounts", icon: null, responsibility: "accounting" },
+            { id: "accounting/journal-entries", name: "Journal Entries", icon: null, responsibility: "accounting" },
+            { id: "accounting/expenditures", name: "Expenditures", icon: null, responsibility: "accounting" },
+            { id: "accounting/general-ledger", name: "General Ledger", icon: null, responsibility: "accounting" },
+            { id: "accounting/trial-balance", name: "Trial Balance", icon: null, responsibility: "accounting" },
+            { id: "accounting/profit-loss", name: "Profit & Loss", icon: null, responsibility: "accounting" },
+            { id: "accounting/balance-sheet", name: "Balance Sheet", icon: null, responsibility: "accounting" },
+        ],
+    },
     {
         id: "growth",
         name: "Growth",
         icon: TrendingUp,
         responsibility: null,
         children: [
-            { id: "marketing", name: "Marketing", icon: null, responsibility: null },
-            { id: "social", name: "Social Media", icon: null, responsibility: null },
             { id: "crm", name: "CRM", icon: null, responsibility: null },
             { id: "analytics", name: "Analytics", icon: null, responsibility: null },
-            { id: "integrations", name: "Integrations", icon: null, responsibility: null },
         ],
     },
     {

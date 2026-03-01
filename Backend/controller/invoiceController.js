@@ -31,7 +31,8 @@ exports.createInvoice = async (req, res) => {
             graVerificationCode,
             discountPercent = 0,   // Optional - percent
             discountAmount = 0,    // Optional - flat
-            type: invoiceType = 'invoice'
+            type: invoiceType = 'invoice',
+            branch: branchId = null
         } = req.body;
 
         const normalizedBillTo = (billTo && Object.keys(billTo).length > 0)
@@ -44,65 +45,97 @@ exports.createInvoice = async (req, res) => {
             return res.status(400).json({ message: "Invoice must contain at least one item" });
         }
 
-        const isProforma = (invoiceType || '').toString().toLowerCase() === 'proforma';
-        const invoiceNumber = isProforma ? `PRO-${Date.now()}` : `INV-${Date.now()}`;
+        const userDoc = await User.findById(user).select('graVatScenario').lean();
+        const vatScenario = (userDoc && userDoc.graVatScenario === 'exclusive') ? 'exclusive' : 'inclusive';
+
+        const typeNorm = (invoiceType || '').toString().toLowerCase();
+        const isProforma = typeNorm === 'proforma';
+        const isQuotation = typeNorm === 'quotation';
+        const invoiceNumber = isQuotation ? `QUO-${Date.now()}` : isProforma ? `PRO-${Date.now()}` : `INV-${Date.now()}`;
         const round = (num) => Math.round(num * 100) / 100;
 
         // Ghana tax rates
         const VAT_RATE = 0.15;
         const NHIL_RATE = 0.025;
         const GETFUND_RATE = 0.025;
-        const ALL_TAX_RATE = VAT_RATE + NHIL_RATE + GETFUND_RATE; // 0.2 (COVID levy no longer collected)
+        const ALL_TAX_RATE = VAT_RATE + NHIL_RATE + GETFUND_RATE;
 
         let subtotal = 0;
         let totalTaxInclusive = 0;
+        let normalizedItems;
 
-        const normalizedItems = items.map((item, i) => {
-            const quantity = Number(item.quantity) || 0;
-            const unitPrice = Number(item.unitPrice) || Number(item.itemPrice) || 0;
-            const taxIncl = round(unitPrice * quantity);
-            totalTaxInclusive += taxIncl;
-
-            const base = taxIncl / (1 + ALL_TAX_RATE);
-            subtotal += base;
-
-            return {
-                sn: i + 1,
-                description: item.description || item.itemDescription || "",
-                unitPrice,
-                quantity,
-                vat: Number(item.vat) || 0,
-                nhil: Number(item.nhil) || 0,
-                getFund: Number(item.getFund) || 0,
-                discount: Number(item.discount) || 0,
-                amount: round(base),
-                total: taxIncl,
-                itemId: item.itemId || null,
-            };
-        });
-
-        // Round subtotal
-        subtotal = round(subtotal);
+        if (vatScenario === 'exclusive') {
+            // Prices entered are NET (exclusive of VAT); add VAT on top
+            normalizedItems = items.map((item, i) => {
+                const quantity = Number(item.quantity) || 0;
+                const unitPrice = Number(item.unitPrice) || Number(item.itemPrice) || 0;
+                const netLine = round(unitPrice * quantity);
+                subtotal += netLine;
+                const lineVat = round(netLine * VAT_RATE);
+                const lineNhil = round(netLine * NHIL_RATE);
+                const lineGetFund = round(netLine * GETFUND_RATE);
+                const lineTotal = round(netLine + lineVat + lineNhil + lineGetFund);
+                totalTaxInclusive += lineTotal;
+                return {
+                    sn: i + 1,
+                    description: item.description || item.itemDescription || "",
+                    unitPrice,
+                    quantity,
+                    vat: lineVat,
+                    nhil: lineNhil,
+                    getFund: lineGetFund,
+                    discount: Number(item.discount) || 0,
+                    amount: netLine,
+                    total: lineTotal,
+                    itemId: item.itemId || null,
+                };
+            });
+            subtotal = round(subtotal);
+        } else {
+            // INCLUSIVE: prices entered are GROSS (include VAT); back-calculate net
+            normalizedItems = items.map((item, i) => {
+                const quantity = Number(item.quantity) || 0;
+                const unitPrice = Number(item.unitPrice) || Number(item.itemPrice) || 0;
+                const taxIncl = round(unitPrice * quantity);
+                totalTaxInclusive += taxIncl;
+                const base = taxIncl / (1 + ALL_TAX_RATE);
+                subtotal += base;
+                return {
+                    sn: i + 1,
+                    description: item.description || item.itemDescription || "",
+                    unitPrice,
+                    quantity,
+                    vat: Number(item.vat) || 0,
+                    nhil: Number(item.nhil) || 0,
+                    getFund: Number(item.getFund) || 0,
+                    discount: Number(item.discount) || 0,
+                    amount: round(base),
+                    total: taxIncl,
+                    itemId: item.itemId || null,
+                };
+            });
+            subtotal = round(subtotal);
+        }
 
         // ========== DISCOUNT LOGIC ==========
         let totalDiscount = 0;
-
         if (discountAmount && discountAmount > 0) {
             totalDiscount = round(Number(discountAmount));
         } else if (discountPercent && discountPercent > 0) {
             totalDiscount = round((subtotal * discountPercent) / 100);
         }
-
-        // Discounted subtotal
         const discountedSubtotal = subtotal - totalDiscount;
 
-        // Calculate individual taxes on the base amount
         const totalNhil = round(discountedSubtotal * NHIL_RATE);
         const totalGetFund = round(discountedSubtotal * GETFUND_RATE);
         const totalVat = round(discountedSubtotal * VAT_RATE);
 
-        // For INCLUSIVE pricing, grandTotal should be the tax-inclusive total minus discount
-        const grandTotal = totalTaxInclusive - totalDiscount;
+        let grandTotal;
+        if (vatScenario === 'exclusive') {
+            grandTotal = round(discountedSubtotal + totalVat + totalNhil + totalGetFund);
+        } else {
+            grandTotal = totalTaxInclusive - totalDiscount;
+        }
 
         const normalizedStatus = (() => {
             const raw = String(status || "").toLowerCase();
@@ -154,12 +187,14 @@ exports.createInvoice = async (req, res) => {
             amountPaid: paidValue,
             balanceDue,
             grandTotal,
-            type: isProforma ? 'proforma' : 'invoice',
+            type: isQuotation ? 'quotation' : isProforma ? 'proforma' : 'invoice',
             discountPercent: discountPercent ? Number(discountPercent) : undefined,
             discountAmount: discountAmount ? Number(discountAmount) : undefined,
             graQrCode: graQrCode || undefined,
             graVerificationUrl: graVerificationUrl || undefined,
-            graVerificationCode: graVerificationCode || undefined
+            graVerificationCode: graVerificationCode || undefined,
+            vatScenario,
+            branch: branchId || null,
         });
 
         await invoice.save();
@@ -252,8 +287,10 @@ exports.getInvoices = async (req, res) => {
             return res.json([]); // Return empty array if no team members found
         }
         
-        const invoices = await Invoice.find({ user: { $in: teamMemberIds } })
+        const branchFilter = req.query.branch && String(req.query.branch).trim() ? { branch: req.query.branch.trim() } : {};
+        const invoices = await Invoice.find({ user: { $in: teamMemberIds }, ...branchFilter })
             .populate("user", "name email")
+            .populate("branch", "name")
             .sort({ createdAt: -1 });
         
         res.json(invoices || []);
@@ -352,24 +389,73 @@ exports.updateInvoice = async (req, res) => {
         let nhil = invoice.totalNhil || 0;
         let getFund = invoice.totalGetFund || 0;
         let vat = invoice.totalVat || 0;
+        let totalDiscount = invoice.totalDiscount || 0;
+        let recalculatedItem = null;
+        const updateRound = (num) => Math.round(num * 100) / 100;
+        const vatScenario = invoice.vatScenario || 'inclusive';
+        const VAT_RATE = 0.15;
+        const NHIL_RATE = 0.025;
+        const GETFUND_RATE = 0.025;
+        const ALL_TAX_RATE = VAT_RATE + NHIL_RATE + GETFUND_RATE;
 
-        // Recalculate totals if items are changed
+        // Recalculate totals from unitPrice & quantity when items are changed (same logic as create)
         if (items && items.length > 0) {
+            let totalTaxInclusive = 0;
             subtotal = 0;
-            nhil = 0;
-            getFund = 0;
-            vat = 0;
-
-            items.forEach(item => {
-                subtotal += Number(item.amount) || 0;
-                nhil += Number(item.nhil) || 0;
-                getFund += Number(item.getFund) || 0;
-                vat += Number(item.vat) || 0;
+            const normalizedItems = items.map((item, i) => {
+                const quantity = Number(item.quantity) || 0;
+                const unitPrice = Number(item.unitPrice) || Number(item.itemPrice) || 0;
+                if (vatScenario === 'exclusive') {
+                    const netLine = updateRound(unitPrice * quantity);
+                    subtotal += netLine;
+                    const lineVat = updateRound(netLine * VAT_RATE);
+                    const lineNhil = updateRound(netLine * NHIL_RATE);
+                    const lineGetFund = updateRound(netLine * GETFUND_RATE);
+                    const lineTotal = updateRound(netLine + lineVat + lineNhil + lineGetFund);
+                    totalTaxInclusive += lineTotal;
+                    return {
+                        sn: i + 1,
+                        description: item.description || item.itemDescription || "",
+                        unitPrice,
+                        quantity,
+                        vat: lineVat,
+                        nhil: lineNhil,
+                        getFund: lineGetFund,
+                        discount: Number(item.discount) || 0,
+                        amount: netLine,
+                        total: lineTotal,
+                        itemId: item.itemId || null,
+                    };
+                } else {
+                    const taxIncl = updateRound(unitPrice * quantity);
+                    totalTaxInclusive += taxIncl;
+                    const base = taxIncl / (1 + ALL_TAX_RATE);
+                    subtotal += base;
+                    return {
+                        sn: i + 1,
+                        description: item.description || item.itemDescription || "",
+                        unitPrice,
+                        quantity,
+                        vat: Number(item.vat) || 0,
+                        nhil: Number(item.nhil) || 0,
+                        getFund: Number(item.getFund) || 0,
+                        discount: Number(item.discount) || 0,
+                        amount: updateRound(base),
+                        total: taxIncl,
+                        itemId: item.itemId || null,
+                    };
+                }
             });
-
-            grandTotal = subtotal + nhil + getFund + vat;
-
-            // Defensive check
+            subtotal = updateRound(subtotal);
+            totalDiscount = Number(invoice.totalDiscount) || 0;
+            const discountedSubtotal = subtotal - totalDiscount;
+            nhil = updateRound(discountedSubtotal * NHIL_RATE);
+            getFund = updateRound(discountedSubtotal * GETFUND_RATE);
+            vat = updateRound(discountedSubtotal * VAT_RATE);
+            grandTotal = vatScenario === 'exclusive'
+                ? updateRound(discountedSubtotal + vat + nhil + getFund)
+                : totalTaxInclusive - totalDiscount;
+            recalculatedItem = normalizedItems;
             if ([subtotal, nhil, getFund, vat, grandTotal].some(val => isNaN(val))) {
                 return res.status(400).json({ message: 'Subtotal or tax calculation error (NaN detected).' });
             }
@@ -423,7 +509,10 @@ exports.updateInvoice = async (req, res) => {
         if (dueDate !== undefined) updatePayload.dueDate = dueDate;
         if (billFrom !== undefined) updatePayload.billFrom = mergedBillFrom;
         if (billTo !== undefined) updatePayload.billTo = billTo;
-        if (items !== undefined) updatePayload.items = items;
+        if (recalculatedItem) {
+            updatePayload.item = recalculatedItem;
+            updatePayload.totalDiscount = totalDiscount;
+        } else if (items !== undefined) updatePayload.item = items;
         if (notes !== undefined) updatePayload.notes = notes;
         if (paymentTerms !== undefined) updatePayload.paymentTerms = paymentTerms;
         if (companyLogo !== undefined) updatePayload.companyLogo = companyLogo;
@@ -510,11 +599,12 @@ exports.convertProformaToInvoice = async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized access to this invoice' });
         }
 
-        if ((proforma.type || 'invoice') !== 'proforma') {
-            return res.status(400).json({ message: 'Only proforma invoices can be converted' });
+        const docType = (proforma.type || 'invoice').toLowerCase();
+        if (docType !== 'proforma' && docType !== 'quotation') {
+            return res.status(400).json({ message: 'Only proforma or quotation can be converted to invoice' });
         }
         if (proforma.convertedTo) {
-            return res.status(400).json({ message: 'This proforma has already been converted to an invoice' });
+            return res.status(400).json({ message: 'This document has already been converted to an invoice' });
         }
 
         const statusNorm = (proforma.status || '').toLowerCase();

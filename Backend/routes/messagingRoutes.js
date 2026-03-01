@@ -13,6 +13,8 @@ const {
   deleteMessage,
   getGroups,
   createGroup,
+  setReplying,
+  getReplying,
 } = require('../controller/messagingController');
 
 const router = express.Router();
@@ -22,6 +24,8 @@ router.use(protect);
 router.get('/contacts', getContacts);
 router.get('/conversations', getConversations);
 router.get('/unread-count', getUnreadCount);
+router.post('/replying', setReplying);
+router.get('/replying', getReplying);
 router.get('/messages', getMessages);
 // Accept JSON (no files) or multipart/form-data (with optional files)
 router.post('/messages', (req, res, next) => {

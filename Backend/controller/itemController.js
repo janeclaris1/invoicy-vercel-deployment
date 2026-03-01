@@ -252,6 +252,137 @@ const getStockReport = async (req, res) => {
   }
 };
 
+// Parse a single CSV line (handles quoted fields)
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      inQuotes = !inQuotes;
+    } else if ((c === ',' && !inQuotes) || (c === '\r' && !inQuotes)) {
+      result.push(current.trim());
+      current = '';
+    } else if (c !== '\r') {
+      current += c;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// @desc    Import items from CSV/Excel file
+// @route   POST /api/items/import
+// @access  Private
+const importItems = async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ message: 'No file uploaded. Use form field "file".' });
+    }
+    const buffer = req.file.buffer;
+    const filename = (req.file.originalname || '').toLowerCase();
+    let rows = [];
+
+    if (filename.endsWith('.csv') || req.file.mimetype === 'text/csv') {
+      const text = buffer.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = text.split('\n').filter((l) => l.trim());
+      if (lines.length < 2) {
+        return res.status(400).json({ message: 'CSV must have a header row and at least one data row.' });
+      }
+      const header = parseCSVLine(lines[0]).map((h) => (h || '').trim().toLowerCase().replace(/\s+/g, ' '));
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const row = {};
+        header.forEach((col, j) => {
+          row[col] = values[j] !== undefined ? String(values[j]).trim() : '';
+        });
+        rows.push(row);
+      }
+    } else {
+      // Excel .xlsx / .xls - try using optional xlsx
+      try {
+        const XLSX = require('xlsx');
+        const wb = XLSX.read(buffer, { type: 'buffer' });
+        const firstSheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false });
+        rows = rows.map((r) => {
+          const out = {};
+          Object.keys(r).forEach((k) => {
+            const normalized = String(k).trim().toLowerCase().replace(/\s+/g, ' ');
+            out[normalized] = r[k] != null ? String(r[k]).trim() : '';
+          });
+          return out;
+        });
+      } catch (e) {
+        return res.status(400).json({
+          message: 'Excel files require the xlsx package. Install it with: npm install xlsx. Or save the file as CSV and upload again.',
+        });
+      }
+    }
+
+    // Helper to get cell value by common header names
+    const getVal = (row, ...keys) => {
+      for (const k of keys) {
+        const v = row[k];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+      }
+      return '';
+    };
+    const getNum = (row, ...keys) => {
+      const v = getVal(row, ...keys);
+      return parseFloat(String(v).replace(/[^0-9.-]/g, '')) || 0;
+    };
+    const getBool = (row, ...keys) => {
+      const v = getVal(row, ...keys).toLowerCase();
+      return /^(1|true|yes|y)$/.test(v);
+    };
+
+    const created = [];
+    const errors = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = getVal(row, 'name', 'product name', 'item name', 'product');
+      if (!name) {
+        errors.push({ row: i + 2, message: 'Name is required' });
+        continue;
+      }
+      const priceNum = getNum(row, 'price', 'unit price', 'amount');
+      const trackStock = getBool(row, 'track stock', 'trackstock', 'track inventory');
+      const quantityInStock = parseInt(getVal(row, 'quantity in stock', 'quantity', 'qty', 'stock') || '0', 10) || 0;
+      const reorderLevel = parseInt(getVal(row, 'reorder level', 'reorderlevel', 'reorder') || '0', 10) || 0;
+      try {
+        const item = await Item.create({
+          user: req.user._id,
+          name,
+          description: getVal(row, 'description', 'desc', 'details'),
+          category: getVal(row, 'category', 'category name'),
+          categoryColor: '#3B82F6',
+          price: priceNum,
+          unit: getVal(row, 'unit', 'units', 'uom') || 'unit',
+          sku: getVal(row, 'sku', 'code', 'item code'),
+          taxRate: getNum(row, 'tax rate', 'taxrate', 'tax', 'vat'),
+          trackStock,
+          quantityInStock: trackStock ? quantityInStock : 0,
+          reorderLevel: trackStock ? reorderLevel : 0,
+        });
+        created.push({ _id: item._id, name: item.name });
+      } catch (err) {
+        errors.push({ row: i + 2, message: err.message || 'Failed to create item' });
+      }
+    }
+
+    res.status(201).json({
+      message: `Imported ${created.length} item(s).`,
+      created: created.length,
+      createdIds: created.map((c) => c._id),
+      errors: errors.length ? errors : undefined,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Import failed' });
+  }
+};
+
 module.exports = {
   getItems,
   createItem,
@@ -260,4 +391,5 @@ module.exports = {
   adjustStock,
   getStockMovements,
   getStockReport,
+  importItems,
 };

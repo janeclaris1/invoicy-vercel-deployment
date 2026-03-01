@@ -22,6 +22,9 @@ const employeeSchema = new mongoose.Schema({
   nationalId: { type: String, default: '' },
   complianceNotes: { type: String, default: '' },
   notes: { type: String, default: '' },
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
 }, { timestamps: true });
+
+employeeSchema.index({ branch: 1 });
 
 module.exports = mongoose.model('Employee', employeeSchema);

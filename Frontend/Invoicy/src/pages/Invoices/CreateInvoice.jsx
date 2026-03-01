@@ -51,7 +51,7 @@ const CreateInvoice = () => {
       paymentTerms: "",
       status: "Unpaid",
       amountPaid: 0,
-      type: "invoice",
+      type: location.state?.type || "invoice",
       balanceDue: 0,
       discountPercent: 0,
       discountAmount: 0,
@@ -71,10 +71,29 @@ const CreateInvoice = () => {
   const [itemSearch, setItemSearch] = useState("");
   const [selectedItemId, setSelectedItemId] = useState("");
   const [billToSelection, setBillToSelection] = useState("");
+  const [branches, setBranches] = useState([]);
+  const [billFromBranch, setBillFromBranch] = useState("");
 
   useEffect(() => {
-    const savedCustomers = localStorage.getItem("customers");
-    setCustomers(savedCustomers ? JSON.parse(savedCustomers) : []);
+    const loadCustomers = () => {
+      const saved = localStorage.getItem("customers");
+      setCustomers(saved ? JSON.parse(saved) : []);
+    };
+    loadCustomers();
+    window.addEventListener("customersUpdated", loadCustomers);
+    return () => window.removeEventListener("customersUpdated", loadCustomers);
+  }, []);
+
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        const res = await axiosInstance.get(API_PATHS.BRANCHES.GET_ALL);
+        setBranches(Array.isArray(res.data) ? res.data : []);
+      } catch {
+        setBranches([]);
+      }
+    };
+    loadBranches();
   }, []);
 
   useEffect(() => {
@@ -133,6 +152,45 @@ const CreateInvoice = () => {
       }));
     }
   }, [user, existingInvoice]);
+
+  useEffect(() => {
+    if (existingInvoice) return;
+    if (billFromBranch && branches.length > 0) {
+      const branch = branches.find((b) => b._id === billFromBranch);
+      if (branch) {
+        setFormData((prev) => ({
+          ...prev,
+          billFrom: {
+            businessName: branch.name,
+            email: branch.email || user?.email || "",
+            address: branch.address || "",
+            phone: branch.phone || "",
+            tin: branch.tin || "",
+          },
+        }));
+      }
+    } else if (!billFromBranch && user) {
+      setFormData((prev) => ({
+        ...prev,
+        billFrom: {
+          businessName: user?.businessName || "",
+          email: user?.email || "",
+          address: user?.address || "",
+          phone: user?.phone || "",
+          tin: user?.tin || "",
+        },
+      }));
+    }
+  }, [billFromBranch, branches, user, existingInvoice]);
+
+  useEffect(() => {
+    if (!existingInvoice && branches.length > 0 && !billFromBranch) {
+      const defaultBranch = branches.find((b) => b.isDefault);
+      if (defaultBranch) {
+        setBillFromBranch(defaultBranch._id);
+      }
+    }
+  }, [branches, existingInvoice]);
 
   useEffect(() => {
     const aiData = location.state?.aiData;
@@ -299,19 +357,29 @@ const CreateInvoice = () => {
     reader.readAsDataURL(file);
   };
 
+  const vatScenario = user?.graVatScenario || "inclusive";
   const { subtotal, totalVat, totalNhil, totalGetFund, taxTotal, grandTotal, totalDiscount } = (() => {
     const VAT_RATE = 0.15;
     const NHIL_RATE = 0.025;
     const GETFUND_RATE = 0.025;
     const ALL_TAX_RATE = VAT_RATE + NHIL_RATE + GETFUND_RATE;
 
+    let baseSubtotal = 0;
     let totalTaxInclusive = 0;
-    formData.items.forEach((item) => {
-      const lineTotal = (Number(item.quantity) || 0) * (Number(item.itemPrice) || 0);
-      totalTaxInclusive += lineTotal;
-    });
 
-    const baseSubtotal = totalTaxInclusive / (1 + ALL_TAX_RATE);
+    if (vatScenario === "exclusive") {
+      formData.items.forEach((item) => {
+        const netLine = (Number(item.quantity) || 0) * (Number(item.itemPrice) || 0);
+        baseSubtotal += netLine;
+      });
+      baseSubtotal = Number(baseSubtotal.toFixed(2));
+    } else {
+      formData.items.forEach((item) => {
+        const lineTotal = (Number(item.quantity) || 0) * (Number(item.itemPrice) || 0);
+        totalTaxInclusive += lineTotal;
+      });
+      baseSubtotal = totalTaxInclusive / (1 + ALL_TAX_RATE);
+    }
 
     let discount = 0;
     if (Number(formData.discountAmount) > 0) {
@@ -326,7 +394,9 @@ const CreateInvoice = () => {
     const nhil = discountedSubtotal * NHIL_RATE;
     const getFund = discountedSubtotal * GETFUND_RATE;
     const totalTax = vat + nhil + getFund;
-    const grand = discountedSubtotal + totalTax;
+    const grand = vatScenario === "exclusive"
+      ? discountedSubtotal + totalTax
+      : totalTaxInclusive - discount;
 
     return {
       subtotal: Number(baseSubtotal.toFixed(2)),
@@ -366,12 +436,13 @@ const CreateInvoice = () => {
         ...formData,
         dueDate,
         items: itemsForApi,
-        type: (formData.type || "invoice").toLowerCase() === "proforma" ? "proforma" : "invoice",
+        type: (formData.type || "invoice").toLowerCase() === "quotation" ? "quotation" : (formData.type || "invoice").toLowerCase() === "proforma" ? "proforma" : "invoice",
         companyLogo: formData.companyLogo || user?.companyLogo || "",
         companySignature: formData.companySignature || user?.companySignature || "",
         companyStamp: formData.companyStamp || user?.companyStamp || "",
         amountPaid: amountPaidValue,
         balanceDue: balanceDueValue,
+        branch: billFromBranch || null,
       };
       if (existingInvoice?._id) {
         await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(existingInvoice._id), payload);
@@ -394,7 +465,7 @@ const CreateInvoice = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 pb-[100vh] bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-8 pb-8 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div>
         <h2 className="text-xl font-semibold text-black">
           {existingInvoice ? "Edit Invoice" : "Create New Invoice"}
@@ -411,10 +482,15 @@ const CreateInvoice = () => {
               className="w-full max-w-xs h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="invoice">Invoice (for VAT reporting)</option>
+              <option value="quotation">Quotation (price estimate; convert to invoice when accepted)</option>
               <option value="proforma">Proforma (convert to invoice when paid)</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              {formData.type === "proforma" ? "Proforma is a preliminary bill. When paid, you can convert it to an invoice for VAT reporting." : "Standard tax invoice for GRA reporting."}
+              {formData.type === "quotation"
+                ? "Quotation is a price estimate for the client. When accepted and paid, you can convert it to an invoice."
+                : formData.type === "proforma"
+                  ? "Proforma is a preliminary bill. When paid, you can convert it to an invoice for VAT reporting."
+                  : "Standard tax invoice for GRA reporting."}
             </p>
           </div>
         )}
@@ -488,6 +564,21 @@ const CreateInvoice = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
           <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 space-y-2">
             <h3 className="text-lg font-semibold text-black mb-1">Bill From</h3>
+            {branches.length > 0 && (
+              <SelectField
+                label="Branch"
+                name="billFromBranch"
+                value={billFromBranch}
+                onChange={(e) => setBillFromBranch(e.target.value)}
+                options={[
+                  { label: "Main office", value: "" },
+                  ...branches.map((b) => ({
+                    label: b.name + (b.isDefault ? " (Default)" : ""),
+                    value: b._id,
+                  })),
+                ]}
+              />
+            )}
             <InputField
               label="Business Name"
               name="businessName"
@@ -695,6 +786,9 @@ const CreateInvoice = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-black">Totals</h3>
+              <p className="text-xs text-gray-500">
+                {vatScenario === "exclusive" ? "Prices entered are exclusive of VAT; tax is added on top." : "Prices entered include VAT (GRA inclusive)."}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <InputField
                   label="Discount (%)"

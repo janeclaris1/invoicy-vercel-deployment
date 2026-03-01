@@ -11,16 +11,7 @@ import { formatCurrency } from "../../utils/helper";
 
 const Reports = () => {
   const { user } = useAuth();
-  const userCurrency = user?.currency || (() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.currency) return parsed.currency;
-      }
-    } catch (_) {}
-    return "GHS";
-  })();
+  const userCurrency = user?.currency || "GHS";
   const [reportType, setReportType] = useState("sales");
   const [dateRange, setDateRange] = useState({
     startDate: moment().startOf('month').format('YYYY-MM-DD'),
@@ -159,7 +150,7 @@ const Reports = () => {
 
   const reportData = useMemo(() => {
     // VAT and tax reporting: only formal invoices (exclude proforma until converted)
-    const invoicesForVat = filteredInvoices.filter((inv) => (inv.type || "invoice") !== "proforma");
+    const invoicesForVat = filteredInvoices.filter((inv) => (inv.type || "invoice") !== "proforma" && (inv.type || "invoice") !== "quotation");
 
     const totalSales = invoicesForVat.reduce((sum, inv) => sum + Number(inv.grandTotal || 0), 0);
     const totalVat = invoicesForVat.reduce((sum, inv) => sum + Number(inv.totalVat || 0), 0);

@@ -7,16 +7,7 @@ import { formatCurrency } from "../../utils/helper";
 const Suppliers = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const userCurrency = user?.currency || (() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.currency) return parsed.currency;
-      }
-    } catch (_) {}
-    return "GHS";
-  })();
+  const userCurrency = user?.currency || "GHS";
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");

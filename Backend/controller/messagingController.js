@@ -6,6 +6,21 @@ const ChatGroup = require('../models/ChatGroup');
 
 const UPLOAD_DIR = path.join(__dirname, '../uploads/messages');
 const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const REPLYING_TTL_MS = 12 * 1000; // 12 seconds
+
+// In-memory: who is replying in which 1:1 conversation. Key = sorted "id1_id2", value = { userId, name, replyToMessageId, expiresAt }
+const replyingStore = new Map();
+const conversationKey = (id1, id2) => {
+  const a = (id1 && id1.toString()) || '';
+  const b = (id2 && id2.toString()) || '';
+  return a < b ? `${a}_${b}` : `${b}_${a}`;
+};
+const pruneReplying = () => {
+  const now = Date.now();
+  for (const [k, v] of replyingStore.entries()) {
+    if (v.expiresAt < now) replyingStore.delete(k);
+  }
+};
 
 const getTeamMemberIds = async (currentUserId) => {
   try {
@@ -172,6 +187,7 @@ exports.getMessages = async (req, res) => {
       }
       const messages = await Message.find({ group: groupId, deletedAt: null })
         .populate('sender', 'name email')
+        .populate({ path: 'replyTo', select: 'body createdAt', populate: { path: 'sender', select: 'name' } })
         .sort({ createdAt: 1 });
       await Message.updateMany(
         { group: groupId, sender: { $ne: myId }, deletedAt: null, $nor: [{ readBy: { $elemMatch: { user: myId } } }] },
@@ -210,6 +226,7 @@ exports.getMessages = async (req, res) => {
     })
       .populate('sender', 'name email')
       .populate('recipient', 'name email')
+      .populate({ path: 'replyTo', select: 'body createdAt', populate: { path: 'sender', select: 'name' } })
       .sort({ createdAt: 1 });
     res.json(messages);
   } catch (error) {
@@ -228,6 +245,7 @@ exports.createMessage = async (req, res) => {
     const recipientId = req.body?.recipientId;
     const groupId = req.body?.groupId;
     const body = (req.body?.body != null ? String(req.body.body) : '').trim();
+    const replyToMessageId = req.body?.replyToMessageId || null;
     const files = req.files || [];
     if (!recipientId && !groupId) {
       return res.status(400).json({ message: 'recipientId or groupId is required' });
@@ -249,10 +267,13 @@ exports.createMessage = async (req, res) => {
         sender: myId,
         group: groupId,
         body,
+        replyTo: replyToMessageId || undefined,
         attachments: attachments.length ? attachments : undefined,
       });
       await ChatGroup.findByIdAndUpdate(groupId, { updatedAt: new Date() });
-      const populated = await Message.findById(message._id).populate('sender', 'name email');
+      const populated = await Message.findById(message._id)
+        .populate('sender', 'name email')
+        .populate({ path: 'replyTo', select: 'body createdAt', populate: { path: 'sender', select: 'name' } });
       return res.status(201).json(populated);
     }
 
@@ -264,11 +285,13 @@ exports.createMessage = async (req, res) => {
       sender: myId,
       recipient: recipientId,
       body,
+      replyTo: replyToMessageId || undefined,
       attachments: attachments.length ? attachments : undefined,
     });
     const populated = await Message.findById(message._id)
       .populate('sender', 'name email')
-      .populate('recipient', 'name email');
+      .populate('recipient', 'name email')
+      .populate({ path: 'replyTo', select: 'body createdAt', populate: { path: 'sender', select: 'name' } });
     res.status(201).json(populated);
   } catch (error) {
     console.error('Create message error:', error);
@@ -293,6 +316,66 @@ exports.markRead = async (req, res) => {
   } catch (error) {
     console.error('Mark read error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Set or clear "I am replying" in a 1:1 conversation (so the other party can show "X is replying")
+exports.setReplying = async (req, res) => {
+  try {
+    pruneReplying();
+    const myId = (req.user._id && req.user._id.toString()) || '';
+    const withUserId = req.body?.withUserId ? String(req.body.withUserId).trim() : null;
+    const replyToMessageId = req.body?.replyToMessageId || null;
+    if (!withUserId || withUserId === myId) {
+      return res.json({ ok: true });
+    }
+    const key = conversationKey(myId, withUserId);
+    if (req.body?.clear) {
+      const existing = replyingStore.get(key);
+      if (existing && existing.userId === myId) replyingStore.delete(key);
+      return res.json({ ok: true });
+    }
+    const expiresAt = Date.now() + REPLYING_TTL_MS;
+    replyingStore.set(key, {
+      userId: myId,
+      name: req.user.name || req.user.email || 'Someone',
+      replyToMessageId: replyToMessageId || null,
+      expiresAt,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Set replying error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Get whether the other user (with=userId) is currently replying in conversation with me
+exports.getReplying = async (req, res) => {
+  try {
+    pruneReplying();
+    const myId = (req.user._id && req.user._id.toString()) || '';
+    const withUserId = req.query.with ? String(req.query.with).trim() : null;
+    if (!withUserId || withUserId === myId) {
+      return res.json({ replying: false });
+    }
+    const key = conversationKey(myId, withUserId);
+    const entry = replyingStore.get(key);
+    if (!entry || entry.expiresAt < Date.now()) {
+      return res.json({ replying: false });
+    }
+    // They are replying if the stored userId is the "other" user (withUserId)
+    if (entry.userId !== withUserId) {
+      return res.json({ replying: false });
+    }
+    res.json({
+      replying: true,
+      userId: entry.userId,
+      name: entry.name,
+      replyToMessageId: entry.replyToMessageId || undefined,
+    });
+  } catch (err) {
+    console.error('Get replying error:', err);
+    res.status(500).json({ replying: false });
   }
 };
 

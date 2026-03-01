@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Mail, Loader2, Plus, PhoneCall, Mail as MailIcon, Calendar, FileText, CheckSquare, Briefcase, Building2 } from "lucide-react";
+import { ArrowLeft, Mail, Loader2, Plus, PhoneCall, Mail as MailIcon, Calendar, FileText, CheckSquare, Briefcase, Building2, UserPlus, Truck } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import { useAuth } from "../../context/AuthContext";
+import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 
 const ACTIVITY_ICONS = { email: MailIcon, call: PhoneCall, meeting: Calendar, note: FileText, task: CheckSquare };
@@ -12,6 +14,8 @@ const STAGE_LABELS = { qualification: "Qualification", proposal: "Proposal", neg
 const DealDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userCurrency = user?.currency || "GHS";
   const [deal, setDeal] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +89,97 @@ const DealDetailPage = () => {
 
   const notesOnly = activities.filter((a) => a.type === "note");
 
+  const getConvertiblePerson = () => {
+    if (deal.contact) {
+      const c = deal.contact;
+      const company = deal.company || c.company;
+      return {
+        name: [c.firstName, c.lastName].filter(Boolean).join(" ") || "Unknown",
+        email: c.email || "",
+        phone: c.phone || "",
+        company: company?.name || "",
+        address: company?.address || "",
+      };
+    }
+    if (deal.lead) {
+      const l = deal.lead;
+      const company = deal.company;
+      return {
+        name: l.name || "Unknown",
+        email: l.email || "",
+        phone: l.phone || "",
+        company: company?.name || "",
+        address: company?.address || "",
+      };
+    }
+    return null;
+  };
+
+  const handleConvertToCustomer = () => {
+    const person = getConvertiblePerson();
+    if (!person) {
+      toast.error("No contact or lead linked to this deal");
+      return;
+    }
+    try {
+      const saved = localStorage.getItem("customers");
+      const existing = saved ? JSON.parse(saved) : [];
+      const newCustomer = {
+        id: Date.now(),
+        name: person.name,
+        email: person.email,
+        phone: person.phone,
+        company: person.company,
+        address: person.address,
+        city: "",
+        country: "",
+        taxId: "",
+        totalInvoices: 0,
+        totalRevenue: formatCurrency(0, userCurrency),
+        currency: userCurrency,
+      };
+      const updated = [newCustomer, ...existing];
+      localStorage.setItem("customers", JSON.stringify(updated));
+      window.dispatchEvent(new Event("customersUpdated"));
+      toast.success(`${person.name} added to Customers. You can select them when creating invoices.`);
+    } catch (err) {
+      toast.error("Failed to add to customers");
+    }
+  };
+
+  const handleConvertToSupplier = () => {
+    const person = getConvertiblePerson();
+    if (!person) {
+      toast.error("No contact or lead linked to this deal");
+      return;
+    }
+    try {
+      const saved = localStorage.getItem("suppliers");
+      const existing = saved ? JSON.parse(saved) : [];
+      const newSupplier = {
+        id: Date.now(),
+        name: person.name,
+        email: person.email,
+        phone: person.phone,
+        company: person.company || person.name,
+        address: person.address,
+        city: "",
+        country: "",
+        taxId: "",
+        category: "",
+      };
+      const updated = [newSupplier, ...existing];
+      localStorage.setItem("suppliers", JSON.stringify(updated));
+      window.dispatchEvent(new Event("suppliersUpdated"));
+      toast.success(`${person.name} added to Suppliers. You can select them when creating invoices.`);
+    } catch (err) {
+      toast.error("Failed to add to suppliers");
+    }
+  };
+
+  const canConvert = deal?.stage === "won" && (deal?.contact || deal?.lead);
+  const person = getConvertiblePerson();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -149,6 +244,30 @@ const DealDetailPage = () => {
               <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
                 <Building2 className="w-4 h-4 flex-shrink-0" />
                 <span>{deal.company.name}</span>
+              </div>
+            )}
+            {canConvert && person && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Convert to billing</p>
+                <p className="text-sm text-gray-600 mb-2">Add this contact to Customers or Suppliers so you can select them when creating invoices.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConvertToCustomer}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Convert to Customer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConvertToSupplier}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    <Truck className="w-4 h-4" />
+                    Convert to Supplier
+                  </button>
+                </div>
               </div>
             )}
             {deal.notes && (

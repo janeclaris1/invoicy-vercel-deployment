@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Package, Coins } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
@@ -73,6 +73,9 @@ const Items = () => {
 
   const [items, setItems] = useState([]);
   const [itemsLoading, setItemsLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState(null);
+  const fileInputRef = React.useRef(null);
 
   useEffect(() => {
     const loadItems = async () => {
@@ -284,6 +287,82 @@ const Items = () => {
     );
   });
 
+  const productTemplateHeaders = [
+    "name",
+    "description",
+    "category",
+    "price",
+    "unit",
+    "sku",
+    "tax rate",
+    "track stock",
+    "quantity in stock",
+    "reorder level",
+  ];
+
+  const downloadTemplate = () => {
+    const headerRow = productTemplateHeaders.join(",");
+    const exampleRow = [
+      "Sample Product",
+      "Short description",
+      "Products",
+      "100",
+      "unit",
+      "SKU-001",
+      "0",
+      "false",
+      "0",
+      "10",
+    ].map((c) => (String(c).includes(",") ? `"${c}"` : c)).join(",");
+    const csv = [headerRow, exampleRow].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "products_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    setImportMessage(null);
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setImportMessage(null);
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await axiosInstance.post(API_PATHS.ITEMS.IMPORT, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const data = response.data;
+      setImportMessage({
+        type: "success",
+        text: data.message + (data.errors?.length ? ` ${data.errors.length} row(s) had errors.` : ""),
+      });
+      if (data.created > 0) {
+        const listRes = await axiosInstance.get(API_PATHS.ITEMS.GET_ALL);
+        const dataList = Array.isArray(listRes.data) ? listRes.data : [];
+        setItems(
+          dataList.map((i) => ({
+            ...i,
+            id: i._id || i.id,
+            price: typeof i.price === "number" ? formatCurrency(i.price, userCurrency) : i.price,
+          }))
+        );
+      }
+    } catch (err) {
+      setImportMessage({
+        type: "error",
+        text: err.response?.data?.message || err.message || "Import failed",
+      });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-8">
@@ -291,14 +370,53 @@ const Items = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Items</h1>
           <p className="text-gray-600 dark:text-white">Manage your products and services</p>
         </div>
-        <button
-          onClick={openAddItem}
-          className="flex items-center space-x-2 px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Item</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={downloadTemplate}
+            className="flex items-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <FileSpreadsheet className="w-5 h-5" />
+            <span>Download template</span>
+          </button>
+          <label className="flex items-center space-x-2 px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={handleImportFile}
+              disabled={importing}
+            />
+            {importing ? (
+              <span className="animate-pulse">Importing…</span>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                <span>Import from Excel/CSV</span>
+              </>
+            )}
+          </label>
+          <button
+            onClick={openAddItem}
+            className="flex items-center space-x-2 px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Item</span>
+          </button>
+        </div>
       </div>
+      {importMessage && (
+        <div
+          className={`mb-4 px-4 py-3 rounded-lg ${
+            importMessage.type === "success"
+              ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200"
+              : "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
+          }`}
+        >
+          {importMessage.text}
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="mb-6">

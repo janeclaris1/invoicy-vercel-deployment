@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Lock, User, Building2, CreditCard, Users, Plus, Edit2, Trash2 } from "lucide-react";
+import { Bell, Lock, User, Building2, CreditCard, Users, Plus, Edit2, Trash2, MapPin, X } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
@@ -22,6 +22,7 @@ const Settings = () => {
     currency: "GHS",
     graCompanyReference: "",
     graSecurityKey: "",
+    graVatScenario: "inclusive",
   });
   const [savingCompany, setSavingCompany] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -42,6 +43,11 @@ const Settings = () => {
   const [securityPassword, setSecurityPassword] = useState({ current: "", new: "", confirm: "" });
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [exchangeRate, setExchangeRate] = useState("");
+  const [branches, setBranches] = useState([]);
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [showBranchModal, setShowBranchModal] = useState(false);
+  const [editingBranchId, setEditingBranchId] = useState(null);
+  const [branchForm, setBranchForm] = useState({ name: "", address: "", phone: "", email: "", tin: "", isDefault: false, status: "active" });
 
   const RESPONSIBILITIES = [
     { id: "dashboard", label: "Dashboard (view)", description: "View dashboard and insights" },
@@ -78,8 +84,77 @@ const Settings = () => {
       currency: user?.currency || "GHS",
       graCompanyReference: user?.graCompanyReference || "",
       graSecurityKey: "", // Never pre-fill; user enters to set/update
+      graVatScenario: user?.graVatScenario || "inclusive",
     }));
   }, [user]);
+
+  const fetchBranches = async () => {
+    try {
+      setBranchLoading(true);
+      const res = await axiosInstance.get(API_PATHS.BRANCHES.GET_ALL);
+      setBranches(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setBranches([]);
+    } finally {
+      setBranchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "company") fetchBranches();
+  }, [activeTab]);
+
+  const openAddBranch = () => {
+    setEditingBranchId(null);
+    setBranchForm({ name: "", address: "", phone: "", email: "", tin: "", isDefault: false, status: "active" });
+    setShowBranchModal(true);
+  };
+
+  const openEditBranch = (b) => {
+    setEditingBranchId(b._id);
+    setBranchForm({
+      name: b.name || "",
+      address: b.address || "",
+      phone: b.phone || "",
+      email: b.email || "",
+      tin: b.tin || "",
+      isDefault: !!b.isDefault,
+      status: b.status || "active",
+    });
+    setShowBranchModal(true);
+  };
+
+  const handleSaveBranch = async (e) => {
+    e.preventDefault();
+    if (!branchForm.name.trim()) {
+      toast.error("Branch name is required");
+      return;
+    }
+    try {
+      if (editingBranchId) {
+        await axiosInstance.put(API_PATHS.BRANCHES.UPDATE(editingBranchId), branchForm);
+        toast.success("Branch updated");
+      } else {
+        await axiosInstance.post(API_PATHS.BRANCHES.CREATE, branchForm);
+        toast.success("Branch added");
+      }
+      setShowBranchModal(false);
+      fetchBranches();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to save branch");
+    }
+  };
+
+  const handleDeleteBranch = async (id) => {
+    if (!window.confirm("Delete this branch?")) return;
+    try {
+      await axiosInstance.delete(API_PATHS.BRANCHES.DELETE(id));
+      toast.success("Branch deleted");
+      fetchBranches();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete branch");
+    }
+  };
 
   const isOwner = user?.role === "owner";
 
@@ -569,19 +644,38 @@ const Settings = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Security Key</label>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Security Key
+                            {user?.graCredentialsConfigured && (
+                              <span className="ml-2 text-green-600 dark:text-green-400 font-normal">✓ Saved (field left blank on purpose)</span>
+                            )}
+                          </label>
                           <input
                             type="password"
                             autoComplete="off"
-                            placeholder={user?.graCredentialsConfigured ? "Enter new key to update" : "Enter security key"}
+                            placeholder={user?.graCredentialsConfigured ? "•••••••• — enter new key only to change" : "Enter security key"}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
                             value={companyForm.graSecurityKey}
                             onChange={(e) => setCompanyForm((prev) => ({ ...prev, graSecurityKey: e.target.value }))}
                           />
                           {user?.graCredentialsConfigured && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Key is stored. Leave blank to keep current.</p>
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">Key is stored. Leave blank to keep it; type a new key to replace.</p>
                           )}
                         </div>
+                      </div>
+                      <div className="mt-4">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">GRA VAT pricing</label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          Choose how prices are treated for VAT on invoices: <strong>Inclusive</strong> = prices include VAT; <strong>Exclusive</strong> = VAT is added on top of prices.
+                        </p>
+                        <select
+                          className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm"
+                          value={companyForm.graVatScenario || "inclusive"}
+                          onChange={(e) => setCompanyForm((prev) => ({ ...prev, graVatScenario: e.target.value }))}
+                        >
+                          <option value="inclusive">Inclusive (prices include VAT)</option>
+                          <option value="exclusive">Exclusive (VAT added on top)</option>
+                        </select>
                       </div>
                     </div>
                   )}
@@ -607,6 +701,94 @@ const Settings = () => {
                           onChange={(e) => setExchangeRate(e.target.value)}
                         />
                         <span className="text-sm text-gray-700 dark:text-gray-300">{user?.currency || "GHS"}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Branches */}
+                  {isOwner && (
+                    <div className="border-t border-gray-200 dark:border-slate-600 pt-6 mt-6">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Branches</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Add branch locations. When creating invoices, you can choose which branch to bill from.
+                      </p>
+                      {branchLoading ? (
+                        <p className="text-sm text-gray-500">Loading branches...</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {branches.map((b) => (
+                            <div key={b._id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800/50">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-gray-500" />
+                                <div>
+                                  <span className="font-medium text-gray-900 dark:text-white">{b.name}</span>
+                                  {b.isDefault && <span className="ml-2 text-xs text-emerald-600">(Default)</span>}
+                                  {b.address && <p className="text-xs text-gray-500">{b.address}</p>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => openEditBranch(b)} className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400"><Edit2 className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => handleDeleteBranch(b._id)} className="p-1.5 rounded hover:bg-red-100 text-red-600"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                            </div>
+                          ))}
+                          <button type="button" onClick={openAddBranch} className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-slate-600 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 text-sm">
+                            <Plus className="w-4 h-4" />
+                            Add branch
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {showBranchModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{editingBranchId ? "Edit branch" : "Add branch"}</h3>
+                          <button type="button" onClick={() => setShowBranchModal(false)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600"><X className="w-5 h-5" /></button>
+                        </div>
+                        <form onSubmit={handleSaveBranch} className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch name *</label>
+                            <input type="text" value={branchForm.name} onChange={(e) => setBranchForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white" placeholder="e.g. Accra Office" required />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                            <textarea value={branchForm.address} onChange={(e) => setBranchForm((f) => ({ ...f, address: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white" rows="2" placeholder="Branch address" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                              <input type="text" value={branchForm.phone} onChange={(e) => setBranchForm((f) => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white" placeholder="Phone" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                              <input type="email" value={branchForm.email} onChange={(e) => setBranchForm((f) => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white" placeholder="branch@company.com" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TIN (Tax ID)</label>
+                            <input type="text" value={branchForm.tin} onChange={(e) => setBranchForm((f) => ({ ...f, tin: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white" placeholder="Optional" />
+                          </div>
+                          {editingBranchId && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                              <select value={branchForm.status || "active"} onChange={(e) => setBranchForm((f) => ({ ...f, status: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                              </select>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" id="branchDefault" checked={branchForm.isDefault} onChange={(e) => setBranchForm((f) => ({ ...f, isDefault: e.target.checked }))} className="rounded" />
+                            <label htmlFor="branchDefault" className="text-sm text-gray-700 dark:text-gray-300">Set as default branch for new invoices</label>
+                          </div>
+                          <div className="flex gap-2 justify-end pt-2">
+                            <button type="button" onClick={() => setShowBranchModal(false)} className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Cancel</button>
+                            <button type="submit" className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Save</button>
+                          </div>
+                        </form>
                       </div>
                     </div>
                   )}

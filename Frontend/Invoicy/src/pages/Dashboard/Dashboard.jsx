@@ -20,6 +20,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
 } from "recharts";
 
 const Dashboard = () => {
@@ -32,10 +34,13 @@ const Dashboard = () => {
     totalCustomers: 0,
     totalSuppliers: 0,
     totalUnpaid: 0,
+    totalQuotations: 0,
     totalVat: 0,
     totalNhil: 0,
     totalGetFund: 0,
     topCustomers: [],
+    revenueByMonth: [],
+    documentTypeData: [],
   });
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +90,7 @@ const Dashboard = () => {
       const totalVat = invoices.reduce((acc, inv) => acc + (inv.totalVat || 0), 0);
       const totalNhil = invoices.reduce((acc, inv) => acc + (inv.totalNhil || 0), 0);
       const totalGetFund = invoices.reduce((acc, inv) => acc + (inv.totalGetFund || 0), 0);
+      const totalQuotations = invoices.filter((inv) => (inv.type || "").toLowerCase() === "quotation").length;
 
       const customerMap = new Map();
       invoices.forEach((inv) => {
@@ -104,15 +110,51 @@ const Dashboard = () => {
           total: Number(c.total.toFixed(2)),
         }));
 
+      // Revenue by month (last 6 months)
+      const now = new Date();
+      const monthKeys = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthKeys.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: d.toLocaleString("default", { month: "short", year: "2-digit" }) });
+      }
+      const revenueByMonth = monthKeys.map(({ key, label }) => {
+        const [y, m] = key.split("-").map(Number);
+        const total = invoices
+          .filter((inv) => {
+            const status = normalizeStatus(inv.status);
+            if (status !== "fully paid") return false;
+            const d = inv.invoiceDate ? new Date(inv.invoiceDate) : new Date(inv.createdAt);
+            return d.getFullYear() === y && d.getMonth() + 1 === m;
+          })
+          .reduce((acc, inv) => acc + (inv.grandTotal || 0), 0);
+        return { month: label, revenue: Number(total.toFixed(2)), key };
+      });
+
+      // Document type breakdown (invoice, quotation, proforma)
+      const typeCounts = { invoice: 0, quotation: 0, proforma: 0 };
+      invoices.forEach((inv) => {
+        const t = (inv.type || "invoice").toLowerCase();
+        if (t in typeCounts) typeCounts[t]++;
+        else typeCounts.invoice++;
+      });
+      const documentTypeData = [
+        { name: "Invoices", value: typeCounts.invoice, color: "#3b82f6" },
+        { name: "Quotations", value: typeCounts.quotation, color: "#8b5cf6" },
+        { name: "Proforma", value: typeCounts.proforma, color: "#f59e0b" },
+      ].filter((d) => d.value > 0);
+
       setStats({
         totalInvoices,
         totalRevenue: totalPaid,
         totalUnpaid,
+        totalQuotations,
         totalPartial,
         totalVat,
         totalNhil,
         totalGetFund,
         topCustomers,
+        revenueByMonth,
+        documentTypeData,
       });
 
       setRecentInvoices(
@@ -147,18 +189,28 @@ const Dashboard = () => {
       label: "Total Invoices",
       value: stats.totalInvoices,
       color: "blue",
+      link: "/invoices",
     },
     {
       icon : DollarSign,
       label: "Total Revenue",
       value: formatCurrency(stats.totalRevenue, userCurrency),
       color: "emerald",
+      link: null,
     },
     {
       icon: DollarSign,
       label: "Total Unpaid",
       value: formatCurrency(stats.totalUnpaid, userCurrency),
       color: "red",
+      link: null,
+    },
+    {
+      icon: FileText,
+      label: "Quotations",
+      value: stats.totalQuotations,
+      color: "blue",
+      link: "/quotations",
     },
   ];
 
@@ -189,6 +241,8 @@ const Dashboard = () => {
   ];
 
   const topCustomersData = stats.topCustomers || [];
+  const revenueByMonthData = stats.revenueByMonth || [];
+  const documentTypeData = stats.documentTypeData || [];
 
 
   if (loading) {
@@ -224,23 +278,28 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards - explicit text colors so hover never makes text white in light mode */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statsData.map((stat, index) => (
-          <div
-            key={index}
-            className="dashboard-stat-card stat-card-bg p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg shadow-gray-200 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-shadow transition-colors">
-            <div className="flex items-center">
-              <div
-                className={`flex-shrink-0 w-12 h-12 ${colorClasses[stat.color].bg} rounded-lg flex items-center justify-center`}>
-                <stat.icon className={`w-6 h-6 ${colorClasses[stat.color].text}`} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statsData.map((stat, index) => {
+          const Wrapper = stat.link ? "button" : "div";
+          const wrapperProps = stat.link ? { onClick: () => navigate(stat.link), type: "button", className: "text-left w-full" } : {};
+          return (
+            <Wrapper
+              key={index}
+              {...wrapperProps}
+              className={stat.link ? "dashboard-stat-card stat-card-bg p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg shadow-gray-200 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-shadow transition-colors cursor-pointer" : "dashboard-stat-card stat-card-bg p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg shadow-gray-200 dark:shadow-none hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 transition-shadow transition-colors"}>
+              <div className="flex items-center">
+                <div
+                  className={`flex-shrink-0 w-12 h-12 ${colorClasses[stat.color].bg} rounded-lg flex items-center justify-center`}>
+                  <stat.icon className={`w-6 h-6 ${colorClasses[stat.color].text}`} />
+                </div>
+                <div className="ml-4 min-w-0">
+                  <div className="dashboard-stat-label text-sm font-medium truncate text-slate-600">{stat.label}</div>
+                  <div className="dashboard-stat-value text-2xl font-bold break-words text-slate-900">{stat.value}</div>
+                </div>
               </div>
-              <div className="ml-4 min-w-0">
-                <div className="dashboard-stat-label text-sm font-medium truncate text-slate-600">{stat.label}</div>
-                <div className="dashboard-stat-value text-2xl font-bold break-words text-slate-900">{stat.value}</div>
-              </div>
-            </div>
-          </div>
-        ))}
+            </Wrapper>
+          );
+        })}
       </div>
 
       {/* AI Insights Cards */}
@@ -304,6 +363,49 @@ const Dashboard = () => {
               Unpaid
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Revenue by month & Document types */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 dashboard-chart-section">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm shadow-gray-100">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-slate-900">Revenue by month</h3>
+            <p className="text-sm text-slate-500">Paid invoice revenue for the last 6 months</p>
+          </div>
+          <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+              <LineChart data={revenueByMonthData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis tickFormatter={(value) => formatCurrency(value, userCurrency)} />
+                <Tooltip formatter={(value) => formatCurrency(value, userCurrency)} />
+                <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm shadow-gray-100">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-slate-900">Document types</h3>
+            <p className="text-sm text-slate-500">Invoices, quotations, and proforma counts</p>
+          </div>
+          {documentTypeData.length > 0 ? (
+            <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                <PieChart>
+                  <Tooltip />
+                  <Pie data={documentTypeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={4}>
+                    {documentTypeData.map((entry, index) => (
+                      <Cell key={entry.name} fill={entry.color || pieColors[index % pieColors.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">No documents yet</div>
+          )}
         </div>
       </div>
 

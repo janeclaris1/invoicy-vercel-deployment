@@ -12,6 +12,7 @@ const PATH_TO_RESPONSIBILITY = {
   "/items": "items",
   "/stock": "items",
   "/reports": "reports",
+  "/accounting": "accounting",
   "/settings": "settings",
 };
 
@@ -31,6 +32,7 @@ const ALWAYS_ALLOWED = ["/profile", "/support", "/hr/self-service"];
 const getRequiredResponsibility = (pathname) => {
   if (ALWAYS_ALLOWED.some((p) => pathname.startsWith(p))) return null;
   if (pathname.startsWith("/invoices/")) return "invoices";
+  if (pathname.startsWith("/accounting")) return "accounting";
   const hrReq = HR_PATH_TO_RESPONSIBILITY[pathname];
   if (hrReq) return hrReq;
   return PATH_TO_RESPONSIBILITY[pathname] || null;
@@ -72,7 +74,7 @@ const ResponsibilityGuard = ({ children }) => {
   // Redirect to first allowed page
   const firstHrPath = getFirstHrPath(responsibilities);
   if (firstHrPath) return <Navigate to={firstHrPath} replace />;
-  const topLevel = ["dashboard", "invoices", "customers", "suppliers", "categories", "items", "reports", "settings"];
+  const topLevel = ["dashboard", "invoices", "customers", "suppliers", "categories", "items", "reports", "accounting", "settings"];
   const firstAllowed = topLevel.find((r) => responsibilities.includes(r));
   const redirect = firstAllowed ? `/${firstAllowed}` : "/dashboard";
   return <Navigate to={redirect} replace />;

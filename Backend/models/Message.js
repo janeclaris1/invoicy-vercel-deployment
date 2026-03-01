@@ -16,6 +16,7 @@ const messageSchema = new mongoose.Schema({
     filename: { type: String, required: true },
     contentType: { type: String, default: 'application/octet-stream' },
   }],
+  replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message', default: null },
 }, { timestamps: true });
 
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
