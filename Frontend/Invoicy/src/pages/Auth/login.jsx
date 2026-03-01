@@ -169,14 +169,18 @@ const Login = () => {
         setError(err.response?.data?.message || "Too many login attempts. Please try again in 15 minutes.");
       } else if (err.response?.status === 503) {
         setError("Service unavailable. The backend is not responding. Make sure the server is running (e.g. run the Backend with npm run dev).");
+      } else if (err.response?.status === 401) {
+        setError(err.response?.data?.message || "Invalid email or password. If you just signed up, make sure you're using the same account.");
+      } else if (err.response?.status === 403) {
+        setError("Access denied. If this is the deployed app, ensure the backend ALLOWED_ORIGINS includes this site's URL.");
       } else if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
-      } else if (err.code === "ERR_NETWORK" || err.message.includes("Network Error")) {
-        setError(`Cannot connect to server. Please make sure the backend is running at ${BASE_URL}`);
-      } else if (err.code === "ECONNABORTED" || err.message.includes("timeout")) {
+      } else if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
+        setError(`Cannot connect to server. Check that the API is running and reachable.`);
+      } else if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
         setError("Request timeout. Please check your connection and try again.");
       } else {
-        setError(`An error occurred during login: ${err.message || "Please try again."}`);
+        setError(err.response?.data?.message || "Login failed. Please check your email and password.");
       }
     } finally {
       setIsLoading(false);

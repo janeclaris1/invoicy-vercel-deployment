@@ -39,10 +39,13 @@ const generateToken = (id) => {
 const AUTH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // seconds
 const setAuthCookie = (res, token) => {
     const isProduction = process.env.NODE_ENV === 'production';
+    // When frontend and backend are on different domains (e.g. Vercel + Render), set CROSS_ORIGIN_AUTH=true and ALLOWED_ORIGINS to your frontend URL so cookies work
+    const crossOriginAuth = process.env.CROSS_ORIGIN_AUTH === 'true' || process.env.CROSS_ORIGIN_AUTH === '1';
+    const sameSite = isProduction && crossOriginAuth ? 'none' : (isProduction ? 'strict' : 'lax');
     res.cookie('token', token, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: isProduction ? 'strict' : 'lax',
+        sameSite,
         path: '/',
         maxAge: AUTH_COOKIE_MAX_AGE * 1000,
     });
