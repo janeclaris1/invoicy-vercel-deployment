@@ -313,7 +313,7 @@ const Dashboard = () => {
             <p className="text-sm text-slate-500">Invoices, revenue, and unpaid totals</p>
           </div>
           <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
               <BarChart data={summaryChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -331,7 +331,7 @@ const Dashboard = () => {
             <p className="text-sm text-slate-500">Fully paid, partially paid, and unpaid totals</p>
           </div>
           <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
               <PieChart>
                 <Tooltip formatter={(value) => formatCurrency(value, userCurrency)} />
                 <Pie
@@ -374,7 +374,7 @@ const Dashboard = () => {
             <p className="text-sm text-slate-500">Paid invoice revenue for the last 6 months</p>
           </div>
           <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
               <LineChart data={revenueByMonthData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -392,7 +392,7 @@ const Dashboard = () => {
           </div>
           {documentTypeData.length > 0 ? (
             <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
                 <PieChart>
                   <Tooltip />
                   <Pie data={documentTypeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={4}>
@@ -417,7 +417,7 @@ const Dashboard = () => {
             <p className="text-sm text-slate-500">GRA VAT, NHIL, GETFUND totals</p>
           </div>
           <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
               <BarChart data={taxSummaryData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -435,7 +435,7 @@ const Dashboard = () => {
             <p className="text-sm text-slate-500">Top 10 by frequency and total amount</p>
           </div>
           <div className="h-64 min-h-[200px] w-full" style={{ minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
               <BarChart data={topCustomersData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" hide />

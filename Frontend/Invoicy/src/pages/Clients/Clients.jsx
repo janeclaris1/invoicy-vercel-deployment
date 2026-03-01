@@ -443,8 +443,8 @@ const Clients = () => {
             {analytics.planChartData.length > 0 && (
                 <div className="mb-6 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 p-4 shadow-sm print:hidden">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Subscriptions by plan</h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-64 min-h-[200px] w-full min-w-0">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
                             <PieChart>
                                 <Pie
                                     data={analytics.planChartData}
