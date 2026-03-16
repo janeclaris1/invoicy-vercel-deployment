@@ -101,9 +101,9 @@ const SupplyChainSuppliersPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Suppliers</h2>
-        <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add supplier</Button>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-white">Suppliers</h2>
+        <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add supplier</Button>
       </div>
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden">
         <table className="w-full text-sm">

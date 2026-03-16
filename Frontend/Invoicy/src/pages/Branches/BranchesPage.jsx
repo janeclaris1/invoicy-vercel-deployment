@@ -134,6 +134,9 @@ const BranchesPage = () => {
   };
 
   const isOwnerOrAdmin = ["owner", "admin"].includes(user?.role || "");
+  const plan = (user?.subscription?.plan || "basic").toLowerCase();
+  const isBasicPlan = plan === "basic";
+  const atBranchLimit = isBasicPlan && branches.length >= 1;
 
   if (loading) {
     return (
@@ -156,10 +159,18 @@ const BranchesPage = () => {
           </p>
         </div>
         {isOwnerOrAdmin && (
-          <Button onClick={openAdd} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add branch
-          </Button>
+          <>
+            {atBranchLimit ? (
+              <p className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
+                Basic plan allows 1 branch. Upgrade to Pro for more branches.
+              </p>
+            ) : (
+              <Button onClick={openAdd} className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Add branch
+              </Button>
+            )}
+          </>
         )}
       </div>
 

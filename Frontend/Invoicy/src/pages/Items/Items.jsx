@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";

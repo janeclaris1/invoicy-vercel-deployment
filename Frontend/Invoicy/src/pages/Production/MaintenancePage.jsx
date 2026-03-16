@@ -150,9 +150,9 @@ const MaintenancePage = () => {
   return (
     <div className="space-y-8">
       <section>
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Calendar className="w-5 h-5" /> Maintenance schedules</h2>
-          <Button onClick={openScheduleCreate} size="small" className="flex items-center gap-1"><Plus className="w-4 h-4" /> Add schedule</Button>
+        <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2"><Calendar className="w-5 h-5" /> Maintenance schedules</h2>
+          <Button onClick={openScheduleCreate} variant="whiteOutline" size="small" className="flex items-center gap-1"><Plus className="w-4 h-4" /> Add schedule</Button>
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden">
           <table className="w-full text-sm">
@@ -186,9 +186,9 @@ const MaintenancePage = () => {
       </section>
 
       <section>
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><FileText className="w-5 h-5" /> Maintenance logs</h2>
-          <Button onClick={openLogCreate} size="small" className="flex items-center gap-1"><Plus className="w-4 h-4" /> Log maintenance</Button>
+        <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2"><FileText className="w-5 h-5" /> Maintenance logs</h2>
+          <Button onClick={openLogCreate} variant="whiteOutline" size="small" className="flex items-center gap-1"><Plus className="w-4 h-4" /> Log maintenance</Button>
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden">
           <table className="w-full text-sm">

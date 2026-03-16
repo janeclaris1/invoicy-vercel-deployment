@@ -40,10 +40,12 @@ const {
   deleteExchangeRate,
 } = require("../controller/accountingController");
 const { protect } = require("../middlewares/authMiddleware");
+const { attachSubscriptionPlan, requirePlan } = require("../middlewares/planMiddleware");
 
 const router = express.Router();
 
 router.use(protect);
+router.use(attachSubscriptionPlan);
 
 // Accounts
 router.get("/accounts", getAccounts);
@@ -60,11 +62,11 @@ router.put("/journal-entries/:id", updateJournalEntry);
 router.delete("/journal-entries/:id", deleteJournalEntry);
 router.post("/journal-entries/:id/post", postJournalEntry);
 
-// Reports
-router.get("/reports/general-ledger", getGeneralLedger);
-router.get("/reports/trial-balance", getTrialBalance);
-router.get("/reports/profit-loss", getProfitLoss);
-router.get("/reports/balance-sheet", getBalanceSheet);
+// Reports (Pro+ only)
+router.get("/reports/general-ledger", requirePlan("pro"), getGeneralLedger);
+router.get("/reports/trial-balance", requirePlan("pro"), getTrialBalance);
+router.get("/reports/profit-loss", requirePlan("pro"), getProfitLoss);
+router.get("/reports/balance-sheet", requirePlan("pro"), getBalanceSheet);
 
 // Expenditures
 router.get("/expenditures", getExpenditures);
@@ -81,11 +83,11 @@ router.get("/bills/:id", getBillById);
 router.put("/bills/:id", updateBill);
 router.delete("/bills/:id", deleteBill);
 
-// Budgets
-router.get("/budgets", getBudgets);
-router.post("/budgets", createBudget);
-router.put("/budgets/:id", updateBudget);
-router.delete("/budgets/:id", deleteBudget);
+// Budgets (Pro+ only)
+router.get("/budgets", requirePlan("pro"), getBudgets);
+router.post("/budgets", requirePlan("pro"), createBudget);
+router.put("/budgets/:id", requirePlan("pro"), updateBudget);
+router.delete("/budgets/:id", requirePlan("pro"), deleteBudget);
 
 // Tax rules
 router.get("/tax-rules", getTaxRules);

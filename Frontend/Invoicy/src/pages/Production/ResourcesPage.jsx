@@ -92,15 +92,15 @@ const ResourcesPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Resources</h2>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-white">Resources</h2>
         <div className="flex items-center gap-2">
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm">
             <option value="">All types</option>
             <option value="machine">Machine</option>
             <option value="labor">Labor</option>
           </select>
-          <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add resource</Button>
+          <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add resource</Button>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

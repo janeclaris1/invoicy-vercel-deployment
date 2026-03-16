@@ -41,6 +41,11 @@ import ProjectsLayout from "./pages/Projects/ProjectsLayout";
 import ProjectsListPage from "./pages/Projects/ProjectsListPage";
 import ProjectDetailPage from "./pages/Projects/ProjectDetailPage";
 import TimeEntriesPage from "./pages/Projects/TimeEntriesPage";
+import SectionTimelinePage from "./pages/shared/SectionTimelinePage";
+import SectionNotesPage from "./pages/shared/SectionNotesPage";
+import SectionCalendarPage from "./pages/shared/SectionCalendarPage";
+import SectionDocumentsFormsPage from "./pages/shared/SectionDocumentsFormsPage";
+import ProjectDocumentsPage from "./pages/Projects/ProjectDocumentsPage";
 import ProductionLayout from "./pages/Production/ProductionLayout";
 import WorkOrdersPage from "./pages/Production/WorkOrdersPage";
 import BOMPage from "./pages/Production/BOMPage";
@@ -97,6 +102,8 @@ import DealsPage from "./pages/CRM/DealsPage";
 import MeetingsPage from "./pages/CRM/MeetingsPage";
 import CRMReportsPage from "./pages/CRM/CRMReportsPage";
 import SubscriptionRequired from "./pages/SubscriptionRequired/SubscriptionRequired";
+import TermsOfService from "./pages/Legal/TermsOfService";
+import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -122,7 +129,8 @@ const App = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/subscription-required" element={<SubscriptionRequired />} />
-
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
           {/*Protected Routes*/}
           <Route element={<ProtectedRoute />}>
@@ -156,6 +164,11 @@ const App = () => {
             <Route path="projects" element={<ProjectsLayout />}>
               <Route index element={<ProjectsListPage />} />
               <Route path="time" element={<TimeEntriesPage />} />
+              <Route path="timeline" element={<SectionTimelinePage />} />
+              <Route path="notes" element={<SectionNotesPage />} />
+              <Route path="calendar" element={<SectionCalendarPage />} />
+              <Route path="project-documents" element={<ProjectDocumentsPage />} />
+              <Route path="documents" element={<SectionDocumentsFormsPage />} />
               <Route path=":id" element={<ProjectDetailPage />} />
             </Route>
             <Route path="production" element={<ProductionLayout />}>
@@ -164,6 +177,10 @@ const App = () => {
               <Route path="bom" element={<BOMPage />} />
               <Route path="resources" element={<ResourcesPage />} />
               <Route path="maintenance" element={<MaintenancePage />} />
+              <Route path="timeline" element={<SectionTimelinePage />} />
+              <Route path="notes" element={<SectionNotesPage />} />
+              <Route path="calendar" element={<SectionCalendarPage />} />
+              <Route path="documents" element={<SectionDocumentsFormsPage />} />
             </Route>
             <Route path="supply-chain" element={<SupplyChainLayout />}>
               <Route index element={<Navigate to="inventory" replace />} />
@@ -172,6 +189,10 @@ const App = () => {
               <Route path="suppliers" element={<SupplyChainSuppliersPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
               <Route path="forecasting" element={<ForecastingPage />} />
+              <Route path="timeline" element={<SectionTimelinePage />} />
+              <Route path="notes" element={<SectionNotesPage />} />
+              <Route path="calendar" element={<SectionCalendarPage />} />
+              <Route path="documents" element={<SectionDocumentsFormsPage />} />
             </Route>
             <Route path="hr/records" element={<HrRecords />} />
             <Route path="hr/onboarding" element={<HrOnboarding />} />

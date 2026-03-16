@@ -100,6 +100,7 @@ const invoiceSchema = new mongoose.Schema({
     branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
     convertedFromProforma: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
     convertedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
+    // GRA E-VAT invoice response (from VSDC after submit)
     graQrCode: { type: String },
     graVerificationUrl: { type: String },
     graVerificationCode: { type: String },
@@ -108,6 +109,11 @@ const invoiceSchema = new mongoose.Schema({
     graReceiptDateTime: { type: Date },
     graMrc: { type: String },
     graReceiptSignature: { type: String },
+    graDistributorTin: { type: String },
+    graMcDateTime: { type: Date },
+    graFlag: { type: String },
+    graLineItemCount: { type: Number },
+    graStatus: { type: String },
     vatScenario: { type: String, enum: ['inclusive', 'exclusive'], default: 'inclusive' },
 }, { timestamps: true }
 

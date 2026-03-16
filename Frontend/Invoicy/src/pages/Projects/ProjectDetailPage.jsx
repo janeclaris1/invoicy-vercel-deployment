@@ -265,13 +265,13 @@ const ProjectDetailPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button type="button" onClick={() => navigate("/projects")} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-400">
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex items-center gap-4">
+        <button type="button" onClick={() => navigate("/projects")} className="p-2 rounded-lg border border-white text-white hover:bg-white/10">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate">{project.name}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h2 className="text-xl font-bold text-white truncate">{project.name}</h2>
+          <p className="text-sm text-slate-200">
             {statusLabels[project.status]} · {project.taskCount ?? 0} tasks · {(project.totalHours ?? 0).toFixed(1)}h logged
             {project.budgetAmount != null && ` · Budget: ${formatCurrency(project.budgetAmount, project.currency || "GHS")}`}
           </p>

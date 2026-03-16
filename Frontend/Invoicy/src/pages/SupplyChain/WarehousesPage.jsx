@@ -77,9 +77,9 @@ const WarehousesPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Warehouses</h2>
-        <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add warehouse</Button>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-white">Warehouses</h2>
+        <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add warehouse</Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {warehouses.length === 0 ? (

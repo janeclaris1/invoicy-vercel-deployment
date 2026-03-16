@@ -11,7 +11,7 @@ import {
 import {API_PATHS} from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { COUNTRY_CURRENCIES } from "../../utils/countriesCurrencies";
 
 
@@ -52,6 +52,7 @@ const SignUp = () => {
     password: "",
     confirmPassword: "",
     country: "",
+    agreeToTerms: false,
   });
   
   // UI state
@@ -153,7 +154,7 @@ const SignUp = () => {
     const isCountryValid = !!formData.country && COUNTRY_CURRENCIES.some((c) => c.country === formData.country);
     const isPasswordStrong = formData.password.length >= 6 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password);
     const isConfirmPasswordValid = formData.confirmPassword === formData.password && formData.confirmPassword.length > 0;
-    return isNameValid && isEmailValid && isCountryValid && isPasswordStrong && isConfirmPasswordValid;
+    return isNameValid && isEmailValid && isCountryValid && isPasswordStrong && isConfirmPasswordValid && formData.agreeToTerms === true;
   };
 
   // ==================== FORM SUBMISSION ====================
@@ -198,6 +199,7 @@ const SignUp = () => {
         plan,
         interval,
         currency: baseCurrency,
+        agreeToTerms: formData.agreeToTerms === true,
       });
 
       if (response.status === 201 || response.status === 200) {
@@ -390,21 +392,34 @@ const SignUp = () => {
             </div>
           )}
 
-          {/* Terms & Condition */}
-          <div className="flex items-start space-x-2">
+          {/* Terms & Privacy – required for enforceability */}
+          <div className="flex items-start gap-3">
             <input
               type="checkbox"
               id="terms"
+              checked={formData.agreeToTerms}
+              onChange={(e) => setFormData((prev) => ({ ...prev, agreeToTerms: e.target.checked }))}
               className="mt-1 w-4 h-4 text-blue-900 border-gray-300 rounded focus:ring-blue-900"
-              required 
+              required
+              aria-required="true"
             />
-            <label htmlFor="terms" className="text-sm text-gray-600">
+            <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
               I agree to the{" "}
-              <button type="button" className="text-blue-900 font-medium hover:underline">Terms of Service</button>{" "}
+              <Link to="/terms" className="text-blue-900 font-medium hover:underline" target="_blank" rel="noopener noreferrer">
+                Terms of Service
+              </Link>{" "}
               and{" "}
-              <button type="button" className="text-blue-900 font-medium hover:underline">Privacy Policy</button>
+              <Link to="/privacy" className="text-blue-900 font-medium hover:underline" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </Link>
+              .
             </label>
           </div>
+          {!formData.agreeToTerms && (
+            <p className="text-xs text-gray-500 -mt-2">
+              You must accept the Terms of Service and Privacy Policy to create an account.
+            </p>
+          )}
 
           {/* Sign Up Button */}
           <button

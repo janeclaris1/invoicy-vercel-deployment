@@ -203,14 +203,14 @@ const ProcurementPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Purchase orders</h2>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-white">Purchase orders</h2>
         <div className="flex items-center gap-2">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm">
             <option value="">All statuses</option>
             {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> New PO</Button>
+          <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> New PO</Button>
         </div>
       </div>
 

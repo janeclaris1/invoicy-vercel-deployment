@@ -146,24 +146,31 @@ const InvoiceDetail = () => {
       // Show success immediately when GRA accepts (no throw = success)
       toast.success("Invoice submitted to GRA successfully.");
 
-      const res = data?.response || data;
-      const mesaage = res?.mesaage || res?.message || data?.response?.mesaage;
-      const qrCode =
-        res?.qr_code ?? data?.qr_code ?? mesaage?.qr_code ?? res?.verificationUrl ?? data?.verificationUrl ?? mesaage?.verificationUrl;
+      // GRA invoice response: distributor_tin, num, ysdcid, ysdcrecnum, ysdcintdata, ysdcregsig, ysdcmrc, ysdcmrctime, ysdctime, flag, ysdcitems, qr_code, status
+      const res = data?.response || data?.data || data;
+      const msg = res?.message ?? res?.mesaage ?? data?.message ?? data?.mesaage;
+      const r = msg || res;
+      const qrCode = res?.qr_code ?? data?.qr_code ?? r?.qr_code ?? res?.verificationUrl ?? data?.verificationUrl ?? r?.verificationUrl;
       const verificationUrl = (typeof qrCode === "string" && qrCode.trim() && /^(https?:\/\/|data:)/i.test(qrCode.trim()))
         ? qrCode.trim()
-        : (res?.verificationUrl ?? data?.verificationUrl ?? mesaage?.verificationUrl ?? null);
-      const verificationCode =
-        res?.verificationCode ?? data?.verificationCode ?? mesaage?.ysdcintdata ?? res?.ysdcintdata ?? data?.ysdcintdata ?? mesaage?.verificationCode;
+        : (res?.verificationUrl ?? data?.verificationUrl ?? r?.verificationUrl ?? null);
+      const verificationCode = res?.verificationCode ?? data?.verificationCode ?? r?.ysdcintdata ?? res?.ysdcintdata ?? data?.ysdcintdata ?? r?.verificationCode;
       const updates = {};
       if (verificationUrl && String(verificationUrl).trim()) updates.graVerificationUrl = String(verificationUrl).trim();
       if (verificationCode && String(verificationCode).trim()) updates.graVerificationCode = String(verificationCode).trim();
       if (qrCode && String(qrCode).startsWith("data:image")) updates.graQrCode = qrCode;
-      if (mesaage?.ysdcid) updates.graSdcId = String(mesaage.ysdcid).trim();
-      if (mesaage?.ysdcrecnum) updates.graReceiptNumber = String(mesaage.ysdcrecnum).trim();
-      if (mesaage?.ysdctime) updates.graReceiptDateTime = mesaage.ysdctime;
-      if (mesaage?.mrc) updates.graMrc = String(mesaage.mrc).trim();
-      if (mesaage?.receiptSignature || mesaage?.signature) updates.graReceiptSignature = String(mesaage.receiptSignature || mesaage.signature || "").trim();
+      if (r?.ysdcid != null) updates.graSdcId = String(r.ysdcid).trim();
+      if (r?.ysdcrecnum != null) updates.graReceiptNumber = String(r.ysdcrecnum).trim();
+      if (r?.ysdctime != null) updates.graReceiptDateTime = r.ysdctime;
+      if (r?.ysdcmrc != null) updates.graMrc = String(r.ysdcmrc).trim();
+      if (r?.mrc != null && updates.graMrc == null) updates.graMrc = String(r.mrc).trim();
+      const sig = r?.ysdcregsig ?? r?.receiptSignature ?? r?.signature;
+      if (sig != null) updates.graReceiptSignature = String(sig).trim();
+      if (r?.distributor_tin != null) updates.graDistributorTin = String(r.distributor_tin).trim();
+      if (r?.ysdcmrctime != null) updates.graMcDateTime = r.ysdcmrctime;
+      if (r?.flag != null) updates.graFlag = String(r.flag).trim();
+      if (r?.ysdcitems != null) updates.graLineItemCount = Number(r.ysdcitems);
+      if (r?.status != null || data?.status != null) updates.graStatus = String(r?.status ?? data?.status ?? "").trim();
 
       if (Object.keys(updates).length > 0) {
         await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(id), updates);

@@ -127,6 +127,10 @@ export const TEAM_MEMBERS = [
     },
 ];
 
+// Plan-based feature access: Basic = 1 branch, basic accounting, CRM contacts only
+export const BASIC_PLAN_ACCOUNTING_TABS = ["chart-of-accounts", "journal-entries", "expenditures", "bills", "tax-and-currency"];
+export const BASIC_PLAN_CRM_TABS = ["contacts"];
+
 const PRICING_PLANS = [
     {
         name: "Basic",
@@ -134,6 +138,9 @@ const PRICING_PLANS = [
         annualPrice: 5300,
         currency: "GHS",
         features: [
+            "1 branch",
+            "Basic accounting (chart of accounts, journal entries, expenditures, bills, tax & currency)",
+            "CRM: contacts only",
             "Up to 100 invoices/month",
             "1 user included",
             "Email support",
@@ -249,10 +256,13 @@ export const NAVIGATION_MENU = [
             { id: "accounting/chart-of-accounts", name: "Chart of Accounts", icon: null, responsibility: "accounting" },
             { id: "accounting/journal-entries", name: "Journal Entries", icon: null, responsibility: "accounting" },
             { id: "accounting/expenditures", name: "Expenditures", icon: null, responsibility: "accounting" },
+            { id: "accounting/bills", name: "Bills (AP)", icon: null, responsibility: "accounting" },
+            { id: "accounting/budgets", name: "Budgets", icon: null, responsibility: "accounting" },
             { id: "accounting/general-ledger", name: "General Ledger", icon: null, responsibility: "accounting" },
             { id: "accounting/trial-balance", name: "Trial Balance", icon: null, responsibility: "accounting" },
             { id: "accounting/profit-loss", name: "Profit & Loss", icon: null, responsibility: "accounting" },
             { id: "accounting/balance-sheet", name: "Balance Sheet", icon: null, responsibility: "accounting" },
+            { id: "accounting/tax-and-currency", name: "Tax & Currency", icon: null, responsibility: "accounting" },
         ],
     },
     {

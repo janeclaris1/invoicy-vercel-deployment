@@ -170,10 +170,15 @@ export const API_PATHS = {
         GENERATE_REMINDER: "api/ai/generate-reminder",
         GET_DASHBOARD_SUMMARY: "api/ai/dashboard-summary",
         GENERATE_POLICY: "api/ai/generate-policy",
+        GENERATE_DOCUMENT: "api/ai/generate-document",
+        PROJECT_DOCUMENT_QUESTIONS: (documentType) => `api/ai/project-document/questions/${documentType}`,
+        PROJECT_DOCUMENT_GENERATE: "api/ai/project-document/generate",
     },
     GRA: {
         SUBMIT_INVOICE: "api/gra/submit-invoice",
         SUBMIT_VAT_RETURN: "api/gra/submit-vat-return",
+        TIN_DETAILS: (tin) => `api/gra/tin-details/${encodeURIComponent(tin)}`,
+        GHANA_CARD_DETAILS: (nationalId) => `api/gra/ghana-card-details/${encodeURIComponent(nationalId)}`,
     },
     ACCOUNTING: {
         ACCOUNTS: "api/accounting/accounts",
@@ -201,8 +206,15 @@ export const API_PATHS = {
     DOCUMENTS: {
         LIST: "api/documents",
         UPLOAD: "api/documents",
+        EXPORT_DOCX: "api/documents/export-docx",
         GET: (id) => `api/documents/${id}`,
         DELETE: (id) => `api/documents/${id}`,
+    },
+    SECTION_NOTES: {
+        LIST: "api/section-notes",
+        CREATE: "api/section-notes",
+        UPDATE: (id) => `api/section-notes/${id}`,
+        DELETE: (id) => `api/section-notes/${id}`,
     },
     PROJECTS: {
         LIST: "api/projects",

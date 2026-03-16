@@ -9,7 +9,7 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ProfileDropdown from "./ProfileDropdown";
-import { NAVIGATION_MENU, canAccessNav } from "../../utils/data";
+import { NAVIGATION_MENU, canAccessNav, BASIC_PLAN_ACCOUNTING_TABS } from "../../utils/data";
 import { useTranslation } from "react-i18next";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -230,6 +230,23 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const sidebarCollapsed = !isMobile && false; // Set to true to collapse sidebar on desktop
 
+    const plan = (user?.subscription?.plan || "basic").toLowerCase();
+    const isTrialActive =
+        (user?.subscription?.status || "").toLowerCase() === "trialing" &&
+        user?.subscription?.currentPeriodEnd &&
+        new Date(user.subscription.currentPeriodEnd).getTime() > Date.now();
+    const isBasicPlan = plan === "basic" && !isTrialActive;
+
+    const filterNavChildren = (item, children) => {
+        if (!children || children.length === 0) return children;
+        if (item.id === "accounting" && isBasicPlan) {
+            return children.filter((c) => {
+                const segment = c.id.replace(/^accounting\//, "");
+                return BASIC_PLAN_ACCOUNTING_TABS.includes(segment);
+            });
+        }
+        return children;
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex">
@@ -258,8 +275,9 @@ const DashboardLayout = ({ children, activeMenu }) => {
                 {/* Navigation - scrollable so it doesn't overlap logout */}
                 <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-2">
                     {NAVIGATION_MENU.filter((item) => canAccessNav(item, user)).map((item) => {
-                        const navItem = item.children
-                            ? { ...item, children: item.children.filter((c) => canAccessNav(c, user)) }
+                        const baseChildren = item.children ? item.children.filter((c) => canAccessNav(c, user)) : null;
+                        const navItem = baseChildren != null
+                            ? { ...item, children: filterNavChildren(item, baseChildren) }
                             : item;
                         return navItem.children?.length === 0 && item.children?.length
                             ? null

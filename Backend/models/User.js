@@ -36,6 +36,7 @@ const userSchema = new mongoose.Schema({
     branches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Branch' }],
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
+    agreedToTermsAt: { type: Date, default: null },
     graCompanyReference: { type: String, default: '' },
     graSecurityKey: { type: String, default: '' },
     graVatScenario: { type: String, enum: ['inclusive', 'exclusive'], default: 'inclusive' },

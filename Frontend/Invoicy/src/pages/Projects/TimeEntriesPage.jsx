@@ -127,14 +127,14 @@ const TimeEntriesPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <Clock className="w-5 h-5" /> Time entries
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Log and view time across projects</p>
+          <p className="text-sm text-slate-200">Log and view time across projects</p>
         </div>
-        <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> Log time</Button>
+        <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> Log time</Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

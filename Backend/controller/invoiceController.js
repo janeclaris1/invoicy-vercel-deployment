@@ -371,6 +371,11 @@ exports.updateInvoice = async (req, res) => {
             graReceiptDateTime,
             graMrc,
             graReceiptSignature,
+            graDistributorTin,
+            graMcDateTime,
+            graFlag,
+            graLineItemCount,
+            graStatus,
         } = req.body;
 
         // Merge billFrom with company settings from user profile when updating
@@ -535,6 +540,11 @@ exports.updateInvoice = async (req, res) => {
         if (graReceiptDateTime !== undefined) updatePayload.graReceiptDateTime = graReceiptDateTime || null;
         if (graMrc !== undefined) updatePayload.graMrc = graMrc || null;
         if (graReceiptSignature !== undefined) updatePayload.graReceiptSignature = graReceiptSignature || null;
+        if (graDistributorTin !== undefined) updatePayload.graDistributorTin = graDistributorTin || null;
+        if (graMcDateTime !== undefined) updatePayload.graMcDateTime = graMcDateTime || null;
+        if (graFlag !== undefined) updatePayload.graFlag = graFlag || null;
+        if (graLineItemCount !== undefined) updatePayload.graLineItemCount = graLineItemCount ?? null;
+        if (graStatus !== undefined) updatePayload.graStatus = graStatus || null;
 
         const updateInvoice = await Invoice.findByIdAndUpdate(
             req.params.id,

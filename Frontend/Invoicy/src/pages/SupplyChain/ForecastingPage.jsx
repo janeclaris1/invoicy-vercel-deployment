@@ -105,13 +105,13 @@ const ForecastingPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Demand forecasting</h2>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-white">Demand forecasting</h2>
         <div className="flex items-center gap-2">
           <select value={yearFilter} onChange={(e) => setYearFilter(Number(e.target.value))} className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm">
             {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-          <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add forecast</Button>
+          <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add forecast</Button>
         </div>
       </div>
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-600 overflow-hidden">

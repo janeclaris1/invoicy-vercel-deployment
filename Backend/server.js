@@ -48,6 +48,7 @@ const documentRoutes = require("./routes/documentRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const productionRoutes = require("./routes/productionRoutes");
 const supplyChainRoutes = require("./routes/supplyChainRoutes");
+const sectionNoteRoutes = require("./routes/sectionNoteRoutes");
 const { attachAudit } = require("./middlewares/auditMiddleware");
 const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
@@ -203,6 +204,7 @@ app.use("/api/documents", authLimiter, documentRoutes);
 app.use("/api/projects", authLimiter, projectRoutes);
 app.use("/api/production", authLimiter, productionRoutes);
 app.use("/api/supply-chain", authLimiter, supplyChainRoutes);
+app.use("/api/section-notes", authLimiter, sectionNoteRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {

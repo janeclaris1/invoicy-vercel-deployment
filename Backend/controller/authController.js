@@ -87,8 +87,11 @@ exports.createPendingSignup = async (req, res, next) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.registerUser = async (req, res, next) => {
-    const { name, email, password, currency, plan, interval } = req.body;
+    const { name, email, password, currency, plan, interval, agreeToTerms } = req.body;
     try {
+        if (!agreeToTerms) {
+            return res.status(400).json({ message: 'You must agree to the Terms of Service and Privacy Policy to sign up.' });
+        }
         // Validation is handled by express-validator middleware
         // check if user exists
         const userExists = await User.findOne({ email });
@@ -100,8 +103,14 @@ exports.registerUser = async (req, res, next) => {
                 ? currency
                 : 'GHS';
 
-        // Create user
-        const user = await User.create({ name, email, password, currency: currencyNorm });
+        // Create user (record consent timestamp for enforceability)
+        const user = await User.create({
+            name,
+            email,
+            password,
+            currency: currencyNorm,
+            agreedToTermsAt: new Date(),
+        });
 
         let subscription = null;
         // If plan and interval are provided, start a 7-day free trial subscription
@@ -428,7 +437,8 @@ exports.getMe = async (req, res) => {
         const adminEmails = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
         const userEmailNorm = (user.email || '').trim().toLowerCase();
         const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
-        const subscription = await Subscription.findOne({ user: user._id }).lean();
+        const ownerId = user.createdBy || user._id;
+        const subscription = await Subscription.findOne({ user: ownerId }).lean();
         const payload = {
             _id: user._id,
             name: user.name,

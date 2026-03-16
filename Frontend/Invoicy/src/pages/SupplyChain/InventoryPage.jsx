@@ -55,8 +55,8 @@ const InventoryPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Inventory overview</h2>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-white">Inventory overview</h2>
         <div className="flex items-center gap-2">
           <select
             value={warehouseFilter}
@@ -66,7 +66,7 @@ const InventoryPage = () => {
             <option value="">All locations</option>
             {warehouses.map((w) => <option key={w._id} value={w._id}>{w.name}</option>)}
           </select>
-          <Link to="/stock" className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+          <Link to="/stock" className="text-sm text-white border border-white rounded-lg px-3 py-2 hover:bg-white/10 flex items-center gap-1">
             Stock management <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

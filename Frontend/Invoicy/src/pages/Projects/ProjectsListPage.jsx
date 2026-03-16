@@ -130,10 +130,10 @@ const ProjectsListPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Projects</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Create and manage projects, tasks, and track time</p>
+          <h2 className="text-lg font-semibold text-white">Projects</h2>
+          <p className="text-sm text-slate-200">Create and manage projects, tasks, and track time</p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -146,7 +146,7 @@ const ProjectsListPage = () => {
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
-          <Button onClick={openCreate} className="flex items-center gap-2">
+          <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> New Project
           </Button>
         </div>

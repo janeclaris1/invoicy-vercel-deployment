@@ -7,6 +7,7 @@ const Button = ({
     isLoading=false,
     children,
     Icon: Icon,
+    className = '',
     ...Props
 }) => {
 
@@ -16,6 +17,7 @@ const Button = ({
         primary:'bg-blue-900 hover:bg-blue-800 text-white',
         secondary:'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200',
         ghost: 'bg-transparent hover:bg-slate-100 text-slate-700',
+        whiteOutline: 'bg-transparent hover:bg-white/10 text-white border border-white rounded-lg',
     };
 
     const sizeClasses = {
@@ -26,7 +28,7 @@ const Button = ({
 
  return (
     <button
-        className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]}`}
+        className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`.trim()}
         disabled={isLoading}
         {...Props}
     >

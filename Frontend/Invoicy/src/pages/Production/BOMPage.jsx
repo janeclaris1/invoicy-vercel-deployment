@@ -111,8 +111,8 @@ const BOMPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bill of Materials</h2>
+      <div className="rounded-lg bg-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-white">Bill of Materials</h2>
         <div className="flex items-center gap-2">
           <select
             value={parentFilter}
@@ -122,7 +122,7 @@ const BOMPage = () => {
             <option value="">All parents</option>
             {items.map((i) => <option key={i._id} value={i._id}>{i.name}</option>)}
           </select>
-          <Button onClick={openCreate} className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add BOM line</Button>
+          <Button onClick={openCreate} variant="whiteOutline" className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add BOM line</Button>
         </div>
       </div>
 

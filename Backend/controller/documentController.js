@@ -1,7 +1,8 @@
 /**
  * Document API — list/upload/get/delete documents linked to entities.
  */
-const Document = require("../models/Document");
+const { Document, Packer, Paragraph, TextRun } = require("docx");
+const DocumentModel = require("../models/Document");
 
 const list = async (req, res) => {
   try {
@@ -10,7 +11,7 @@ const list = async (req, res) => {
     const filter = { user: userId };
     if (entityType) filter.entityType = entityType;
     if (entityId) filter.entityId = entityId;
-    const docs = await Document.find(filter)
+    const docs = await DocumentModel.find(filter)
       .select("name entityType entityId mimeType size createdAt uploadedBy")
       .sort({ createdAt: -1 })
       .lean();
@@ -28,7 +29,7 @@ const upload = async (req, res) => {
       return res.status(400).json({ message: "name, entityType, and entityId are required" });
     }
     const size = (content && typeof content === "string") ? Buffer.byteLength(content, "utf8") : 0;
-    const doc = await Document.create({
+    const doc = await DocumentModel.create({
       user: userId,
       name: String(name).trim(),
       entityType: String(entityType).trim(),
@@ -55,7 +56,7 @@ const upload = async (req, res) => {
 const getById = async (req, res) => {
   try {
     const userId = req.user._id;
-    const doc = await Document.findOne({ _id: req.params.id, user: userId }).lean();
+    const doc = await DocumentModel.findOne({ _id: req.params.id, user: userId }).lean();
     if (!doc) return res.status(404).json({ message: "Document not found" });
     return res.json(doc);
   } catch (err) {
@@ -66,13 +67,41 @@ const getById = async (req, res) => {
 const remove = async (req, res) => {
   try {
     const userId = req.user._id;
-    const doc = await Document.findOne({ _id: req.params.id, user: userId });
+    const doc = await DocumentModel.findOne({ _id: req.params.id, user: userId });
     if (!doc) return res.status(404).json({ message: "Document not found" });
-    await Document.deleteOne({ _id: doc._id });
+    await DocumentModel.deleteOne({ _id: doc._id });
     return res.json({ message: "Document deleted" });
   } catch (err) {
     return res.status(500).json({ message: err.message || "Failed to delete document" });
   }
 };
 
-module.exports = { list, upload, getById, remove };
+const exportDocx = async (req, res) => {
+  try {
+    const { content, filename } = req.body || {};
+    const text = typeof content === "string" ? content : "";
+    const name = (typeof filename === "string" && filename.trim()) ? filename.trim() : "document.docx";
+    const baseName = name.replace(/\.docx$/i, "");
+    const safeName = baseName.replace(/[^\w\s-]/g, "") || "document";
+
+    const paragraphs = text
+      .split(/\n\n+/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => new Paragraph({ children: [new TextRun(block)] }));
+
+    if (paragraphs.length === 0) paragraphs.push(new Paragraph({ children: [new TextRun("(No content)")] }));
+
+    const doc = new Document({ sections: [{ children: paragraphs }] });
+    const buffer = await Packer.toBuffer(doc);
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}.docx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error("exportDocx error:", err);
+    res.status(500).json({ message: err.message || "Failed to export DOCX" });
+  }
+};
+
+module.exports = { list, upload, getById, remove, exportDocx };
