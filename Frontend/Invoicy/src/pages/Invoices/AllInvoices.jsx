@@ -250,7 +250,7 @@ const AllInvoices = ({ typeFilter }) => {
         </div>
       )}
       
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
         <div className="p-4 sm:p-6 border-b border-slate-200">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
@@ -311,10 +311,14 @@ const AllInvoices = ({ typeFilter }) => {
             </tr>
           </thead>
 
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white">
             {filteredInvoices.map((invoice) => (
-              <tr key={invoice._id} className="hover:bg-teal-700 group transition-colors duration-150 cursor-pointer" onClick={() => navigate(`/invoices/${invoice._id}`)}>
-                <td className="px-4 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+              <tr
+                key={invoice._id}
+                className="group cursor-pointer"
+                onClick={() => navigate(`/invoices/${invoice._id}`)}
+              >
+                <td className="px-4 py-2.5 text-sm" onClick={(e) => e.stopPropagation()}>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "quotation" ? "bg-blue-100 text-blue-800" : (invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
                     {(invoice.type || "invoice") === "quotation" ? "Quotation" : (invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
                   </span>
@@ -322,11 +326,11 @@ const AllInvoices = ({ typeFilter }) => {
                     <span className="ml-1 text-xs text-slate-500">Converted</span>
                   )}
                 </td>
-                <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>{invoice.invoiceNumber}</td>
-                <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>{invoice.billTo?.clientName || 'N/A'}</td>
-                <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>{typeof invoice.user === 'object' && invoice.user?.name ? invoice.user.name : '—'}</td>
-                <td className="px-4 py-4 text-sm text-black group-hover:text-white" onClick={() => navigate(`/invoices/${invoice._id}`)}>GH₵ {Number(invoice.grandTotal || 0).toLocaleString()}</td>
-                <td className="px-4 py-4 text-sm text-black">
+                <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50 rounded-l-lg" onClick={() => navigate(`/invoices/${invoice._id}`)}>{invoice.invoiceNumber}</td>
+                <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50" onClick={() => navigate(`/invoices/${invoice._id}`)}>{invoice.billTo?.clientName || 'N/A'}</td>
+                <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50" onClick={() => navigate(`/invoices/${invoice._id}`)}>{typeof invoice.user === 'object' && invoice.user?.name ? invoice.user.name : '—'}</td>
+                <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50" onClick={() => navigate(`/invoices/${invoice._id}`)}>GH₵ {Number(invoice.grandTotal || 0).toLocaleString()}</td>
+                <td className="px-4 py-2.5 text-sm text-black">
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     (invoice.status || "").toLowerCase() === "fully paid" || (invoice.status || "").toLowerCase() === "paid"
                       ? "bg-emerald-100 text-emerald-800 group-hover:bg-emerald-200 group-hover:text-emerald-900"
@@ -337,8 +341,8 @@ const AllInvoices = ({ typeFilter }) => {
                     {invoice.status || "Unpaid"}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-sm text-black group-hover:text-white">{invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}</td>
-                <td className="px-4 py-4 text-sm text-black">
+                <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50 rounded-r-lg">{invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}</td>
+                <td className="px-4 py-2.5 text-sm text-black">
                   <div className="flex items-center justify-end gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                     {((invoice.type || "invoice") === "proforma" || (invoice.type || "invoice") === "quotation") && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
                       <Button
