@@ -182,7 +182,9 @@ exports.submitInvoice = async (req, res) => {
             items: itemsForGra,
         };
         if (totalExciseAmount > 0) body.totalExciseAmount = totalExciseAmount;
-        const data = await callGRA(user, "/taxpayer/invoice", "POST", body);
+        // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
+        const invoicePath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
+        const data = await callGRA(user, invoicePath, "POST", body);
         res.json(data);
     } catch (err) {
         console.error("GRA submitInvoice error:", err.message, err.graStatus, err.graResponse);

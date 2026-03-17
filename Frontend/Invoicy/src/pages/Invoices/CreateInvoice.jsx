@@ -601,11 +601,11 @@ const CreateInvoice = () => {
               required
             />
             <InputField
-              label="Supplier TIN"
+              label="Your Company TIN (from Settings)"
               name="tin"
               value={formData.billFrom.tin}
               onChange={(e) => handleInputChange(e, "billFrom")}
-              required
+              readOnly
             />
             <InputField
               label="Phone"
@@ -624,6 +624,12 @@ const CreateInvoice = () => {
               value={formData.billTo.clientName}
               onChange={(e) => handleInputChange(e, "billTo")}
               required
+            />
+            <InputField
+              label="Customer TIN (Buyer TIN)"
+              name="tin"
+              value={formData.billTo.tin}
+              onChange={(e) => handleInputChange(e, "billTo")}
             />
             <InputField
               label="Email"
