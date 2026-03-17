@@ -341,20 +341,22 @@ const InvoiceDetail = () => {
         <div className="invoice-bill-from-to grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 mt-6">
           <div className="text-left">
             <h3 className="text-sm font-semibold text-black dark:text-black mb-2">Bill From</h3>
-            <div className="text-sm text-black dark:text-black">
+            <div className="text-sm text-black dark:text-black space-y-1">
               <div>{invoice.billFrom?.businessName || user?.businessName || "-"}</div>
               <div>{invoice.billFrom?.email || user?.email || "-"}</div>
               <div>{invoice.billFrom?.address || user?.address || "-"}</div>
               <div>{invoice.billFrom?.phone || user?.phone || "-"}</div>
               <div>TIN: {invoice.billFrom?.tin || user?.tin || "-"}</div>
+              <div className="mt-2">
+                <div>Date: {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</div>
+                <div>Due: {invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</div>
+              </div>
             </div>
           </div>
           <div className="invoice-bill-to text-left">
             <h3 className="text-sm font-semibold text-black dark:text-black mb-2">Bill To</h3>
             <div className="text-sm text-black dark:text-black space-y-1 mb-3">
               <div>#{invoice.invoiceNumber}</div>
-              <div>Date: {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</div>
-              <div>Due: {invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</div>
               <div>
                 Status:{" "}
                 <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
