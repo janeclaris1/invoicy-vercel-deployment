@@ -451,29 +451,47 @@ const Reports = () => {
       return;
     }
     setSubmitting(true);
+    setGraSubmission(null);
     try {
-      const vatData = {
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
-        totalSales: reportData.summary.taxableSales,
-        standardRatedSales: reportData.summary.taxableSales,
-        zeroRatedSales: 0,
-        exemptSales: 0,
-        totalVAT: reportData.summary.totalVat,
-        standardRateVAT: reportData.summary.totalVat,
-        nhil: reportData.summary.totalNhil,
-        getFund: reportData.summary.totalGetFund,
+      // GRA E‑VAT API VER 8.2 does not expose a VAT-return endpoint. The closest supported flow
+      // for submitting a period summary is "Statement of Account" (grouped invoices).
+      const groupReferenceId = `GRP-${moment(dateRange.startDate).format("YYYYMMDD")}-${moment(dateRange.endDate).format("YYYYMMDD")}`;
+      const invoicesForVat = filteredInvoices.filter((inv) => (inv.type || "invoice") !== "proforma" && (inv.type || "invoice") !== "quotation");
+
+      const payload = {
+        currency: (userCurrency || "GHS").toUpperCase(),
+        exchangeRate: 1,
+        totalVat: reportData.summary.totalVat,
+        totalAmount: reportData.summary.totalSales,
         totalLevies: reportData.summary.totalLevies,
-        totalTax: reportData.summary.totalTax,
-        inputVAT: 0,
-        netVAT: reportData.summary.totalVat,
-        invoices: [],
+        userName: user?.businessName || user?.name || "User",
+        businessPartnerName: "Tax period",
+        businessPartnerTin: "C0000000000",
+        groupReferenceId,
+        transactionDate: new Date().toISOString(),
+        calculationType: "INCLUSIVE",
+        groupInvoiceLines: invoicesForVat.map((inv) => ({
+          currency: (userCurrency || "GHS").toUpperCase(),
+          exchangeRate: 1,
+          calculationType: (inv.vatScenario || "inclusive") === "exclusive" ? "EXCLUSIVE" : "INCLUSIVE",
+          invoiceNumber: inv.invoiceNumber,
+          reference: inv.graRefundReference || "",
+          flag: "INVOICE",
+          invoiceVat: Number(inv.totalVat || 0),
+          invoiceAmount: Number(inv.grandTotal || 0),
+          invoiceLevies:
+            Number(inv.totalNhil || 0) +
+            Number(inv.totalGetFund || 0) +
+            Number(inv.totalCst || 0) +
+            Number(inv.totalTourism || 0),
+          transactionDate: inv.invoiceDate || new Date().toISOString(),
+        })),
       };
-      const response = await axiosInstance.post(API_PATHS.GRA.SUBMIT_VAT_RETURN, vatData);
+
+      const response = await axiosInstance.post(API_PATHS.GRA.STATEMENT_OF_ACCOUNT, payload);
       const data = response?.data ?? response;
       setGraSubmission(data);
-      const invoiceNum = data?.response?.mesaage?.num || data?.referenceNumber || "N/A";
-      toast.success(`Successfully submitted to GRA! Invoice: ${invoiceNum}`, { duration: 5000 });
+      toast.success(`Successfully submitted to GRA! Group Ref: ${groupReferenceId}`, { duration: 5000 });
     } catch (error) {
       console.error("GRA Submission Error:", error);
       toast.error(
@@ -792,26 +810,26 @@ const Reports = () => {
                     <FileCheck className="w-6 h-6 text-green-600 mt-1 mr-3" />
                     <div>
                       <h3 className="text-lg font-semibold text-green-900">Successfully Submitted to GRA</h3>
-                      <p className="text-sm text-green-700 mt-1">Your tax return has been registered with the Ghana Revenue Authority</p>
+                      <p className="text-sm text-green-700 mt-1">Your statement of account has been registered with the Ghana Revenue Authority</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="bg-white rounded-lg p-4 border border-green-200">
-                      <p className="text-xs text-gray-600 mb-1">Invoice Number</p>
-                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.mesaage?.num || 'N/A'}</p>
+                      <p className="text-xs text-gray-600 mb-1">Reference</p>
+                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.message?.num || 'N/A'}</p>
                     </div>
                     <div className="bg-white rounded-lg p-4 border border-green-200">
                       <p className="text-xs text-gray-600 mb-1">VSDC ID</p>
-                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.mesaage?.ysdcid || 'N/A'}</p>
+                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.message?.ysdcid || 'N/A'}</p>
                     </div>
                     <div className="bg-white rounded-lg p-4 border border-green-200">
                       <p className="text-xs text-gray-600 mb-1">Receipt Number</p>
-                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.mesaage?.ysdcrecnum || 'N/A'}</p>
+                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.message?.ysdcrecnum || 'N/A'}</p>
                     </div>
                     <div className="bg-white rounded-lg p-4 border border-green-200">
                       <p className="text-xs text-gray-600 mb-1">Submission Time</p>
-                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.mesaage?.ysdctime || 'N/A'}</p>
+                      <p className="text-sm font-semibold text-gray-900">{graSubmission.response.message?.ysdctime || 'N/A'}</p>
                     </div>
                   </div>
 
@@ -840,7 +858,7 @@ const Reports = () => {
                           <div className="mt-3">
                             <p className="text-xs text-gray-500 mb-1">Internal Data:</p>
                             <p className="text-xs font-mono bg-gray-50 p-2 rounded border border-gray-200 break-all">
-                              {graSubmission.response.mesaage?.ysdcintdata}
+                              {graSubmission.response.message?.ysdcintdata}
                             </p>
                           </div>
                         </div>

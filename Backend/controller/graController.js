@@ -38,12 +38,21 @@ const callGRA = async (user, path, method, body) => {
         "COMPANY_REFERENCE": companyReference,
         "SECURITY_KEY": securityKey,
         "security_key": securityKey, // VER 8.2 sample uses lowercase; some gateways expect it
+        "Security_Key": securityKey,
     };
-    const res = await fetch(url, {
-        method: method || "POST",
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-    });
+    let res;
+    try {
+        res = await fetch(url, {
+            method: method || "POST",
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+        });
+    } catch (e) {
+        const err = new Error(`Failed to reach GRA (${new URL(url).host}). ${e?.message || "Network error"}`);
+        err.graStatus = 0;
+        err.graResponse = { message: e?.message, cause: e?.cause ? String(e.cause) : undefined };
+        throw err;
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
         const msg =
@@ -68,13 +77,24 @@ const callGRAGet = async (user, path) => {
         throw new Error("GRA credentials not configured. Set Company Reference and Security Key in Settings → Company.");
     }
     const url = `${GRA_BASE_URL}${path}`;
-    const res = await fetch(url, {
-        method: "GET",
-        headers: {
-            Accept: "application/json",
-            "security_key": securityKey,
-        },
-    });
+    let res;
+    try {
+        res = await fetch(url, {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                "COMPANY_REFERENCE": companyReference,
+                "SECURITY_KEY": securityKey,
+                "security_key": securityKey,
+                "Security_Key": securityKey,
+            },
+        });
+    } catch (e) {
+        const err = new Error(`Failed to reach GRA (${new URL(url).host}). ${e?.message || "Network error"}`);
+        err.graStatus = 0;
+        err.graResponse = { message: e?.message, cause: e?.cause ? String(e.cause) : undefined };
+        throw err;
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
         const msg =
@@ -105,15 +125,7 @@ exports.submitInvoice = async (req, res) => {
         if (!invoiceId) {
             return res.status(400).json({ message: "invoiceId is required" });
         }
-        const user = await User.findById(req.user._id)
-            .select("graCompanyReference graSecurityKey businessName currency")
-            .lean();
-        if (!user) return res.status(401).json({ message: "User not found" });
-        if (!user.graCompanyReference || !user.graSecurityKey) {
-            return res.status(400).json({
-                message: "GRA credentials not configured. Set Company Reference and Security Key in Settings → Company.",
-            });
-        }
+        const user = await getGraUserOrThrow(req.user._id);
         const invoice = await Invoice.findById(invoiceId);
         if (!invoice) return res.status(404).json({ message: "Invoice not found" });
         const teamMemberIds = await getTeamMemberIds(req.user._id);
@@ -145,7 +157,8 @@ exports.submitInvoice = async (req, res) => {
                 itemCategory: line.itemCategory || "",
                 expireDate: line.expireDate || "",
                 description: (line.description || line.itemDescription || "").slice(0, 100),
-                quantity: Number(line.quantity) || 0,
+                // v8.2 examples often send these as strings; GRA accepts numeric too, but we match the sample shape.
+                quantity: String(line.quantity ?? 0),
                 levyAmountA: levyA,
                 levyAmountB: levyB,
                 levyAmountC: 0,
@@ -154,15 +167,16 @@ exports.submitInvoice = async (req, res) => {
                 discountAmount: Number(line.discount) || 0,
                 exciseAmount,
                 batchCode: line.batchCode || "",
-                unitPrice: Number(line.unitPrice ?? line.itemPrice) || 0,
+                unitPrice: String(Number(line.unitPrice ?? line.itemPrice) || 0),
             };
         });
 
         const totalExciseAmount = Number(invoice.totalExciseAmount) || 0;
+        const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
         const body = {
             currency: (user.currency || "GHS").toUpperCase(),
-            exchangeRate: 1.0,
+            exchangeRate: "1.0",
             invoiceNumber: invoice.invoiceNumber,
             totalLevy,
             userName: (user.businessName || invoice.billFrom?.businessName || "Business").slice(0, 100),
@@ -173,15 +187,17 @@ exports.submitInvoice = async (req, res) => {
             transactionDate,
             businessPartnerTin: businessPartnerTin.slice(0, 15),
             totalAmount: invoice.grandTotal ?? 0,
+            totalExciseAmount: Number.isFinite(totalExciseAmount) ? totalExciseAmount : 0,
             voucherAmount: 0,
             saleType: (invoice.saleType || "NORMAL").slice(0, 20),
             discountType: (invoice.discountType || "GENERAL").slice(0, 300),
+            taxType,
             discountAmount: invoice.totalDiscount ?? 0,
             reference: (invoice.graRefundReference || "").slice(0, 50),
             purchaseOrderReference: (invoice.purchaseOrderReference || "").slice(0, 50),
+            businessPartnerName: businessPartnerName.slice(0, 100),
             items: itemsForGra,
         };
-        if (totalExciseAmount > 0) body.totalExciseAmount = totalExciseAmount;
         // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
         const invoicePath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
         const data = await callGRA(user, invoicePath, "POST", body);
@@ -191,51 +207,6 @@ exports.submitInvoice = async (req, res) => {
         // Always return 502 for GRA upstream errors so the frontend does not treat it as auth failure (401 → redirect to login)
         res.status(502).json({
             message: err.message || "Failed to submit invoice to GRA",
-            graStatus: err.graStatus,
-            graResponse: err.graResponse,
-        });
-    }
-};
-
-// @desc    Submit VAT return to GRA (proxy using user's stored credentials)
-// @route   POST /api/gra/submit-vat-return
-// @access  Private
-exports.submitVatReturn = async (req, res) => {
-    try {
-        const vatData = req.body;
-        if (!vatData || typeof vatData !== "object") {
-            return res.status(400).json({ message: "VAT return data is required" });
-        }
-        const user = await User.findById(req.user._id).select("graCompanyReference graSecurityKey").lean();
-        if (!user) return res.status(401).json({ message: "User not found" });
-        if (!user.graCompanyReference || !user.graSecurityKey) {
-            return res.status(400).json({
-                message: "GRA credentials not configured. Set Company Reference and Security Key in Settings → Company.",
-            });
-        }
-        const body = {
-            companyReference: user.graCompanyReference,
-            period: {
-                startDate: vatData.startDate,
-                endDate: vatData.endDate,
-            },
-            totalSales: vatData.totalSales,
-            standardRatedSales: vatData.standardRatedSales ?? vatData.totalSales,
-            zeroRatedSales: vatData.zeroRatedSales || 0,
-            exemptSales: vatData.exemptSales || 0,
-            totalVAT: vatData.totalVAT,
-            standardRateVAT: vatData.standardRateVAT ?? vatData.totalVAT,
-            inputVAT: vatData.inputVAT || 0,
-            netVAT: vatData.netVAT ?? vatData.totalVAT,
-            invoices: vatData.invoices || [],
-        };
-        const data = await callGRA(user, "/taxpayer/vat-return", "POST", body);
-        res.json(data);
-    } catch (err) {
-        console.error("GRA submitVatReturn error:", err.message, err.graStatus, err.graResponse);
-        // Return 502 so frontend does not treat GRA auth errors as session expiry (no redirect to login)
-        res.status(502).json({
-            message: err.message || "Failed to submit VAT return to GRA",
             graStatus: err.graStatus,
             graResponse: err.graResponse,
         });
@@ -294,6 +265,156 @@ exports.getGhanaCardDetails = async (req, res) => {
         console.error("GRA getGhanaCardDetails error:", err.message, err.graStatus, err.graResponse);
         res.status(err.graStatus === 401 ? 401 : 502).json({
             message: err.message || "Failed to get Ghana Card details from GRA",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+const getGraUserOrThrow = async (userId) => {
+    const user = await User.findById(userId)
+        .select("createdBy graCompanyReference graSecurityKey businessName currency")
+        .lean();
+    if (!user) {
+        const err = new Error("User not found");
+        err.statusCode = 401;
+        throw err;
+    }
+
+    // Team-member accounts should use the owner's GRA credentials (company-level config).
+    if ((!user.graCompanyReference || !user.graSecurityKey) && user.createdBy) {
+        const owner = await User.findById(user.createdBy)
+            .select("graCompanyReference graSecurityKey businessName currency")
+            .lean();
+        if (owner?.graCompanyReference && owner?.graSecurityKey) return owner;
+    }
+
+    if (!user.graCompanyReference || !user.graSecurityKey) {
+        const err = new Error("GRA credentials not configured. Set Company Reference and Security Key in Settings → Company.");
+        err.statusCode = 400;
+        throw err;
+    }
+    return user;
+};
+
+/**
+ * GRA E‑VAT API (VER 8.2) proxy endpoints
+ * Based on Postman collection: https://documenter.getpostman.com/view/29809098/2sBXVeGCzK
+ */
+
+// POST /api/gra/invoice -> POST /taxpayer/{companyRef}/invoice
+exports.graInvoice = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
+        const data = await callGRA(user, path, "POST", req.body || {});
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graInvoice error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to submit invoice transaction to GRA",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+// POST /api/gra/cancellation -> POST /taxpayer/{companyRef}/cancellation
+exports.graCancellation = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/cancellation`;
+        const data = await callGRA(user, path, "POST", req.body || {});
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graCancellation error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to submit cancellation to GRA",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+// POST /api/gra/note -> POST /taxpayer/{companyRef}/note
+exports.graNote = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/note`;
+        const data = await callGRA(user, path, "POST", req.body || {});
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graNote error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to submit credit/debit note to GRA",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+// POST /api/gra/statement-of-account -> POST /taxpayer/{companyRef}/statment_of_account
+exports.graStatementOfAccount = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/statment_of_account`;
+        const data = await callGRA(user, path, "POST", req.body || {});
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graStatementOfAccount error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to submit statement of account to GRA",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+// GET /api/gra/health -> GET /taxpayer/{companyRef}/health
+exports.graHealth = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/health`;
+        const data = await callGRAGet(user, path);
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graHealth error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to check GRA health",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+// POST /api/gra/inventory -> POST /taxpayer/{companyRef}/inventory
+exports.graInventory = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/inventory`;
+        const data = await callGRA(user, path, "POST", req.body || {});
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graInventory error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to submit inventory to GRA",
+            graStatus: err.graStatus,
+            graResponse: err.graResponse,
+        });
+    }
+};
+
+// POST /api/gra/invoice-callback -> POST /taxpayer/{companyRef}/invoice/callback
+exports.graInvoiceCallback = async (req, res) => {
+    try {
+        const user = await getGraUserOrThrow(req.user._id);
+        const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice/callback`;
+        const data = await callGRA(user, path, "POST", req.body || {});
+        res.json(data);
+    } catch (err) {
+        console.error("GRA graInvoiceCallback error:", err.message, err.graStatus, err.graResponse);
+        res.status(err.statusCode || 502).json({
+            message: err.message || "Failed to fetch invoice callback details from GRA",
             graStatus: err.graStatus,
             graResponse: err.graResponse,
         });

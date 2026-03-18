@@ -8,7 +8,7 @@
 |----------|----------|
 | **InvoiceDetail.jsx** | Shows a GRA Verification QR block. If `invoice.graQrCode`, `invoice.graVerificationUrl`, or `invoice.graVerificationCode` exists: renders image (if data URL) or `<QRCode>` for URL/text. Otherwise shows placeholder "No QR". |
 | **CreateInvoice.jsx** | Same logic: shows QR when `formData.graQrCode` / `graVerificationUrl` / `graVerificationCode` is set; otherwise "QR will appear after GRA verification." Form does **not** have inputs for these fields. |
-| **Reports.jsx** (Tax report) | "Submit to GRA" submits a **period-level VAT return** via `graApi.submitVATReturn(vatData)`. On success, if `response.qr_code` exists, it shows a QR (generated via `api.qrserver.com`) and a "Verify on GRA Portal" link. This is **not** stored on any invoice. |
+| **Reports.jsx** (Tax report) | "Submit to GRA" submits a **Statement of Account** (grouped invoices) via the backend proxy `POST /api/gra/statement-of-account`. On success, if `response.qr_code` exists, it shows a QR and a "Verify on GRA Portal" link. This is **not** stored on any invoice. |
 
 ### Backend
 
@@ -18,15 +18,14 @@
 
 ### GRA API (`Frontend/Invoicy/src/utils/graApi.js`)
 
-- **submitVATReturn** – VAT return for a period; used by Reports. Response shape is assumed to include `response.qr_code` and `response.mesaage` (e.g. ysdcid, ysdcrecnum, ysdctime, ysdcintdata).
-- **submitInvoice** – Per-invoice submission. It **does not** currently use or map any `qr_code` or verification URL from the response; the response shape is not defined in code.
+- Frontend does **not** call GRA directly anymore. It calls our backend proxy endpoints (`/api/gra/*`) which implement **GRA E‑VAT API VER 8.2** and inject the user's stored credentials.
 
 ### Summary
 
 - **Display**: UI already supports showing a QR when a verification URL/code or image is present (InvoiceDetail + CreateInvoice).
 - **Persistence**: GRA fields are not in the Invoice schema and are not updated on edit, so **no GRA QR data is ever stored**.
 - **Source of QR**: 
-  - Reports: one QR per VAT return (period), shown only on the Reports page, not linked to invoices.
+  - Reports: one QR per Statement of Account (period/group), shown only on the Reports page, not linked to invoices.
   - No per-invoice "Submit to GRA" flow that fetches and saves a verification URL/QR for that invoice.
 
 ---
@@ -78,15 +77,15 @@
 - **CreateInvoice.jsx**: Same; once the backend returns these fields (e.g. when editing an invoice that has been verified), the preview will show the QR.
 - Ensure the **public/print** view uses the same fields so the QR appears on the printed/PDF invoice.
 
-### Step 4: GRA API response shape
+### Step 4: GRA API response shape (VER 8.2)
 
-- Confirm with GRA docs or staging the exact response of:
-  - **submitVATReturn** (Reports): already assumed to have `response.qr_code` (and possibly `response.mesaage`).
-  - **submitInvoice** (per-invoice): whether it returns a `qr_code`, `verificationUrl`, or similar, and map that into `graVerificationUrl` / `graVerificationCode` when saving to the invoice.
+- Confirm with the v8.2 docs/staging the exact response shapes of:
+  - **Statement of Account** (Reports): `response.qr_code` and `response.message` fields.
+  - **Invoice** (per-invoice): whether it returns a `qr_code` and map that into `graVerificationUrl` / `graVerificationCode` when saving to the invoice.
 
 ### Step 5: Optional improvements
 
-- **Reports.jsx**: If the VAT return response includes a verification URL/code that could apply to multiple invoices in the period, consider offering "Save this verification to invoices in this period" and updating those invoices with the same URL/code (if GRA allows).
+- **Reports.jsx**: If the Statement of Account response includes a verification URL/code that could apply to multiple invoices in the period, consider offering "Save this verification to invoices in this period" and updating those invoices with the same URL/code (if GRA allows).
 - **CreateInvoice**: If you add manual GRA fields (Option B), add `graVerificationUrl` / `graVerificationCode` to initial `formData` and to the create/update payload so they are sent to the backend.
 
 ---
@@ -110,6 +109,6 @@
 | `Backend/controller/invoiceController.js` | In `updateInvoice`, read and update the three GRA fields. |
 | `Frontend/Invoicy/src/pages/Invoices/InvoiceDetail.jsx` | Optionally add "Submit to GRA" button and logic to call API and save verification URL/code (and ensure QR block uses the same fields). |
 | `Frontend/Invoicy/src/pages/Invoices/CreateInvoice.jsx` | Optionally add manual GRA URL/code fields to form and payload; ensure payload includes them on create/update. |
-| `Frontend/Invoicy/src/utils/graApi.js` | If doing per-invoice submit: ensure `submitInvoice` returns and maps `qr_code` or verification URL from GRA response. |
+| `Frontend/Invoicy/src/utils/graApi.js` | If doing per-invoice submit: ensure the backend proxy call returns and maps `qr_code` or verification URL from GRA response. |
 
 Display of the GRA QR is already implemented; the missing piece is **persistence** (schema + update) and a **source** for the data (per-invoice GRA submit and/or manual entry).
