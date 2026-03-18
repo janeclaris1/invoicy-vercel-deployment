@@ -468,7 +468,7 @@ const Dashboard = () => {
 
 
       {/* Recent Invoices */}
-      <div className="w-full bg-white border border-slate-200 rounded-lg shadow-sm shadow-gray-200 overflow-hidden">
+      <div className="w-full bg-white border border-slate-200 rounded-xl shadow-sm shadow-gray-200 overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-slate-900">
             Recent Invoices
