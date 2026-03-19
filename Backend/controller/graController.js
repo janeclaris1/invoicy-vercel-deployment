@@ -122,6 +122,7 @@ const GRA_CASH_TIN = "C0000000000";
 exports.submitInvoice = async (req, res) => {
     try {
         const { invoiceId } = req.body;
+        const debugPayload = req.body?.debugPayload === true;
         if (!invoiceId) {
             return res.status(400).json({ message: "invoiceId is required" });
         }
@@ -134,21 +135,50 @@ exports.submitInvoice = async (req, res) => {
             return res.status(403).json({ message: "Unauthorized access to this invoice" });
         }
         const lineItems = Array.isArray(invoice.item) ? invoice.item : Array.isArray(invoice.items) ? invoice.items : [];
-        const totalNhil = invoice.totalNhil ?? 0;
-        const totalGetFund = invoice.totalGetFund ?? 0;
         const totalCst = invoice.totalCst ?? 0;
         const totalTourism = invoice.totalTourism ?? 0;
-        const totalLevy = totalNhil + totalGetFund + totalCst + totalTourism;
         const businessPartnerTin = invoice.billTo?.tin?.trim?.() || GRA_CASH_TIN;
-        const businessPartnerName = invoice.billTo?.clientName?.trim?.() || "Cash customer";
+        let businessPartnerName = invoice.billTo?.clientName?.trim?.() || "Cash customer";
         const invDate = invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date();
         const transactionDate = invDate.toISOString().slice(0, 10);
         const calculationType =
             (invoice.vatScenario || "inclusive") === "exclusive" ? "EXCLUSIVE" : "INCLUSIVE";
 
+        // GRA v8.2 sample uses the taxpayer name resolved from the bill-to TIN.
+        // Your invoice may store a different/empty `billTo.clientName`, so we try to resolve it.
+        if (invoice.billTo?.tin?.trim?.()) {
+            try {
+                const tinPath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/identification/tin/${encodeURIComponent(
+                    invoice.billTo.tin.trim()
+                )}`;
+                const tinData = await callGRAGet(user, tinPath);
+                const resolvedName = tinData?.data?.name || tinData?.data?.businessName;
+                if (typeof resolvedName === "string" && resolvedName.trim()) {
+                    businessPartnerName = resolvedName.trim();
+                }
+            } catch (e) {
+                // Keep invoice-stored name if lookup fails.
+            }
+        }
+
+        const VAT_RATE = 0.15;
+        const NHIL_RATE = 0.025;
+        const GETFUND_RATE = 0.025;
+
+        const roundTo = (num, decimals) => {
+            const n = Number(num) || 0;
+            const f = 10 ** decimals;
+            return Math.round(n * f) / f;
+        };
+
         const itemsForGra = lineItems.map((line, idx) => {
-            const levyA = Number(line.nhil) || 0;
-            const levyB = Number(line.getFund) || 0;
+            // Some invoices store `item.nhil/getFund` as 0 even when totals exist.
+            // In that case, recompute levies from the line base amount (`line.amount`).
+            const baseAmount = Number(line.amount) || 0;
+            const levyAFromLine = Number(line.nhil) || 0;
+            const levyBFromLine = Number(line.getFund) || 0;
+            const levyA = levyAFromLine !== 0 ? levyAFromLine : roundTo(baseAmount * NHIL_RATE, 3);
+            const levyB = levyBFromLine !== 0 ? levyBFromLine : roundTo(baseAmount * GETFUND_RATE, 3);
             const levyD = Number(line.cst) || 0;
             const levyE = Number(line.tourism) || 0;
             const exciseAmount = Number(line.exciseAmount) || 0;
@@ -161,7 +191,6 @@ exports.submitInvoice = async (req, res) => {
                 quantity: String(line.quantity ?? 0),
                 levyAmountA: levyA,
                 levyAmountB: levyB,
-                levyAmountC: 0,
                 levyAmountD: levyD,
                 levyAmountE: levyE,
                 discountAmount: Number(line.discount) || 0,
@@ -170,6 +199,19 @@ exports.submitInvoice = async (req, res) => {
                 unitPrice: String(Number(line.unitPrice ?? line.itemPrice) || 0),
             };
         });
+
+        const totalLevy = roundTo(
+            itemsForGra.reduce((sum, item) => {
+                return (
+                    sum +
+                    Number(item.levyAmountA) +
+                    Number(item.levyAmountB) +
+                    Number(item.levyAmountD) +
+                    Number(item.levyAmountE)
+                );
+            }, 0),
+            2
+        );
 
         const totalExciseAmount = Number(invoice.totalExciseAmount) || 0;
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
@@ -188,7 +230,6 @@ exports.submitInvoice = async (req, res) => {
             businessPartnerTin: businessPartnerTin.slice(0, 15),
             totalAmount: invoice.grandTotal ?? 0,
             totalExciseAmount: Number.isFinite(totalExciseAmount) ? totalExciseAmount : 0,
-            voucherAmount: 0,
             saleType: (invoice.saleType || "NORMAL").slice(0, 20),
             discountType: (invoice.discountType || "GENERAL").slice(0, 300),
             taxType,
@@ -200,6 +241,16 @@ exports.submitInvoice = async (req, res) => {
         };
         // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
         const invoicePath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
+
+        // Debug mode: return the exact computed payload so you can compare with Postman.
+        // Does NOT call GRA.
+        if (debugPayload) {
+            return res.json({
+                graEndpoint: `${GRA_BASE_URL}${invoicePath}`,
+                graPayload: body,
+            });
+        }
+
         const data = await callGRA(user, invoicePath, "POST", body);
         res.json(data);
     } catch (err) {
