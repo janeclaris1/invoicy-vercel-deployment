@@ -84,6 +84,9 @@ export const AuthProvider = ({ children }) => {
         try {
             await axiosInstance.post(API_PATHS.AUTH.LOGOUT);
         } catch (_) {}
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("authToken");
+        }
         setUser(null);
         setIsAuthenticated(false);
         window.location.href = "/";

@@ -1,6 +1,8 @@
 import axios from "axios";
 import {BASE_URL } from "./apiPaths";
 
+const AUTH_TOKEN_KEY = "authToken";
+
 const axiosInstance = axios.create({
     baseURL: BASE_URL,
     timeout: 80000,
@@ -9,6 +11,20 @@ const axiosInstance = axios.create({
         "Content-Type": "application/json",
         Accept: "application/json",
     },
+});
+
+// Attach bearer token for endpoints that expect Authorization header.
+axiosInstance.interceptors.request.use((config) => {
+    if (typeof window !== "undefined") {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        if (token) {
+            config.headers = config.headers || {};
+            if (!config.headers.Authorization) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        }
+    }
+    return config;
 });
 
 // response interceptor to handle errors globally
@@ -24,6 +40,9 @@ axiosInstance.interceptors.response.use(
                 // Unauthorized - redirect to login (cookie cleared by backend on logout or expired)
                 if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
                     window.location.href = "/login";
+                }
+                if (typeof window !== "undefined") {
+                    localStorage.removeItem(AUTH_TOKEN_KEY);
                 }
             } else if (error.response.status === 500) {
                 console.error("Server error:", "Please try again later.");

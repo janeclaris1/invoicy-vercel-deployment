@@ -4,6 +4,7 @@ import moment from "moment";
 import { Loader2, Printer, Edit2, Save, X, FileText, Building2 } from "lucide-react";
 import QRCode from "react-qr-code";
 import axiosInstance from "../../utils/axiosInstance";
+import graApi from "../../utils/graApi";
 import { API_PATHS } from "../../utils/apiPaths";
 import Button from "../../components/ui/Button";
 import { formatCurrency } from "../../utils/helper";
@@ -140,8 +141,7 @@ const InvoiceDetail = () => {
     }
     setGraSubmitting(true);
     try {
-      const response = await axiosInstance.post(API_PATHS.GRA.SUBMIT_INVOICE, { invoiceId: id });
-      const data = response?.data || response;
+      const data = await graApi.submitInvoiceById(id);
 
       // Show success immediately when GRA accepts (no throw = success)
       toast.success("Invoice submitted to GRA successfully.");

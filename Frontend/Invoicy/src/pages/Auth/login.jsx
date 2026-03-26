@@ -112,6 +112,9 @@ const Login = () => {
     try {
       const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, formData);
       if(response.status === 200){
+        if (response.data?.token && typeof window !== "undefined") {
+          localStorage.setItem("authToken", response.data.token);
+        }
         login(response.data);
           const paymentSuccess = searchParams.get("payment") === "success";
 

@@ -122,7 +122,7 @@ const spec = {
         responses: {
           200: {
             description: "List of permissions",
-            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Permission" } } },
+            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Permission" } } } },
           },
         },
       },
@@ -134,7 +134,7 @@ const spec = {
         responses: {
           200: {
             description: "List of roles with permissions",
-            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Role" } } },
+            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Role" } } } },
           },
         },
       },

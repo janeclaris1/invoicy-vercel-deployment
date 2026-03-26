@@ -54,6 +54,9 @@ const { webhook: subscriptionWebhook } = require("./controller/subscriptionContr
 
 const app = express();
 
+// Render / other reverse proxies (needed for correct client IP and secure cookies behind HTTPS)
+app.set("trust proxy", 1);
+
 // Security Headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -89,7 +92,8 @@ app.use(cors({
     callback(err);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  // Include OPTIONS so browsers’ CORS preflight succeeds; omitting it can break cross-origin requests.
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
@@ -161,7 +165,8 @@ try {
   app.use("/api-docs", serveSwagger, setupSwagger);
   logger.info("Swagger UI available at /api-docs");
 } catch (e) {
-  logger.warn("Swagger not loaded: " + String(e && e.message || e));
+  const swaggerErr = e && (e.stack || e.message) ? (e.stack || e.message) : String(e);
+  logger.warn("Swagger not loaded: " + swaggerErr);
 }
 
 // Define Routes Here

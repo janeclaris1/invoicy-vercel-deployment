@@ -7,7 +7,9 @@ const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => (req.originalUrl || req.url || req.path || '').startsWith('/api/messages'),
+  skip: (req) =>
+    req.method === 'OPTIONS' ||
+    (req.originalUrl || req.url || req.path || '').startsWith('/api/messages'),
 });
 
 // Stricter rate limiter for auth routes (failed attempts only, skipSuccessfulRequests: true)
