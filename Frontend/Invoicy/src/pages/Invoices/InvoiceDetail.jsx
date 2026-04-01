@@ -345,8 +345,14 @@ const InvoiceDetail = () => {
               />
           </div>
         )}
-        <div className="invoice-bill-from-to mt-6 mx-auto w-[40%] min-w-[520px] max-w-4xl print:max-w-none print:w-full text-left border border-black rounded-xl overflow-hidden">
-          <table className="w-full text-xs text-black table-auto">
+        <div className="invoice-bill-from-to mt-6 text-left border border-black rounded-xl overflow-hidden">
+          <table className="w-full text-xs text-black table-fixed">
+            <colgroup>
+              <col className="w-1/4" />
+              <col className="w-1/4" />
+              <col className="w-1/4" />
+              <col className="w-1/4" />
+            </colgroup>
             <tbody>
               <tr className="border-b border-black">
                 <td className="px-3 py-1.5 font-medium w-44">Customer Name:</td>
