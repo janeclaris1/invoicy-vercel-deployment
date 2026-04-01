@@ -135,9 +135,16 @@ const InvoiceDetail = () => {
       toast.error("Submit to GRA is only available for tax invoices. Convert this document to an invoice first.");
       return;
     }
+    // Don't hard-block based on local user state only:
+    // team members may use owner-level GRA credentials on the backend.
     if (!user?.graCredentialsConfigured) {
-      toast.error("Configure GRA credentials in Settings → Company (Company Reference and Security Key) to submit to GRA.");
-      return;
+      try {
+        await graApi.health();
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Configure GRA credentials in Settings → Company (Company Reference and Security Key) to submit to GRA.";
+        toast.error(msg);
+        return;
+      }
     }
     setGraSubmitting(true);
     try {

@@ -120,6 +120,7 @@ const GRA_CASH_TIN = "C0000000000";
 // @route   POST /api/gra/submit-invoice
 // @access  Private
 exports.submitInvoice = async (req, res) => {
+    let debugMeta = {};
     try {
         const { invoiceId } = req.body;
         const debugPayload = req.body?.debugPayload === true;
@@ -241,6 +242,22 @@ exports.submitInvoice = async (req, res) => {
         };
         // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
         const invoicePath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
+        const maskCompanyReference = (ref) => {
+            const s = String(ref || "");
+            if (!s) return "";
+            if (s.length <= 6) return `${s.slice(0, 2)}***`;
+            return `${s.slice(0, 3)}***${s.slice(-3)}`;
+        };
+        debugMeta = {
+            graEndpointHost: (() => {
+                try {
+                    return new URL(GRA_BASE_URL).host;
+                } catch (_) {
+                    return GRA_BASE_URL;
+                }
+            })(),
+            companyReferenceUsed: maskCompanyReference(user.graCompanyReference),
+        };
 
         // Debug mode: return the exact computed payload so you can compare with Postman.
         // Does NOT call GRA.
@@ -260,6 +277,7 @@ exports.submitInvoice = async (req, res) => {
             message: err.message || "Failed to submit invoice to GRA",
             graStatus: err.graStatus,
             graResponse: err.graResponse,
+            ...debugMeta,
         });
     }
 };

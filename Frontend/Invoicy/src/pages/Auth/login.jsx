@@ -167,7 +167,18 @@ const Login = () => {
           setError(response.data.message || "Invalid credentials");
         }
     } catch (err) {
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.data?.error?.message ||
+        "";
       console.error("Login error:", err);
+      if (
+        typeof apiMessage === "string" &&
+        apiMessage.toLowerCase().includes("google calendar tokens not found")
+      ) {
+        setError("Your account is signed in, but Google Calendar is not connected yet. Connect it from Integrations.");
+        return;
+      }
       if (err.response?.status === 429) {
         setError(err.response?.data?.message || "Too many login attempts. Please try again in 15 minutes.");
       } else if (err.response?.status === 503) {
@@ -176,8 +187,8 @@ const Login = () => {
         setError(err.response?.data?.message || "Invalid email or password. If you just signed up, make sure you're using the same account.");
       } else if (err.response?.status === 403) {
         setError("Access denied. If this is the deployed app, ensure the backend ALLOWED_ORIGINS includes this site's URL.");
-      } else if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
+      } else if (apiMessage) {
+        setError(apiMessage);
       } else if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
         setError(`Cannot connect to server. Check that the API is running and reachable.`);
       } else if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
