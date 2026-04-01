@@ -395,28 +395,28 @@ const InvoiceDetail = () => {
         </div>
 
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full divide-y divide-gray-200">
+          <table className="w-full border-separate border-spacing-0">
             <thead className="bg-gray-50 dark:bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">#</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">Qty</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-b border-gray-300">Total</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-white divide-y divide-gray-200 dark:divide-gray-200">
+            <tbody className="bg-white dark:bg-white">
               {lineItems.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-100 group transition-colors duration-150">
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black">{item.sn || index + 1}</td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black">
+                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.sn || index + 1}</td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
                     {item.description || item.itemDescription || "-"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black">{item.quantity || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black">
+                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.quantity || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
                     {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black">
+                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-b border-gray-300">
                     {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
                   </td>
                 </tr>
