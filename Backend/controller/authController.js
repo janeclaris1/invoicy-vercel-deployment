@@ -89,7 +89,13 @@ exports.createPendingSignup = async (req, res, next) => {
 exports.registerUser = async (req, res, next) => {
     const { name, email, password, currency, plan, interval, agreeToTerms } = req.body;
     try {
-        if (!agreeToTerms) {
+        const hasAgreedToTerms =
+            agreeToTerms === true ||
+            agreeToTerms === "true" ||
+            agreeToTerms === 1 ||
+            agreeToTerms === "1" ||
+            agreeToTerms === "on";
+        if (!hasAgreedToTerms) {
             return res.status(400).json({ message: 'You must agree to the Terms of Service and Privacy Policy to sign up.' });
         }
         // Validation is handled by express-validator middleware
