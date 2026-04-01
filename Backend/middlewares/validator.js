@@ -29,7 +29,15 @@ const validateRegister = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   body('agreeToTerms')
-    .equals(true)
+    .custom((value) => {
+      return (
+        value === true ||
+        value === "true" ||
+        value === 1 ||
+        value === "1" ||
+        value === "on"
+      );
+    })
     .withMessage('You must agree to the Terms of Service and Privacy Policy to sign up'),
   handleValidationErrors,
 ];
