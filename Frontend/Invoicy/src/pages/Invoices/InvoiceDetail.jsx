@@ -345,7 +345,7 @@ const InvoiceDetail = () => {
               />
           </div>
         )}
-        <div className="invoice-bill-from-to mt-6 mx-auto w-full max-w-4xl print:max-w-none print:w-full text-left border border-black rounded-xl overflow-hidden">
+        <div className="invoice-bill-from-to mt-6 mx-auto w-[40%] min-w-[520px] max-w-4xl print:max-w-none print:w-full text-left border border-black rounded-xl overflow-hidden">
           <table className="w-full text-xs text-black table-auto">
             <tbody>
               <tr className="border-b border-black">
@@ -365,6 +365,11 @@ const InvoiceDetail = () => {
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.invoiceNumber || "-"}</td>
                 <td className="px-3 py-1.5 font-medium border-l border-black">Phone:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billFrom?.phone || user?.phone || "-"}</td>
+              </tr>
+              <tr>
+                <td colSpan="4" className="px-0 py-0.5">
+                  <div className="mx-auto w-2/3 border-t border-black" />
+                </td>
               </tr>
               <tr className="border-b border-black">
                 <td className="px-3 py-1.5 font-medium">Invoice Date:</td>
