@@ -265,7 +265,6 @@ const InvoiceDetail = () => {
           
           .invoice-print-container > div {
             box-shadow: none !important;
-            border: none !important;
             padding: 1rem !important;
           }
           
@@ -354,36 +353,31 @@ const InvoiceDetail = () => {
               <col className="w-1/4" />
             </colgroup>
             <tbody>
-              <tr className="border-b border-black">
+              <tr className="border-b border-gray-300">
                 <td className="px-3 py-1.5 font-medium w-44">Customer Name:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billTo?.clientName || "-"}</td>
                 <td className="px-3 py-1.5 font-medium border-l border-black w-44">Vendor:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
               </tr>
-              <tr className="border-b border-black">
+              <tr className="border-b border-gray-300">
                 <td className="px-3 py-1.5 font-medium">Customer TIN:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billTo?.tin || "-"}</td>
                 <td className="px-3 py-1.5 font-medium border-l border-black">Vendor TIN:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billFrom?.tin || user?.tin || "-"}</td>
               </tr>
-              <tr className="border-b border-black">
+              <tr className="border-b border-gray-300">
                 <td className="px-3 py-1.5 font-medium">Invoice No:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.invoiceNumber || "-"}</td>
                 <td className="px-3 py-1.5 font-medium border-l border-black">Phone:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billFrom?.phone || user?.phone || "-"}</td>
               </tr>
-              <tr>
-                <td colSpan="4" className="px-0 py-0.5">
-                  <div className="mx-auto w-2/3 border-t border-black" />
-                </td>
-              </tr>
-              <tr className="border-b border-black">
+              <tr className="border-b border-gray-300">
                 <td className="px-3 py-1.5 font-medium">Invoice Date:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
                 <td className="px-3 py-1.5 font-medium border-l border-black">Currency:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.currency || userCurrency || "-"}</td>
               </tr>
-              <tr className="border-b border-black">
+              <tr className="border-b border-gray-300">
                 <td className="px-3 py-1.5 font-medium">Due Date:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
                 <td className="px-3 py-1.5 font-medium border-l border-black">Served By:</td>
