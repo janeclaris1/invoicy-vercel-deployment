@@ -345,7 +345,7 @@ const InvoiceDetail = () => {
               />
           </div>
         )}
-        <div className="invoice-bill-from-to mt-6 mx-auto w-full max-w-5xl text-left border border-black rounded-xl overflow-hidden">
+        <div className="invoice-bill-from-to mt-6 mx-auto w-full max-w-4xl text-left border border-black rounded-xl overflow-hidden">
           <table className="w-full text-xs text-black table-fixed">
             <colgroup>
               <col className="w-1/4" />
