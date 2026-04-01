@@ -345,44 +345,50 @@ const InvoiceDetail = () => {
               />
           </div>
         )}
-        <div className="invoice-bill-from-to mt-6 text-left border-2 border-black rounded-xl overflow-hidden">
-          <table className="w-full text-sm text-black">
+        <div className="invoice-bill-from-to mt-6 text-left border border-black rounded-xl overflow-hidden">
+          <table className="w-full text-xs text-black table-fixed">
+            <colgroup>
+              <col className="w-1/4" />
+              <col className="w-1/4" />
+              <col className="w-1/4" />
+              <col className="w-1/4" />
+            </colgroup>
             <tbody>
-              <tr className="border-b-2 border-black">
-                <td className="px-4 py-2 font-medium w-44">Customer Name</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billTo?.clientName || "-"}</td>
-                <td className="px-4 py-2 font-medium border-l-2 border-black w-44">Vendor</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
+              <tr className="border-b border-black">
+                <td className="px-3 py-1.5 font-medium w-44">Customer Name</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billTo?.clientName || "-"}</td>
+                <td className="px-3 py-1.5 font-medium w-44">Vendor</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
               </tr>
-              <tr className="border-b-2 border-black">
-                <td className="px-4 py-2 font-medium">Customer TIN</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billTo?.tin || "-"}</td>
-                <td className="px-4 py-2 font-medium border-l-2 border-black">Vendor TIN</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billFrom?.tin || user?.tin || "-"}</td>
+              <tr className="border-b border-black">
+                <td className="px-3 py-1.5 font-medium">Customer TIN</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billTo?.tin || "-"}</td>
+                <td className="px-3 py-1.5 font-medium">Vendor TIN</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billFrom?.tin || user?.tin || "-"}</td>
               </tr>
-              <tr className="border-b-2 border-black">
-                <td className="px-4 py-2 font-medium">Invoice No</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.invoiceNumber || "-"}</td>
-                <td className="px-4 py-2 font-medium border-l-2 border-black">Phone</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billFrom?.phone || user?.phone || "-"}</td>
+              <tr className="border-b border-black">
+                <td className="px-3 py-1.5 font-medium">Invoice No</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.invoiceNumber || "-"}</td>
+                <td className="px-3 py-1.5 font-medium">Phone</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billFrom?.phone || user?.phone || "-"}</td>
               </tr>
-              <tr className="border-b-2 border-black">
-                <td className="px-4 py-2 font-medium">Invoice Date</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
-                <td className="px-4 py-2 font-medium border-l-2 border-black">Currency</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.currency || userCurrency || "-"}</td>
+              <tr className="border-b border-black">
+                <td className="px-3 py-1.5 font-medium">Invoice Date</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
+                <td className="px-3 py-1.5 font-medium">Currency</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.currency || userCurrency || "-"}</td>
               </tr>
-              <tr className="border-b-2 border-black">
-                <td className="px-4 py-2 font-medium">Due Date</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
-                <td className="px-4 py-2 font-medium border-l-2 border-black">Served By</td>
-                <td className="px-4 py-2 border-l-2 border-black">{user?.name || "-"}</td>
+              <tr className="border-b border-black">
+                <td className="px-3 py-1.5 font-medium">Due Date</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
+                <td className="px-3 py-1.5 font-medium">Served By</td>
+                <td className="px-3 py-1.5 border-l border-black">{user?.name || "-"}</td>
               </tr>
               <tr>
-                <td className="px-4 py-2 font-medium">Address</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billTo?.address || "-"}</td>
-                <td className="px-4 py-2 font-medium border-l-2 border-black">Address</td>
-                <td className="px-4 py-2 border-l-2 border-black">{invoice.billFrom?.address || user?.address || "-"}</td>
+                <td className="px-3 py-1.5 font-medium">Address</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billTo?.address || "-"}</td>
+                <td className="px-3 py-1.5 font-medium">Address</td>
+                <td className="px-3 py-1.5 border-l border-black">{invoice.billFrom?.address || user?.address || "-"}</td>
               </tr>
             </tbody>
           </table>
