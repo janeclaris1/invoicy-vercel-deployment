@@ -108,7 +108,7 @@ const callGRAGet = async (user, path) => {
 
 // GRA E-VAT — official VER 8.2: https://documenter.getpostman.com/view/29809098/2sBXVeGCzK#intro
 // LEVY_A = NHIL 2.5%, LEVY_B = GETFL 2.5%, LEVY_D = CST 5%, LEVY_E = TOURISM 1%
-// Per-line levies must match GRA’s derivation from quantity × unitPrice and calculationType (E818 if not).
+// Per-line levies must match GRA’s derivation from quantity × unitPrice, calculationType, and line discountAmount (E818).
 const GRA_CASH_TIN = "C0000000000";
 
 const GRA_VAT_RATE = 0.15;
@@ -180,23 +180,27 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 }
 
 /**
- * Line net and levies as GRA derives them from quantity, unitPrice, and INCLUSIVE/EXCLUSIVE.
- * Uses full-precision line gross (q × price) before splitting tax — avoids E818 on ITEM-1.
- * Invoice-level discount: scale net by factor discountedSubtotal/subtotal before applying rates.
+ * Split invoice-level discount across lines (proportional to net taxable base per line).
+ * Ensures sum = totalDiscount; last line absorbs rounding. Matches base × (1 − factor) when sums align.
  */
-function lineNetAndLeviesForGra(line, calculationType, discountFactor, roundTo) {
-    const q = Number(line.quantity) || 0;
-    const up = Number(line.unitPrice ?? line.itemPrice) || 0;
-    const lineGross = q * up;
-    let netBeforeDisc =
-        calculationType === "EXCLUSIVE" ? lineGross : lineGross / (1 + GRA_ALL_TAX_RATE);
-    const factor = Number(discountFactor) || 1;
-    const net = roundTo(netBeforeDisc * factor, 4);
-    return {
-        levyA: roundTo(net * GRA_NHIL_RATE, 2),
-        levyB: roundTo(net * GRA_GETFUND_RATE, 2),
-        net,
-    };
+function allocateGeneralDiscountPerLine(taxRecalc, totalDiscount, roundTo) {
+    const n = (taxRecalc.perLineTaxableBase || []).length;
+    if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
+    const bases = taxRecalc.perLineTaxableBase.map((b) => Number(b) || 0);
+    const sumW = bases.reduce((a, b) => a + b, 0);
+    if (sumW <= 0) return new Array(n).fill(0);
+    const out = [];
+    let allocated = 0;
+    for (let i = 0; i < n; i++) {
+        if (i === n - 1) {
+            out.push(roundTo(totalDiscount - allocated, 2));
+        } else {
+            const share = roundTo((totalDiscount * bases[i]) / sumW, 2);
+            out.push(share);
+            allocated += share;
+        }
+    }
+    return out;
 }
 
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
@@ -251,15 +255,20 @@ exports.submitInvoice = async (req, res) => {
 
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
         const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
+        const generalDiscountPerLine = allocateGeneralDiscountPerLine(taxRecalc, taxRecalc.totalDiscount, roundTo);
 
         const itemsForGra = lineItems.map((line, idx) => {
-            const lev = lineNetAndLeviesForGra(line, calculationType, levyDiscountFactor, roundTo);
-            const levyA = lev.levyA;
-            const levyB = lev.levyB;
+            // Per-line net base matches recalculateGhanaTaxForGra (rounded q×price for splits). Levies from that × factor.
+            const base = Number(taxRecalc.perLineTaxableBase?.[idx]) || 0;
+            const netForLevy = roundTo(base * levyDiscountFactor, 4);
+            const levyA = roundTo(netForLevy * GRA_NHIL_RATE, 2);
+            const levyB = roundTo(netForLevy * GRA_GETFUND_RATE, 2);
             const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
             const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
             const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
+            const lineDisc = Number(line.discount) || 0;
+            const discountAmount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
             return {
                 // Never send MongoDB ObjectIds — GRA returns E818 citing itemCode when levy validation fails.
                 itemCode: `ITEM-${idx + 1}`,
@@ -272,7 +281,7 @@ exports.submitInvoice = async (req, res) => {
                 levyAmountB: levyB,
                 levyAmountD: levyD,
                 levyAmountE: levyE,
-                discountAmount: Number(line.discount) || 0,
+                discountAmount,
                 exciseAmount,
                 batchCode: line.batchCode || "",
                 unitPrice: String(unitPriceNum),
