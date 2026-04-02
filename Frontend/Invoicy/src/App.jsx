@@ -20,6 +20,7 @@ import ProfilePage from "./pages/Profile/profilepage";
 import Settings from "./pages/Settings/Settings";
 import Support from "./pages/Support/Support";
 import Customers from "./pages/Customers/Customers";
+import CustomerAccount from "./pages/Customers/CustomerAccount";
 import Suppliers from "./pages/Suppliers/Suppliers";
 import Categories from "./pages/Categories/Categories";
 import Items from "./pages/Items/Items";
@@ -142,6 +143,7 @@ const App = () => {
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />
             <Route path="customers" element={<Customers />} />
+            <Route path="customers/:id" element={<CustomerAccount />} />
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="categories" element={<Categories />} />
             <Route path="items" element={<Items />} />

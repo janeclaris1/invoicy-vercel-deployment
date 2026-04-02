@@ -1,12 +1,23 @@
-import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin, User } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin, User, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
+
+const norm = (value) => String(value || "").trim().toLowerCase();
+const toNumber = (value) => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return parseFloat(value.replace(/[^\d.-]/g, "")) || 0;
+  return 0;
+};
 
 const Customers = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userCurrency = user?.currency || "GHS";
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,12 +34,25 @@ const Customers = () => {
   });
 
   const [customers, setCustomers] = useState([]);
+  const [invoices, setInvoices] = useState([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("customers");
     if (saved) {
       setCustomers(JSON.parse(saved));
     }
+  }, []);
+
+  useEffect(() => {
+    const loadInvoices = async () => {
+      try {
+        const res = await axiosInstance.get(API_PATHS.INVOICES.GET_ALL_INVOICES);
+        setInvoices(Array.isArray(res.data) ? res.data : []);
+      } catch (_) {
+        setInvoices([]);
+      }
+    };
+    loadInvoices();
   }, []);
 
   const handleInputChange = (e) => {
@@ -129,6 +153,35 @@ const Customers = () => {
     customer.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const customerTotals = useMemo(() => {
+    const totals = {};
+    filteredCustomers.forEach((customer) => {
+      const customerName = norm(customer.name);
+      const customerEmail = norm(customer.email);
+      const customerTaxId = norm(customer.taxId);
+      const customerCompany = norm(customer.company);
+      const matched = invoices.filter((inv) => {
+        const billTo = inv?.billTo || {};
+        const invName = norm(billTo.clientName);
+        const invEmail = norm(billTo.email);
+        const invTin = norm(billTo.tin);
+        const invBiz = norm(billTo.businessName);
+        return (
+          (customerName && invName && customerName === invName) ||
+          (customerEmail && invEmail && customerEmail === invEmail) ||
+          (customerTaxId && invTin && customerTaxId === invTin) ||
+          (customerCompany && invBiz && customerCompany === invBiz)
+        );
+      });
+
+      totals[String(customer.id)] = {
+        totalInvoices: matched.length,
+        totalRevenue: matched.reduce((sum, inv) => sum + toNumber(inv.grandTotal), 0),
+      };
+    });
+    return totals;
+  }, [filteredCustomers, invoices]);
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-8">
@@ -210,21 +263,32 @@ const Customers = () => {
             <div className="border-t border-gray-200 pt-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Total Invoices</span>
-                <span className="font-semibold text-gray-900">{customer.totalInvoices}</span>
+                <span className="font-semibold text-gray-900">
+                  {customerTotals[String(customer.id)]?.totalInvoices ?? customer.totalInvoices ?? 0}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm mt-2">
                 <span className="text-gray-600">Total Revenue</span>
                 <span className="font-semibold text-green-600">
                   {formatCurrency(
-                    typeof customer.totalRevenue === "number"
-                      ? customer.totalRevenue
-                      : typeof customer.totalRevenue === "string"
-                        ? parseFloat(String(customer.totalRevenue).replace(/[^\d.-]/g, "")) || 0
-                        : 0,
+                    customerTotals[String(customer.id)]?.totalRevenue ??
+                      (typeof customer.totalRevenue === "number"
+                        ? customer.totalRevenue
+                        : typeof customer.totalRevenue === "string"
+                          ? parseFloat(String(customer.totalRevenue).replace(/[^\d.-]/g, "")) || 0
+                          : 0),
                     customer.currency || userCurrency
                   )}
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/customers/${customer.id}`)}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800"
+              >
+                View Account
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
