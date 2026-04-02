@@ -479,7 +479,7 @@ const InvoiceDetail = () => {
               <img
                 src={invoice.companyLogo && invoice.companyLogo.trim() !== "" ? invoice.companyLogo : (user?.companyLogo || "")}
                 alt="Company logo"
-                className="h-14 w-14 object-contain border border-gray-200 rounded-xl bg-white p-2 invoice-print-logo"
+                className="h-14 w-14 object-contain rounded-xl bg-white p-2 invoice-print-logo"
               />
           </div>
         )}
