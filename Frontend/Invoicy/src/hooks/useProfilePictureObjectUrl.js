@@ -21,7 +21,8 @@ export function useProfilePictureObjectUrl(profilePicture) {
         }
 
         let cancelled = false;
-        const url = `${BASE_URL}${API_PATHS.AUTH.PROFILE_PICTURE(profilePicture)}`;
+        const safeName = encodeURIComponent(profilePicture);
+        const url = `${BASE_URL}${API_PATHS.AUTH.PROFILE_PICTURE(safeName)}`;
 
         axiosInstance
             .get(url, { responseType: "blob" })

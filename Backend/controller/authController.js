@@ -12,6 +12,21 @@ const Item = require('../models/Item');
 const Salary = require('../models/Salary');
 const Payroll = require('../models/Payroll');
 const { getAmount, getCurrency } = require('../config/plans');
+const { UPLOAD_DIR: PROFILE_UPLOAD_DIR } = require('../middlewares/uploadProfilePicture');
+
+/** Returns stored filename only if that file exists under uploads/profiles (avoids 404s when disk was reset). */
+function getValidProfilePictureFilename(filename) {
+    if (!filename || typeof filename !== 'string') return '';
+    const safe = filename.trim();
+    if (!safe || safe.includes('..') || path.isAbsolute(safe)) return '';
+    const filePath = path.join(PROFILE_UPLOAD_DIR, safe);
+    try {
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) return safe;
+    } catch (_) {
+        /* ignore */
+    }
+    return '';
+}
 
 const getTeamMemberIds = async (currentUserId) => {
     const currentUser = await User.findById(currentUserId).select('createdBy').lean();
@@ -445,6 +460,15 @@ exports.getMe = async (req, res) => {
         const isPlatformAdmin = adminEmails.length > 0 && adminEmails.includes(userEmailNorm);
         const ownerId = user.createdBy || user._id;
         const subscription = await Subscription.findOne({ user: ownerId }).lean();
+        const storedPic = user.profilePicture || '';
+        let profilePicture = getValidProfilePictureFilename(storedPic);
+        if (storedPic && !profilePicture) {
+            try {
+                await User.updateOne({ _id: user._id }, { $set: { profilePicture: '' } });
+            } catch (_) {
+                /* ignore */
+            }
+        }
         const payload = {
             _id: user._id,
             name: user.name,
@@ -456,7 +480,7 @@ exports.getMe = async (req, res) => {
             companyLogo: user.companyLogo || '',
             companySignature: user.companySignature || '',
             companyStamp: user.companyStamp || '',
-            profilePicture: user.profilePicture || '',
+            profilePicture,
             currency: user.currency || 'GHS',
             role: user.role || 'owner',
             responsibilities: user.responsibilities || [],
@@ -623,8 +647,6 @@ exports.updateUserProfile = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-
-const { UPLOAD_DIR: PROFILE_UPLOAD_DIR } = require('../middlewares/uploadProfilePicture');
 
 // @desc    Upload profile picture
 // @route   POST /api/auth/me/profile-picture

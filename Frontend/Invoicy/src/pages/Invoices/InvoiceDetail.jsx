@@ -806,14 +806,14 @@ const InvoiceDetail = () => {
 
         </div>
         
-        {/* Print button at bottom - white text, white border, no blue */}
+        {/* Print button at bottom - slate fill, no border */}
         <div className="flex flex-col items-center no-print mt-6 gap-3">
           <p className="text-center text-xs text-gray-500 max-w-md px-4">
             In your browser&apos;s print dialog, turn on <strong>Headers and footers</strong> so the date and page numbers appear on the printed page.
           </p>
           <Button
             onClick={handlePrint}
-            className="flex items-center gap-2 !rounded-lg !bg-slate-800 hover:!bg-slate-700 !text-white !border-2 !border-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white dark:!border-white [&_svg]:!text-white [&_svg]:!stroke-white"
+            className="flex items-center gap-2 !rounded-lg !border-0 !bg-slate-800 hover:!bg-slate-700 !text-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white [&_svg]:!text-white [&_svg]:!stroke-white"
           >
             <Printer className="w-4 h-4" />
             Print Invoice

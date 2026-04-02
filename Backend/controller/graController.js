@@ -111,6 +111,68 @@ const callGRAGet = async (user, path) => {
 // levyAmountC not in VER 8.2 spec; send 0 for compatibility. CST/Tourism (D,E) supported as 0 unless line has values.
 const GRA_CASH_TIN = "C0000000000";
 
+const GRA_VAT_RATE = 0.15;
+const GRA_NHIL_RATE = 0.025;
+const GRA_GETFUND_RATE = 0.025;
+const GRA_ALL_TAX_RATE = GRA_VAT_RATE + GRA_NHIL_RATE + GRA_GETFUND_RATE;
+
+/**
+ * Same tax math as invoiceController create/update (inclusive vs exclusive, invoice-level discount).
+ * GRA rejects mismatched headers (e.g. E708 "Invalid total vat.") if totalVat/totalLevy/items disagree.
+ */
+function recalculateGhanaTaxForGra(invoice, lineItems) {
+    const round = (num) => Math.round(Number(num) * 100) / 100;
+    const vatScenario = (invoice.vatScenario || "inclusive") === "exclusive" ? "exclusive" : "inclusive";
+
+    let subtotal = 0;
+    let totalTaxInclusive = 0;
+
+    if (vatScenario === "exclusive") {
+        for (const line of lineItems) {
+            const quantity = Number(line.quantity) || 0;
+            const unitPrice = Number(line.unitPrice ?? line.itemPrice) || 0;
+            subtotal += round(quantity * unitPrice);
+        }
+        subtotal = round(subtotal);
+    } else {
+        for (const line of lineItems) {
+            const quantity = Number(line.quantity) || 0;
+            const unitPrice = Number(line.unitPrice ?? line.itemPrice) || 0;
+            const taxIncl = round(quantity * unitPrice);
+            totalTaxInclusive += taxIncl;
+            const base = taxIncl / (1 + GRA_ALL_TAX_RATE);
+            subtotal += base;
+        }
+        subtotal = round(subtotal);
+    }
+
+    const totalDiscount = round(Math.max(Number(invoice.totalDiscount) || 0, 0));
+    const discountedSubtotal = round(subtotal - totalDiscount);
+
+    const totalNhil = round(discountedSubtotal * GRA_NHIL_RATE);
+    const totalGetFund = round(discountedSubtotal * GRA_GETFUND_RATE);
+    const totalVat = round(discountedSubtotal * GRA_VAT_RATE);
+
+    let grandTotal;
+    if (vatScenario === "exclusive") {
+        grandTotal = round(discountedSubtotal + totalVat + totalNhil + totalGetFund);
+    } else {
+        grandTotal = round(totalTaxInclusive - totalDiscount);
+    }
+
+    return {
+        subtotal,
+        discountedSubtotal,
+        totalTaxInclusive,
+        totalVat,
+        totalNhil,
+        totalGetFund,
+        grandTotal,
+        vatScenario,
+        totalDiscount,
+    };
+}
+
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
 // @route   POST /api/gra/submit-invoice
 // @access  Private
@@ -131,8 +193,6 @@ exports.submitInvoice = async (req, res) => {
             return res.status(403).json({ message: "Unauthorized access to this invoice" });
         }
         const lineItems = Array.isArray(invoice.item) ? invoice.item : Array.isArray(invoice.items) ? invoice.items : [];
-        const totalCst = invoice.totalCst ?? 0;
-        const totalTourism = invoice.totalTourism ?? 0;
         const businessPartnerTin = invoice.billTo?.tin?.trim?.() || GRA_CASH_TIN;
         let businessPartnerName = invoice.billTo?.clientName?.trim?.() || "Cash customer";
         const invDate = invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date();
@@ -157,27 +217,42 @@ exports.submitInvoice = async (req, res) => {
             }
         }
 
-        const VAT_RATE = 0.15;
-        const NHIL_RATE = 0.025;
-        const GETFUND_RATE = 0.025;
-
         const roundTo = (num, decimals) => {
             const n = Number(num) || 0;
             const f = 10 ** decimals;
             return Math.round(n * f) / f;
         };
 
+        const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
+        const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
+
         const itemsForGra = lineItems.map((line, idx) => {
-            // Some invoices store `item.nhil/getFund` as 0 even when totals exist.
-            // In that case, recompute levies from the line base amount (`line.amount`).
-            const baseAmount = Number(line.amount) || 0;
+            const q = Number(line.quantity) || 0;
+            const up = Number(line.unitPrice ?? line.itemPrice) || 0;
+            let baseForLevy = Number(line.amount) || 0;
+            if (baseForLevy <= 0 && q > 0 && up > 0) {
+                if (taxRecalc.vatScenario === "exclusive") {
+                    baseForLevy = roundTo(q * up, 2);
+                } else {
+                    const taxIncl = roundTo(q * up, 2);
+                    baseForLevy = taxIncl / (1 + GRA_ALL_TAX_RATE);
+                }
+            }
+            const effectiveBase = roundTo(baseForLevy * levyDiscountFactor, 4);
+
             const levyAFromLine = Number(line.nhil) || 0;
             const levyBFromLine = Number(line.getFund) || 0;
-            const levyA = levyAFromLine !== 0 ? levyAFromLine : roundTo(baseAmount * NHIL_RATE, 3);
-            const levyB = levyBFromLine !== 0 ? levyBFromLine : roundTo(baseAmount * GETFUND_RATE, 3);
-            const levyD = Number(line.cst) || 0;
-            const levyE = Number(line.tourism) || 0;
-            const exciseAmount = Number(line.exciseAmount) || 0;
+            const levyA =
+                levyAFromLine !== 0
+                    ? roundTo(levyAFromLine * levyDiscountFactor, 3)
+                    : roundTo(effectiveBase * GRA_NHIL_RATE, 3);
+            const levyB =
+                levyBFromLine !== 0
+                    ? roundTo(levyBFromLine * levyDiscountFactor, 3)
+                    : roundTo(effectiveBase * GRA_GETFUND_RATE, 3);
+            const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 3);
+            const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 3);
+            const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
             return {
                 itemCode: line.itemId?.toString?.() || `ITEM-${idx + 1}`,
                 itemCategory: line.itemCategory || "",
@@ -209,7 +284,8 @@ exports.submitInvoice = async (req, res) => {
             2
         );
 
-        const totalExciseAmount = Number(invoice.totalExciseAmount) || 0;
+        const headerExcise = Number(invoice.totalExciseAmount) || 0;
+        const totalExciseAmount = roundTo(headerExcise * levyDiscountFactor, 2);
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
         // Field order matches GRA VER 8.2 sample docs (easier diff vs curl examples).
@@ -221,16 +297,16 @@ exports.submitInvoice = async (req, res) => {
             userName: (user.businessName || invoice.billFrom?.businessName || "Business").slice(0, 100),
             flag: "INVOICE",
             calculationType,
-            totalVat: invoice.totalVat ?? 0,
+            totalVat: taxRecalc.totalVat,
             transactionDate,
-            totalAmount: invoice.grandTotal ?? 0,
+            totalAmount: taxRecalc.grandTotal,
             totalExciseAmount: Number.isFinite(totalExciseAmount) ? roundTo(totalExciseAmount, 2) : 0,
             businessPartnerName: businessPartnerName.slice(0, 100),
             businessPartnerTin: businessPartnerTin.slice(0, 15),
             saleType: (invoice.saleType || "NORMAL").slice(0, 20),
             discountType: (invoice.discountType || "GENERAL").slice(0, 300),
             taxType,
-            discountAmount: invoice.totalDiscount ?? 0,
+            discountAmount: taxRecalc.totalDiscount,
             reference: (invoice.graRefundReference || "").slice(0, 50),
             groupReferenceId: (invoice.groupReferenceId || "").slice(0, 50),
             purchaseOrderReference: (invoice.purchaseOrderReference || "").slice(0, 50),
@@ -261,6 +337,8 @@ exports.submitInvoice = async (req, res) => {
             return res.json({
                 graEndpoint: `${GRA_BASE_URL}${invoicePath}`,
                 graPayload: body,
+                taxRecalc,
+                levyDiscountFactor,
             });
         }
 
