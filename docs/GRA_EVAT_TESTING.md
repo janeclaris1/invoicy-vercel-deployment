@@ -13,6 +13,7 @@ Follow these steps to verify that invoice submission and GRA lookups work.
   - **Security Key** (e.g. the long key GRA provided).
 - **Staging base URL** (default): `https://vsdcstaging.vat-gh.com/vsdc/api/v1`  
   Override in `Backend/.env`: `GRA_BASE_URL=https://vsdcstaging.vat-gh.com/vsdc/api/v1`
+- **Official API reference (taxpayers, VER 8.2):** [GRA E‑VAT API — Postman](https://documenter.getpostman.com/view/29809098/2sBXVeGCzK#intro)
 
 ---
 

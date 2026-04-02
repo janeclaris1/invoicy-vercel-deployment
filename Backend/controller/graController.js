@@ -23,7 +23,7 @@ const getTeamMemberIds = async (currentUserId) => {
 
 /**
  * Call GRA E-VAT API with user's stored credentials.
- * VER 8.2 (Postman): https://documenter.getpostman.com/view/29809098/2sBXVeGCzK
+ * Official VER 8.2 (Postman): https://documenter.getpostman.com/view/29809098/2sBXVeGCzK#intro
  * Auth = header `security_key` only; taxpayer id is already in the URL path (`/taxpayer/{ref}/...`).
  */
 const callGRA = async (user, path, method, body) => {
@@ -106,9 +106,9 @@ const callGRAGet = async (user, path) => {
     return data;
 };
 
-// GRA E-VAT VER 8.2 LEVY MAPPING:
+// GRA E-VAT — official VER 8.2: https://documenter.getpostman.com/view/29809098/2sBXVeGCzK#intro
 // LEVY_A = NHIL 2.5%, LEVY_B = GETFL 2.5%, LEVY_D = CST 5%, LEVY_E = TOURISM 1%
-// levyAmountC not in VER 8.2 spec; send 0 for compatibility. CST/Tourism (D,E) supported as 0 unless line has values.
+// Per-line levies must match GRA’s derivation from quantity × unitPrice and calculationType (E818 if not).
 const GRA_CASH_TIN = "C0000000000";
 
 const GRA_VAT_RATE = 0.15;
@@ -180,23 +180,23 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 }
 
 /**
- * Per-line NHIL/GETFund: levy = rate × (lineTaxableBase × invoiceDiscountFactor).
- * First n-1 lines use strict rounding; last line absorbs remainder so sum(levy) === header total (GRA E818).
+ * Line net and levies as GRA derives them from quantity, unitPrice, and INCLUSIVE/EXCLUSIVE.
+ * Uses full-precision line gross (q × price) before splitting tax — avoids E818 on ITEM-1.
+ * Invoice-level discount: scale net by factor discountedSubtotal/subtotal before applying rates.
  */
-function allocateStrictRateLevyPerLine(perLineBases, discountFactor, rate, headerTotalLevy, roundTo) {
-    const n = perLineBases.length;
-    if (n === 0) return [];
+function lineNetAndLeviesForGra(line, calculationType, discountFactor, roundTo) {
+    const q = Number(line.quantity) || 0;
+    const up = Number(line.unitPrice ?? line.itemPrice) || 0;
+    const lineGross = q * up;
+    let netBeforeDisc =
+        calculationType === "EXCLUSIVE" ? lineGross : lineGross / (1 + GRA_ALL_TAX_RATE);
     const factor = Number(discountFactor) || 1;
-    let sumPrev = 0;
-    const out = [];
-    for (let i = 0; i < n - 1; i++) {
-        const effNet = roundTo((Number(perLineBases[i]) || 0) * factor, 4);
-        const lev = roundTo(effNet * rate, 2);
-        out.push(lev);
-        sumPrev = roundTo(sumPrev + lev, 2);
-    }
-    out.push(roundTo(headerTotalLevy - sumPrev, 2));
-    return out;
+    const net = roundTo(netBeforeDisc * factor, 4);
+    return {
+        levyA: roundTo(net * GRA_NHIL_RATE, 2),
+        levyB: roundTo(net * GRA_GETFUND_RATE, 2),
+        net,
+    };
 }
 
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
@@ -252,25 +252,10 @@ exports.submitInvoice = async (req, res) => {
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
         const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
 
-        const baseWeights = taxRecalc.perLineTaxableBase || [];
-        const levyAAllocated = allocateStrictRateLevyPerLine(
-            baseWeights,
-            levyDiscountFactor,
-            GRA_NHIL_RATE,
-            taxRecalc.totalNhil,
-            roundTo
-        );
-        const levyBAllocated = allocateStrictRateLevyPerLine(
-            baseWeights,
-            levyDiscountFactor,
-            GRA_GETFUND_RATE,
-            taxRecalc.totalGetFund,
-            roundTo
-        );
-
         const itemsForGra = lineItems.map((line, idx) => {
-            const levyA = levyAAllocated[idx] ?? 0;
-            const levyB = levyBAllocated[idx] ?? 0;
+            const lev = lineNetAndLeviesForGra(line, calculationType, levyDiscountFactor, roundTo);
+            const levyA = lev.levyA;
+            const levyB = lev.levyB;
             const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
             const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
@@ -465,7 +450,7 @@ const getGraUserOrThrow = async (userId) => {
 
 /**
  * GRA E‑VAT API (VER 8.2) proxy endpoints
- * Based on Postman collection: https://documenter.getpostman.com/view/29809098/2sBXVeGCzK
+ * Based on Postman collection: https://documenter.getpostman.com/view/29809098/2sBXVeGCzK#intro
  */
 
 // POST /api/gra/invoice -> POST /taxpayer/{companyRef}/invoice
