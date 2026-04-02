@@ -554,13 +554,13 @@ const InvoiceDetail = () => {
 
         <div className="mt-6 overflow-x-auto">
           <table className="w-full border-separate border-spacing-0">
-            <thead className="bg-gray-50 dark:bg-gray-50">
+            <thead className="bg-[#1A3263]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-black">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">#</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">Qty</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
