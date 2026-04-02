@@ -261,18 +261,6 @@ const InvoiceDetail = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex justify-center gap-x-12 text-sm">
-              <div className="whitespace-nowrap">
-                <strong>Invoice Number:</strong>{" "}
-                {invoice.invoiceNumber || "-"}
-              </div>
-              <div className="whitespace-nowrap">
-                <strong>Invoice Date:</strong>{" "}
-                {invoice.invoiceDate
-                  ? moment(invoice.invoiceDate).format("MMMM D, YYYY")
-                  : "-"}
-              </div>
-            </div>
           </div>
 
           {/* Payment Info + Bill To */}
@@ -500,17 +488,6 @@ const InvoiceDetail = () => {
           <div className="mt-8 flex justify-center items-baseline">
             <span className="text-6xl font-black">VAT </span>
             <span className="text-6xl font-black italic font-serif">INVOICE</span>
-          </div>
-          <div className="mt-4 flex justify-center gap-x-12 text-sm">
-            <div className="whitespace-nowrap">
-              <strong>Invoice Number:</strong> {invoice.invoiceNumber || "-"}
-            </div>
-            <div className="whitespace-nowrap">
-              <strong>Invoice Date:</strong>{" "}
-              {invoice.invoiceDate
-                ? moment(invoice.invoiceDate).format("MMMM D, YYYY")
-                : "-"}
-            </div>
           </div>
         </div>
 
