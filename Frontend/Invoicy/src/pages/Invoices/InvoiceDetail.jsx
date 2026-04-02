@@ -556,11 +556,11 @@ const InvoiceDetail = () => {
           <table className="w-full border-separate border-spacing-0">
             <thead className="bg-gray-50 dark:bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-r border-black border-b border-gray-300">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-b border-gray-300">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">#</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">Qty</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-r border-black">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-black dark:text-black uppercase tracking-wider border-t border-b border-black">Total</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
