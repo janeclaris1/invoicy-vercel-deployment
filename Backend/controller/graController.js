@@ -126,12 +126,16 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 
     let subtotal = 0;
     let totalTaxInclusive = 0;
+    /** Per-line taxable base (same construction as invoiceController) — used to split NHIL/GETFund so line levies match header totals (GRA E818). */
+    const perLineTaxableBase = [];
 
     if (vatScenario === "exclusive") {
         for (const line of lineItems) {
             const quantity = Number(line.quantity) || 0;
             const unitPrice = Number(line.unitPrice ?? line.itemPrice) || 0;
-            subtotal += round(quantity * unitPrice);
+            const lineNet = round(quantity * unitPrice);
+            perLineTaxableBase.push(lineNet);
+            subtotal += lineNet;
         }
         subtotal = round(subtotal);
     } else {
@@ -141,6 +145,7 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
             const taxIncl = round(quantity * unitPrice);
             totalTaxInclusive += taxIncl;
             const base = taxIncl / (1 + GRA_ALL_TAX_RATE);
+            perLineTaxableBase.push(base);
             subtotal += base;
         }
         subtotal = round(subtotal);
@@ -170,7 +175,34 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
         grandTotal,
         vatScenario,
         totalDiscount,
+        perLineTaxableBase,
     };
+}
+
+/**
+ * Split a header total across lines by weight; last line absorbs rounding remainder so sums match exactly.
+ * GRA validates per-line levy amounts against line context — amounts must reconcile with header totals.
+ */
+function allocateByWeightToLines(totalAmount, weights, roundTo, decimals) {
+    const n = weights.length;
+    if (n === 0) return [];
+    const wsum = weights.reduce((s, w) => s + (Number(w) || 0), 0);
+    if (wsum <= 0) {
+        const each = roundTo(totalAmount / n, decimals);
+        const out = Array(n).fill(each);
+        const diff = roundTo(totalAmount - each * n, decimals);
+        if (n > 0) out[n - 1] = roundTo(out[n - 1] + diff, decimals);
+        return out;
+    }
+    let allocated = 0;
+    const out = [];
+    for (let i = 0; i < n - 1; i++) {
+        const part = roundTo((totalAmount * weights[i]) / wsum, decimals);
+        out.push(part);
+        allocated += part;
+    }
+    out.push(roundTo(totalAmount - allocated, decimals));
+    return out;
 }
 
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
@@ -226,32 +258,15 @@ exports.submitInvoice = async (req, res) => {
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
         const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
 
-        const itemsForGra = lineItems.map((line, idx) => {
-            const q = Number(line.quantity) || 0;
-            const up = Number(line.unitPrice ?? line.itemPrice) || 0;
-            let baseForLevy = Number(line.amount) || 0;
-            if (baseForLevy <= 0 && q > 0 && up > 0) {
-                if (taxRecalc.vatScenario === "exclusive") {
-                    baseForLevy = roundTo(q * up, 2);
-                } else {
-                    const taxIncl = roundTo(q * up, 2);
-                    baseForLevy = taxIncl / (1 + GRA_ALL_TAX_RATE);
-                }
-            }
-            const effectiveBase = roundTo(baseForLevy * levyDiscountFactor, 4);
+        const baseWeights = taxRecalc.perLineTaxableBase || [];
+        const levyAAllocated = allocateByWeightToLines(taxRecalc.totalNhil, baseWeights, roundTo, 2);
+        const levyBAllocated = allocateByWeightToLines(taxRecalc.totalGetFund, baseWeights, roundTo, 2);
 
-            const levyAFromLine = Number(line.nhil) || 0;
-            const levyBFromLine = Number(line.getFund) || 0;
-            const levyA =
-                levyAFromLine !== 0
-                    ? roundTo(levyAFromLine * levyDiscountFactor, 3)
-                    : roundTo(effectiveBase * GRA_NHIL_RATE, 3);
-            const levyB =
-                levyBFromLine !== 0
-                    ? roundTo(levyBFromLine * levyDiscountFactor, 3)
-                    : roundTo(effectiveBase * GRA_GETFUND_RATE, 3);
-            const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 3);
-            const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 3);
+        const itemsForGra = lineItems.map((line, idx) => {
+            const levyA = levyAAllocated[idx] ?? 0;
+            const levyB = levyBAllocated[idx] ?? 0;
+            const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
+            const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
             return {
                 itemCode: line.itemId?.toString?.() || `ITEM-${idx + 1}`,
