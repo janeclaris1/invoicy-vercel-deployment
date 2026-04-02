@@ -477,18 +477,44 @@ const InvoiceDetail = () => {
           </div>
         </div>
 
-        <div className="invoice-print-container bg-white dark:bg-white border border-gray-200 dark:border-gray-200 rounded-xl p-6 print:border-0 print:shadow-none shadow-sm text-black dark:text-black">
+        <div className="invoice-print-container bg-transparent dark:bg-transparent border-0 p-0 print:border-0 print:shadow-none shadow-none text-black dark:text-black">
           {/* Logo centered at top */}
         {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
-          <div className="invoice-logo-wrap flex justify-center mb-6">
+          <div className="invoice-logo-wrap flex justify-center mb-4">
               <img
                 src={invoice.companyLogo && invoice.companyLogo.trim() !== "" ? invoice.companyLogo : (user?.companyLogo || "")}
                 alt="Company logo"
-                className="h-16 w-auto object-contain border border-gray-200 rounded-xl bg-white p-2 invoice-print-logo"
+                className="h-14 w-14 object-contain border border-gray-200 rounded-xl bg-white p-2 invoice-print-logo"
               />
           </div>
         )}
-        <div className="invoice-bill-from-to mt-6 text-left border border-black rounded-xl overflow-hidden">
+
+        {/* Reference-style header inside the printable card */}
+        <div className="text-center">
+          <div className="text-xl font-black tracking-widest text-center">
+            {invoice.billFrom?.businessName || user?.businessName || "-"}
+          </div>
+          <div className="text-xs text-gray-400 tracking-widest text-center">
+            {invoice.billFrom?.email || user?.email || "-"}
+          </div>
+          <div className="mt-8 flex justify-center items-baseline">
+            <span className="text-6xl font-black">Invoice </span>
+            <span className="text-6xl font-black italic font-serif">Service</span>
+          </div>
+          <div className="mt-4 flex justify-center gap-x-12 text-sm">
+            <div className="whitespace-nowrap">
+              <strong>Invoice Number:</strong> {invoice.invoiceNumber || "-"}
+            </div>
+            <div className="whitespace-nowrap">
+              <strong>Invoice Date:</strong>{" "}
+              {invoice.invoiceDate
+                ? moment(invoice.invoiceDate).format("MMMM D, YYYY")
+                : "-"}
+            </div>
+          </div>
+        </div>
+
+        <div className="invoice-bill-from-to mt-10 text-left border border-black rounded-xl overflow-hidden">
           <table className="w-full text-xs text-black table-fixed">
             <colgroup>
               <col className="w-1/4" />
@@ -497,6 +523,18 @@ const InvoiceDetail = () => {
               <col className="w-1/4" />
             </colgroup>
             <tbody>
+              <tr>
+                <td colSpan={2} className="px-3 py-2">
+                  <div className="bg-[#4A9B8E] text-white text-[10px] font-bold uppercase px-3 py-1 inline-block">
+                    PAYMENT INFO
+                  </div>
+                </td>
+                <td colSpan={2} className="px-3 py-2 text-right">
+                  <div className="bg-[#4A9B8E] text-white text-[10px] font-bold uppercase px-3 py-1 inline-block">
+                    BILL TO
+                  </div>
+                </td>
+              </tr>
               <tr className="border-b border-gray-300">
                 <td className="px-3 py-1.5 font-medium w-44">Customer Name:</td>
                 <td className="px-3 py-1.5 whitespace-normal break-words">{invoice.billTo?.clientName || "-"}</td>
