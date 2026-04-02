@@ -118,7 +118,7 @@
     /* Page margins */
     @page {
       margin: 0.5in;
-      size: auto;
+      size: A4;
     }
     
     /* Ensure tables don't break awkwardly */
