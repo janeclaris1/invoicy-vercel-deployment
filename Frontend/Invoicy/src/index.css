@@ -102,10 +102,18 @@
       visibility: visible !important;
     }
 
-    /* Prefer normal ink/toner mode (no reliance on “Background graphics” in the browser print dialog) */
+    /* Prefer economy ink for general invoice chrome; line-items header uses exact so navy fills reliably */
     .invoice-print-container {
       -webkit-print-color-adjust: economy;
       print-color-adjust: economy;
+    }
+
+    .invoice-print-container .invoice-line-items-table thead,
+    .invoice-print-container .invoice-line-items-table thead th {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      background-color: #1a3263 !important;
+      color: #ffffff !important;
     }
     
     /* Reset body for printing */
