@@ -214,28 +214,30 @@ function allocateGeneralDiscountPerLine(lineItems, taxRecalc, calculationType, t
 }
 
 /**
- * NHIL (levy A) and GETFund (levy B) exactly as GRA validates from item fields:
- * extended = round(q×unitPrice, 2), then discountAmount is subtracted, then rates apply.
+ * Per-line NHIL (A), GETFund (B), and VAT — same path GRA uses for E818/E708:
+ * extended = round(q×unitPrice, 2), subtract discountAmount, then apply rates on net/taxable.
  */
-function computeGraLevyAB(quantityStr, unitPriceStr, discountAmount, calculationType, roundTo) {
+function computeGraLineLevyAndVat(quantityStr, unitPriceStr, discountAmount, calculationType, roundTo) {
     const q = Number(quantityStr);
     const up = Number(unitPriceStr);
     const disc = Number(discountAmount) || 0;
     const extended = roundTo(q * up, 2);
     if (calculationType === "EXCLUSIVE") {
         const taxable = roundTo(extended - disc, 2);
-        if (taxable < 0) return { levyA: 0, levyB: 0 };
+        if (taxable < 0) return { levyA: 0, levyB: 0, lineVat: 0 };
         return {
             levyA: roundTo(taxable * GRA_NHIL_RATE, 2),
             levyB: roundTo(taxable * GRA_GETFUND_RATE, 2),
+            lineVat: roundTo(taxable * GRA_VAT_RATE, 2),
         };
     }
     const taxIncl = roundTo(extended - disc, 2);
-    if (taxIncl <= 0) return { levyA: 0, levyB: 0 };
+    if (taxIncl <= 0) return { levyA: 0, levyB: 0, lineVat: 0 };
     const net = taxIncl / (1 + GRA_ALL_TAX_RATE);
     return {
         levyA: roundTo(net * GRA_NHIL_RATE, 2),
         levyB: roundTo(net * GRA_GETFUND_RATE, 2),
+        lineVat: roundTo(net * GRA_VAT_RATE, 2),
     };
 }
 
@@ -299,12 +301,20 @@ exports.submitInvoice = async (req, res) => {
             roundTo
         );
 
+        let sumLineVat = 0;
         const itemsForGra = lineItems.map((line, idx) => {
             const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
             const qtyStr = String(line.quantity ?? 0);
             const lineDisc = Number(line.discount) || 0;
             const discountAmount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
-            const { levyA, levyB } = computeGraLevyAB(qtyStr, String(unitPriceNum), discountAmount, calculationType, roundTo);
+            const { levyA, levyB, lineVat } = computeGraLineLevyAndVat(
+                qtyStr,
+                String(unitPriceNum),
+                discountAmount,
+                calculationType,
+                roundTo
+            );
+            sumLineVat += lineVat;
             const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
             const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
@@ -340,6 +350,9 @@ exports.submitInvoice = async (req, res) => {
             2
         );
 
+        // E708: header totalVat must equal sum of per-line VAT (same formula as items).
+        const totalVatForGra = roundTo(sumLineVat, 2);
+
         const headerExcise = Number(invoice.totalExciseAmount) || 0;
         const totalExciseAmount = roundTo(headerExcise * levyDiscountFactor, 2);
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
@@ -353,7 +366,7 @@ exports.submitInvoice = async (req, res) => {
             userName: (user.businessName || invoice.billFrom?.businessName || "Business").slice(0, 100),
             flag: "INVOICE",
             calculationType,
-            totalVat: taxRecalc.totalVat,
+            totalVat: totalVatForGra,
             transactionDate,
             totalAmount: taxRecalc.grandTotal,
             totalExciseAmount: Number.isFinite(totalExciseAmount) ? roundTo(totalExciseAmount, 2) : 0,

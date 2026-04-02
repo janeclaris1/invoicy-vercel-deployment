@@ -80,6 +80,15 @@ const InvoiceDetail = () => {
     return grandTotal - amountPaid;
   }, [invoice, isEditingPayment, paymentAmount]);
 
+  const totalTaxesAmount = useMemo(() => {
+    if (!invoice) return 0;
+    return (
+      Number(invoice.totalVat || 0) +
+      Number(invoice.totalNhil || 0) +
+      Number(invoice.totalGetFund || 0)
+    );
+  }, [invoice]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -345,11 +354,23 @@ const InvoiceDetail = () => {
             </table>
           </div>
 
-          {/* Tax + Grand Total */}
-          <div className="mt-4 flex flex-col items-end">
+          {/* Tax breakdown + Grand Total */}
+          <div className="mt-4 flex flex-col items-end gap-0.5">
             <div className="flex justify-between w-56 text-sm">
-              <span>Tax</span>
+              <span>VAT</span>
               <span>{formatCurrency(invoice.totalVat || 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between w-56 text-sm">
+              <span>NHIL</span>
+              <span>{formatCurrency(invoice.totalNhil || 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between w-56 text-sm">
+              <span>GETFUND</span>
+              <span>{formatCurrency(invoice.totalGetFund || 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between w-56 text-sm font-medium border-t border-gray-200 pt-1 mt-1">
+              <span>Total Taxes</span>
+              <span>{formatCurrency(totalTaxesAmount, userCurrency)}</span>
             </div>
             <div className="flex justify-between w-56 bg-[#4A9B8E] text-white font-bold px-3 py-2 mt-1">
               <span>Grand Total</span>
@@ -649,6 +670,10 @@ const InvoiceDetail = () => {
             <div className="flex items-center justify-between w-full max-w-xs gap-4">
               <span>GETFUND</span>
               <span>{formatCurrency(invoice.totalGetFund, userCurrency)}</span>
+            </div>
+            <div className="flex items-center justify-between w-full max-w-xs gap-4 font-medium border-t border-gray-200 pt-2">
+              <span>Total Taxes</span>
+              <span>{formatCurrency(totalTaxesAmount, userCurrency)}</span>
             </div>
             <div className="flex items-center justify-between w-full max-w-xs gap-4">
               <span>Total Discount</span>
