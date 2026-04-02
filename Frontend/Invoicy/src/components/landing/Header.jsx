@@ -4,11 +4,13 @@ import { Menu, X } from "lucide-react";
 import ProfileDropdown from "../layout/ProfileDropdown";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useProfilePictureObjectUrl } from "../../hooks/useProfilePictureObjectUrl";
 
 const Header = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const {isAuthenticated, user, logout} = useAuth();
+    const { isAuthenticated, user, logout } = useAuth();
+    const headerAvatarUrl = useProfilePictureObjectUrl(user?.profilePicture);
     const navigate = useNavigate();
     const { pathname } = useLocation();
 
@@ -95,7 +97,7 @@ const Header = () => {
                 e.stopPropagation();
                 setProfileDropdownOpen(!profileDropdownOpen);
               }}
-              avatar={user?.avatar || ""}
+              avatar={headerAvatarUrl || ""}
               companyName={user?.name || ""}
               email={user?.email || ""}
               onLogout={logout}

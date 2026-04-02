@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { playNotificationSound } from "../../utils/notificationSound";
+import { useProfilePictureObjectUrl } from "../../hooks/useProfilePictureObjectUrl";
 
 const NavigationItem = ({ item, isActive, onClick, isCollapsed, label, badge }) => {
     const Icon = item.icon;
@@ -382,7 +383,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                                 e.stopPropagation();
                                 setProfileDropdownOpen(!profileDropdownOpen);
                             }}
-                            avatar={user?.avatar || ""}
+                            avatar={headerAvatarUrl || ""}
                             companyName={user?.name || ""}
                             email={user?.email || ""}
                             onLogout={logout}

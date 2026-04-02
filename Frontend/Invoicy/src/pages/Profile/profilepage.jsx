@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2, User, Mail, Building, Phone, MapPin, CreditCard, DollarSign, Camera } from 'lucide-react';
 import axiosInstance from '../../utils/axiosInstance';
-import { API_PATHS, BASE_URL } from '../../utils/apiPaths';
+import { API_PATHS } from '../../utils/apiPaths';
+import { useProfilePictureObjectUrl } from '../../hooks/useProfilePictureObjectUrl';
 import toast from 'react-hot-toast';
 import InputField from '../../components/ui/InputField';
 import TextareaField from '../../components/ui/TextareaField';
@@ -12,10 +13,9 @@ import SelectField from '../../components/ui/SelectField';
 const ProfilePage = () => {
   const { user, loading, updateUser } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(null);
+  const avatarUrl = useProfilePictureObjectUrl(user?.profilePicture);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
-  const avatarBlobUrlRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,33 +39,6 @@ const ProfilePage = () => {
       });
     }
   }, [user]);
-
-  // Load profile picture as blob URL (so credentials are sent)
-  useEffect(() => {
-    if (!user?.profilePicture) {
-      if (avatarBlobUrlRef.current) {
-        URL.revokeObjectURL(avatarBlobUrlRef.current);
-        avatarBlobUrlRef.current = null;
-      }
-      setAvatarUrl(null);
-      return;
-    }
-    const url = `${BASE_URL}${API_PATHS.AUTH.PROFILE_PICTURE(user.profilePicture)}`;
-    axiosInstance.get(url, { responseType: 'blob' })
-      .then((res) => {
-        if (avatarBlobUrlRef.current) URL.revokeObjectURL(avatarBlobUrlRef.current);
-        const objectUrl = URL.createObjectURL(res.data);
-        avatarBlobUrlRef.current = objectUrl;
-        setAvatarUrl(objectUrl);
-      })
-      .catch(() => setAvatarUrl(null));
-    return () => {
-      if (avatarBlobUrlRef.current) {
-        URL.revokeObjectURL(avatarBlobUrlRef.current);
-        avatarBlobUrlRef.current = null;
-      }
-    };
-  }, [user?.profilePicture]);
 
   const handleProfilePhotoChange = (e) => {
     const file = e?.target?.files?.[0];
