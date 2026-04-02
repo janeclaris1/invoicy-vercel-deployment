@@ -256,8 +256,8 @@ const InvoiceDetail = () => {
             <div className="mt-8" />
             <div className="mt-4">
               <div className="flex justify-center items-baseline">
-                <span className="text-6xl font-black">Invoice </span>
-                <span className="text-6xl font-black italic font-serif">Service</span>
+                <span className="text-6xl font-black">VAT </span>
+                <span className="text-6xl font-black italic font-serif">INVOICE</span>
               </div>
             </div>
 
@@ -498,8 +498,8 @@ const InvoiceDetail = () => {
             {invoice.billFrom?.email || user?.email || "-"}
           </div>
           <div className="mt-8 flex justify-center items-baseline">
-            <span className="text-6xl font-black">Invoice </span>
-            <span className="text-6xl font-black italic font-serif">Service</span>
+            <span className="text-6xl font-black">VAT </span>
+            <span className="text-6xl font-black italic font-serif">INVOICE</span>
           </div>
           <div className="mt-4 flex justify-center gap-x-12 text-sm">
             <div className="whitespace-nowrap">
