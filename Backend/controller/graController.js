@@ -180,14 +180,24 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 }
 
 /**
- * Split invoice-level discount across lines (proportional to net taxable base per line).
- * Ensures sum = totalDiscount; last line absorbs rounding. Matches base × (1 − factor) when sums align.
+ * Split invoice-level discount so GRA’s per-line check stays consistent:
+ * - EXCLUSIVE: weight = net line total (same as perLineTaxableBase).
+ * - INCLUSIVE: weight = tax-inclusive extended amount round(q×price) — GRA applies discount before splitting VAT/NHIL/GETFund.
  */
-function allocateGeneralDiscountPerLine(taxRecalc, totalDiscount, roundTo) {
-    const n = (taxRecalc.perLineTaxableBase || []).length;
+function allocateGeneralDiscountPerLine(lineItems, taxRecalc, calculationType, totalDiscount, roundTo) {
+    const n = lineItems.length;
     if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
-    const bases = taxRecalc.perLineTaxableBase.map((b) => Number(b) || 0);
-    const sumW = bases.reduce((a, b) => a + b, 0);
+    let weights;
+    if (calculationType === "EXCLUSIVE") {
+        weights = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
+    } else {
+        weights = lineItems.map((line) => {
+            const q = Number(line.quantity) || 0;
+            const up = Number(line.unitPrice ?? line.itemPrice) || 0;
+            return roundTo(q * up, 2);
+        });
+    }
+    const sumW = weights.reduce((a, b) => a + b, 0);
     if (sumW <= 0) return new Array(n).fill(0);
     const out = [];
     let allocated = 0;
@@ -195,12 +205,38 @@ function allocateGeneralDiscountPerLine(taxRecalc, totalDiscount, roundTo) {
         if (i === n - 1) {
             out.push(roundTo(totalDiscount - allocated, 2));
         } else {
-            const share = roundTo((totalDiscount * bases[i]) / sumW, 2);
+            const share = roundTo((totalDiscount * weights[i]) / sumW, 2);
             out.push(share);
             allocated += share;
         }
     }
     return out;
+}
+
+/**
+ * NHIL (levy A) and GETFund (levy B) exactly as GRA validates from item fields:
+ * extended = round(q×unitPrice, 2), then discountAmount is subtracted, then rates apply.
+ */
+function computeGraLevyAB(quantityStr, unitPriceStr, discountAmount, calculationType, roundTo) {
+    const q = Number(quantityStr);
+    const up = Number(unitPriceStr);
+    const disc = Number(discountAmount) || 0;
+    const extended = roundTo(q * up, 2);
+    if (calculationType === "EXCLUSIVE") {
+        const taxable = roundTo(extended - disc, 2);
+        if (taxable < 0) return { levyA: 0, levyB: 0 };
+        return {
+            levyA: roundTo(taxable * GRA_NHIL_RATE, 2),
+            levyB: roundTo(taxable * GRA_GETFUND_RATE, 2),
+        };
+    }
+    const taxIncl = roundTo(extended - disc, 2);
+    if (taxIncl <= 0) return { levyA: 0, levyB: 0 };
+    const net = taxIncl / (1 + GRA_ALL_TAX_RATE);
+    return {
+        levyA: roundTo(net * GRA_NHIL_RATE, 2),
+        levyB: roundTo(net * GRA_GETFUND_RATE, 2),
+    };
 }
 
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
@@ -255,20 +291,23 @@ exports.submitInvoice = async (req, res) => {
 
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
         const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
-        const generalDiscountPerLine = allocateGeneralDiscountPerLine(taxRecalc, taxRecalc.totalDiscount, roundTo);
+        const generalDiscountPerLine = allocateGeneralDiscountPerLine(
+            lineItems,
+            taxRecalc,
+            calculationType,
+            taxRecalc.totalDiscount,
+            roundTo
+        );
 
         const itemsForGra = lineItems.map((line, idx) => {
-            // Per-line net base matches recalculateGhanaTaxForGra (rounded q×price for splits). Levies from that × factor.
-            const base = Number(taxRecalc.perLineTaxableBase?.[idx]) || 0;
-            const netForLevy = roundTo(base * levyDiscountFactor, 4);
-            const levyA = roundTo(netForLevy * GRA_NHIL_RATE, 2);
-            const levyB = roundTo(netForLevy * GRA_GETFUND_RATE, 2);
+            const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
+            const qtyStr = String(line.quantity ?? 0);
+            const lineDisc = Number(line.discount) || 0;
+            const discountAmount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
+            const { levyA, levyB } = computeGraLevyAB(qtyStr, String(unitPriceNum), discountAmount, calculationType, roundTo);
             const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
             const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
-            const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
-            const lineDisc = Number(line.discount) || 0;
-            const discountAmount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
             return {
                 // Never send MongoDB ObjectIds — GRA returns E818 citing itemCode when levy validation fails.
                 itemCode: `ITEM-${idx + 1}`,
@@ -276,7 +315,7 @@ exports.submitInvoice = async (req, res) => {
                 expireDate: line.expireDate || "",
                 description: (line.description || line.itemDescription || "").slice(0, 100),
                 // v8.2 examples often send these as strings; GRA accepts numeric too, but we match the sample shape.
-                quantity: String(line.quantity ?? 0),
+                quantity: qtyStr,
                 levyAmountA: levyA,
                 levyAmountB: levyB,
                 levyAmountD: levyD,
