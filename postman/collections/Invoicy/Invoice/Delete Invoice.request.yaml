@@ -1,0 +1,7 @@
+$kind: http-request
+description: "Generated from cURL: curl -X DELETE '{{localhost}}/api/invoices/:id'"
+url: "{{localhost}}/api/invoices/:id"
+method: DELETE
+pathVariables:
+  id: ""
+order: 5000

@@ -1,0 +1,62 @@
+$kind: http-request
+description: >-
+  Generated from cURL: curl -X POST http://localhost:8000/api/invoices \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{authToken}}" \
+    -d '{"invoiceDate":"2026-03-19","dueDate":"2026-04-03","billFrom":{"businessName":"Invoicy Test Business","tin":"C0000000001","email":"test@invoicy.com","address":"123 Test Street, Accra","phone":"0200000001"},"billTo":{"clientName":"Ama Ghana (Cash Customer)","email":"ama@example.com","address":"456 Client Road, Kumasi","phone":"0200000002","tin":"C0000000000"},"items":[{"description":"6\" Bend","unitPrice":450,"quantity":50,"vat":0,"nhil":0,"getFund":0,"discount":0}],"notes":"GRA test invoice","paymentTerms":"Net 15","status":"Unpaid","amountPaid":0,"type":"invoice"}'
+url: http://localhost:8000/api/invoices
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+body:
+  type: json
+  content: '{"invoiceDate":"2026-03-19","dueDate":"2026-04-03","billFrom":{"businessName":"Invoicy
+    Test Business","tin":"C0000000001","email":"test@invoicy.com","address":"123
+    Test Street, Accra","phone":"0200000001"},"billTo":{"clientName":"Ama Ghana
+    (Cash Customer)","email":"ama@example.com","address":"456 Client Road,
+    Kumasi","phone":"0200000002","tin":"C0000000000"},"items":[{"description":"6\"
+    Bend","unitPrice":450,"quantity":50,"vat":0,"nhil":0,"getFund":0,"discount":0}],"notes":"GRA
+    test invoice","paymentTerms":"Net
+    15","status":"Unpaid","amountPaid":0,"type":"invoice"}'
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      // Save the created invoice ID for the GRA submit request
+
+      const jsonData = pm.response.json();
+
+      const invoiceId = jsonData?.invoice?._id || jsonData?._id;
+
+      if (invoiceId) {
+          pm.collectionVariables.set("testInvoiceId", invoiceId);
+          pm.collectionVariables.set("testInvoiceNumber", jsonData?.invoice?.invoiceNumber || jsonData?.invoiceNumber || "");
+          console.log("✅ Invoice created:", invoiceId, "Number:", pm.collectionVariables.get("testInvoiceNumber"));
+      } else {
+          console.error("❌ Could not extract invoice ID from response:", JSON.stringify(jsonData));
+      }
+
+
+      pm.test("Invoice created successfully", () => {
+          pm.response.to.have.status(201);
+      });
+
+      pm.test("Invoice has _id", () => {
+          pm.expect(invoiceId).to.be.a("string").and.not.empty;
+      });
+
+      pm.test("Invoice type is invoice", () => {
+          const inv = jsonData?.invoice || jsonData;
+          pm.expect(inv.type).to.eql("invoice");
+      });
+
+      pm.test("Grand total is calculated", () => {
+          const inv = jsonData?.invoice || jsonData;
+          pm.expect(inv.grandTotal).to.be.a("number").and.above(0);
+      });
+    language: text/javascript
+order: 1000

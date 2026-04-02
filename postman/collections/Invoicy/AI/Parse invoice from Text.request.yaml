@@ -1,0 +1,11 @@
+$kind: http-request
+url: ""
+method: POST
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToke}}"
+order: 1000

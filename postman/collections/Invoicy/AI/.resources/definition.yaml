@@ -1,0 +1,6 @@
+$kind: collection
+auth:
+  - id: 4a59f515-71c9-47f5-b0d3-148413b20be0
+    type: bearer
+    name: bearer auth
+order: 3000

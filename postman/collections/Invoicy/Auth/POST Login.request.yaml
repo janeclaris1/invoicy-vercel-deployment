@@ -1,0 +1,47 @@
+$kind: http-request
+description: "Generated from cURL: curl -X POST '{{localhost}}/api/auth/login'
+  -H 'Content-Type: application/json' -d '{\"email\": \"\", \"password\":
+  \"\"}'"
+url: http://localhost:8000/api/auth/login
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"email":"ron@test.com","password":"password"}'
+auth:
+  type: bearer
+  credentials:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGMzNjVmMDJlNDJhMzA4YjM1NWMzMyIsImlhdCI6MTc3MzgyNDI5MSwiZXhwIjoxNzc0NDI5MDkxfQ.0AQuRq2tYyD_EPVTZaVhBMG_r0qQwF5c3dVomYUzmoM
+scripts:
+  - type: afterResponse
+    code: |-
+      // Test if status is 200 (success)
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      // If status is 500, log the response body to help debug
+      if (pm.response.code === 500) {
+          console.log("Server error - Response body:", pm.response.text());
+      }
+
+      // Extract and store token or user data from successful responses
+      if (pm.response.code === 200) {
+          const responseData = pm.response.json();
+          
+          // Store token if present
+          if (responseData.token) {
+              pm.environment.set("authToken", responseData.token);
+              console.log("Auth token saved to environment");
+          }
+          
+          // Store user data if present
+          if (responseData.user) {
+              pm.environment.set("userId", responseData.user.id);
+              pm.environment.set("userEmail", responseData.user.email);
+              console.log("User data saved to environment");
+          }
+      }
+    language: text/javascript
+order: 2000

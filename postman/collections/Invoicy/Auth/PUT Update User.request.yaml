@@ -1,0 +1,18 @@
+$kind: http-request
+description: "Generated from cURL: curl -X PUT '{{localhost}}/api/auth/user' -H
+  'Content-Type: application/json' -d '{\"name\": \"\", \"email\": \"\"}'"
+url: http://localhost:8000/api/auth/me
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "",
+      "email": "",
+      "graSecurityKey": "{{graSecurityKey}}",
+      "graCompanyReference": "{{graCompanyReference}}",
+      "graVatScenario": "inclusive"
+    }
+order: 5000

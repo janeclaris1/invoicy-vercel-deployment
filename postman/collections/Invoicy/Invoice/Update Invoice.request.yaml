@@ -1,0 +1,14 @@
+$kind: http-request
+description: "Generated from cURL: curl -X PUT '{{localhost}}/api/invoices/:id'
+  -H 'Content-Type: application/json' -d '{\"clientName\": \"\", \"amount\": 0,
+  \"dueDate\": \"\", \"items\": []}'"
+url: "{{localhost}}/api/invoices/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  id: ""
+body:
+  type: json
+  content: '{"clientName": "", "amount": 0, "dueDate": "", "items": []}'
+order: 4000

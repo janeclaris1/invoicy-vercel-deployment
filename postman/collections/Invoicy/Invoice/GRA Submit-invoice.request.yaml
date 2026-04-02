@@ -1,0 +1,58 @@
+$kind: http-request
+url: https://vsdcstaging.vat-gh.com/vsdc/api/v1/taxpayer/CXX000000YY-001/invoice
+method: POST
+headers:
+  security_key: "{{graSecurityKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"currency":"GHS","exchangeRate":"1.0","invoiceNumber":"INV-1773907347951","totalLevy":937.5,"userName":"V-UK","flag":"INVOICE","calculationType":"INCLUSIVE","totalVat":2812.5,"groupReferenceId":"","transactionDate":"2026-03-19","businessPartnerTin":"C0000000000","totalAmount":22500,"totalExciseAmount":0,"saleType":"NORMAL","discountType":"GENERAL","taxType":"STANDARD","discountAmount":0,"reference":"","purchaseOrderReference":"","businessPartnerName":"Ama
+    Ghana (Cash
+    Customer)","items":[{"itemCode":"69b7ca06b9a6d7c874def096","itemCategory":"","expireDate":"","description":"6\"
+    Bend","quantity":"50","levyAmountA":468.75,"levyAmountB":468.75,"levyAmountD":0,"levyAmountE":0,"discountAmount":0,"exciseAmount":0,"batchCode":"","unitPrice":"450"}]}'
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: beforeRequest
+    code: >-
+      pm.sendRequest({
+          url: 'http://localhost:8000/api/auth/login',
+          method: 'POST',
+          header: {
+              'Content-Type': 'application/json'
+          },
+          body: {
+              mode: 'raw',
+              raw: JSON.stringify({ email: 'ron@test.com', password: 'password' })
+          }
+      }, function (err, res) {
+          if (err) {
+              console.error('Login request failed:', err);
+              return;
+          }
+
+          console.log('Login response status:', res.code);
+
+          if (res.code === 200) {
+              const responseData = res.json();
+              console.log('Login response body:', JSON.stringify(responseData));
+
+              const token = responseData.token
+                  || (responseData.data && responseData.data.token)
+                  || responseData.access_token
+                  || responseData.accessToken;
+
+              if (token) {
+                  pm.environment.set('authToken', token);
+                  console.log('authToken set successfully.');
+              } else {
+                  console.warn('Login succeeded but no token found in response. Full response:', JSON.stringify(responseData));
+              }
+          } else {
+              console.error('Login failed with status:', res.code, 'Body:', res.text());
+          }
+      });
+    language: text/javascript
+order: 7000

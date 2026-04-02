@@ -1,0 +1,8 @@
+$kind: collection
+variables:
+  accessToke: ""
+  localhost: ""
+auth:
+  - id: 8a1278df-5567-4598-92a0-4b1070d9f278
+    type: bearer
+    name: bearer auth

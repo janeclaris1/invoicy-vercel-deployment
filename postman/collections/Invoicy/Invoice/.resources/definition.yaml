@@ -1,0 +1,8 @@
+$kind: collection
+auth:
+  - id: 160a40b9-4b4e-4ebe-bae1-c6b48a49ad88
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: 1234567890987UIEGRTEIIIWOWPPWOOW"
+order: 2000

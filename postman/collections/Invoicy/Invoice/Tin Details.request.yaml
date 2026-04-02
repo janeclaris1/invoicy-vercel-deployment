@@ -1,0 +1,8 @@
+$kind: http-request
+url: http://localhost:8000/api/gra/tin-details/C0034186913
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 6000

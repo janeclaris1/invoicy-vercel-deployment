@@ -1,0 +1,5 @@
+$kind: http-request
+description: "Generated from cURL: curl -X GET '{{localhost}}/api/auth/user'"
+url: "{{localhost}}/api/auth/user"
+method: GET
+order: 4000

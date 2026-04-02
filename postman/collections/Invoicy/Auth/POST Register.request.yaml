@@ -1,0 +1,12 @@
+$kind: http-request
+description: "Generated from cURL: curl -X POST
+  '{{localhost}}/api/auth/register' -H 'Content-Type: application/json' -d
+  '{\"email\": \"\", \"password\": \"\", \"name\": \"\"}'"
+url: http://localhost:5173/api/auth/register
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"email":"user@example.com","password":"password123","name":"John Doe"}'
+order: 1000

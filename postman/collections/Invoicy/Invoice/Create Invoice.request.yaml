@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Generated from cURL: curl -X POST '{{localhost}}/api/invoices' -H
+  'Content-Type: application/json' -d '{\"clientName\": \"\", \"amount\": 0,
+  \"dueDate\": \"\", \"items\": []}'"
+url: http://localhost:8000/api/invoices
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGMzNjVmMDJlNDJhMzA4YjM1NWMzMyIsImlhdCI6MTc3MDk3MzI0NCwiZXhwIjoxNzcxNTc4MDQ0fQ.XtVDtxjzERZE0mjAxyEiGoVhzyP52Epr3R_2ih1c0YE
+body:
+  type: json
+  content: |-
+    {
+      "clientName": "JVC",
+      "amount": 450,
+      "dueDate": "13/02/2026",
+      "items": ["oil"]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: |2
+          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OGMzNjVmMDJlNDJhMzA4YjM1NWMzMyIsImlhdCI6MTc3MDk3MzI0NCwiZXhwIjoxNzcxNTc4MDQ0fQ.XtVDtxjzERZE0mjAxyEiGoVhzyP52Epr3R_2ih1c0YE",
+order: 1000

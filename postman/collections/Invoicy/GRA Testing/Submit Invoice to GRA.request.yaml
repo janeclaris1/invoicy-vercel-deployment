@@ -1,0 +1,17 @@
+$kind: http-request
+description: >-
+  Generated from cURL: curl -X POST http://localhost:8000/api/gra/submit-invoice
+  \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer {{authToken}}" \
+    -d '{"invoiceId":"{{testInvoiceId}}"}'
+url: http://localhost:8000/api/gra/submit-invoice
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+  security_key: "{{graSecurityKey}}"
+body:
+  type: json
+  content: '{"invoiceId":"69bbad93b381367ff959cf47"}'
+order: 2000

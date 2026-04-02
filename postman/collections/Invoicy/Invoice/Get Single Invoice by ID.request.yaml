@@ -1,0 +1,7 @@
+$kind: http-request
+description: "Generated from cURL: curl -X GET '{{localhost}}/api/invoices/:id'"
+url: "{{localhost}}/api/invoices/:id"
+method: GET
+pathVariables:
+  id: ""
+order: 3000

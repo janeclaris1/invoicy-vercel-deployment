@@ -1,0 +1,12 @@
+$kind: http-request
+description: "Generated from cURL: curl -X POST '{{localhost}}/api/invoices' -H
+  'Content-Type: application/json' -d '{\"clientName\": \"\", \"amount\": 0,
+  \"dueDate\": \"\", \"items\": []}'"
+url: http://localhost:8000/api/invoices
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"clientName": "", "amount": 0, "dueDate": "", "items": []}'
+order: 3000
