@@ -214,79 +214,222 @@ const InvoiceDetail = () => {
 
   return (
     <>
-      {/* Print Styles */}
-      <style>{`
-        @media print {
-          /* Hide everything except invoice content */
-          body * {
-            visibility: hidden;
-          }
-          
-          /* Show only invoice content */
-          .invoice-print-container,
-          .invoice-print-container * {
-            visibility: visible !important;
-          }
-          
-          /* Hide layout elements */
-          aside,
-          header,
-          nav,
-          .print\\:hidden,
-          .no-print,
-          button,
-         
-          .btn {
-            display: none !important;
-            visibility: hidden !important;
-          }
-          
-          /* Reset page layout */
-          body {
-            background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          
-          @page {
-            margin: 0.5in;
-          }
-          
-          /* Invoice container styling */
-          .invoice-print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-          }
-          
-          .invoice-print-container > div {
-            box-shadow: none !important;
-            padding: 1rem !important;
-          }
-          
-          /* Ensure text is black */
-          .invoice-print-container,
-          .invoice-print-container * {
-            color: #000 !important;
-            background: white !important;
-          }
-          
-          /* Hide hover effects when printing */
-          .invoice-print-container tr:hover {
-            background: white !important;
-          }
-          
-          .invoice-print-container tr:hover td {
-            color: #000 !important;
-          }
-        }
-      `}</style>
-      
-      <div className="space-y-6 print:p-0 bg-white">
+      {/* Reference design invoice (Tailwind-only) */}
+      <div className="bg-[#F5F5F5] print:bg-white flex justify-center items-start min-h-screen py-10 print:min-h-0 print:py-0">
+        <div className="bg-white max-w-[680px] w-full mx-auto p-12 shadow-md print:shadow-none">
+          {/* Header */}
+          <div className="text-center">
+            <svg
+              width="60"
+              height="50"
+              viewBox="0 0 60 50"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="mx-auto"
+            >
+              {/* Ears */}
+              <polygon points="8,28 0,8 18,18" fill="#222" />
+              <polygon points="52,28 60,8 42,18" fill="#222" />
+              {/* Head */}
+              <ellipse cx="30" cy="30" rx="22" ry="18" fill="#222" />
+              {/* Face mask */}
+              <ellipse cx="30" cy="34" rx="14" ry="10" fill="#fff" />
+              {/* Eyes */}
+              <circle cx="22" cy="27" r="3.5" fill="#fff" />
+              <circle cx="38" cy="27" r="3.5" fill="#fff" />
+              <circle cx="22" cy="27" r="1.8" fill="#222" />
+              <circle cx="38" cy="27" r="1.8" fill="#222" />
+              {/* Nose */}
+              <circle cx="30" cy="33" r="2" fill="#222" />
+              {/* Dots on face */}
+              <circle cx="23" cy="37" r="1.2" fill="#aaa" />
+              <circle cx="30" cy="38" r="1.2" fill="#aaa" />
+              <circle cx="37" cy="37" r="1.2" fill="#aaa" />
+            </svg>
+
+            <div className="text-xl font-black tracking-widest text-center mt-0.5">
+              FOX
+            </div>
+            <div className="text-xs text-gray-400 tracking-widest text-center">
+              network
+            </div>
+            <div className="mt-8" />
+            <div className="mt-4">
+              <div className="flex justify-center items-baseline">
+                <span className="text-6xl font-black">Invoice </span>
+                <span className="text-6xl font-black italic font-serif">Service</span>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-center gap-x-12 text-sm">
+              <div className="whitespace-nowrap">
+                <strong>Invoice Number:</strong>{" "}
+                {invoice.invoiceNumber || "-"}
+              </div>
+              <div className="whitespace-nowrap">
+                <strong>Invoice Date:</strong>{" "}
+                {invoice.invoiceDate
+                  ? moment(invoice.invoiceDate).format("MMMM D, YYYY")
+                  : "-"}
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Info + Bill To */}
+          <div className="mt-10 flex">
+            <div className="w-1/2">
+              <div className="bg-[#4A9B8E] text-white text-xs font-bold uppercase px-3 py-1 inline-block mb-3">
+                PAYMENT INFO
+              </div>
+              <div className="text-sm text-gray-700 leading-7">
+                <div>Bank Transfer</div>
+                <div>{invoice.billFrom?.businessName || user?.businessName || "-"}</div>
+                <div>{invoice.billFrom?.phone || user?.phone || "-"}</div>
+              </div>
+            </div>
+
+            <div className="w-1/2 text-right">
+              <div className="flex justify-end">
+                <div className="bg-[#4A9B8E] text-white text-xs font-bold uppercase px-3 py-1 inline-block mb-3">
+                  BILL TO
+                </div>
+              </div>
+              <div className="text-sm text-gray-700 leading-7 text-right">
+                <div className="font-bold">{invoice.billTo?.clientName || "-"}</div>
+                <div>{invoice.billTo?.email || "-"}</div>
+                <div>{invoice.billTo?.address || "-"}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="mt-10 w-full">
+            <table className="w-full border-separate border-spacing-0">
+              <thead>
+                <tr className="bg-[#4A9B8E] text-white font-bold text-sm">
+                  <th className="px-4 py-3 text-left">
+                    <span className="flex-1">Item Description</span>
+                  </th>
+                  <th className="px-4 py-3 text-left w-16">Qty.</th>
+                  <th className="px-4 py-3 text-left w-36">Unit Price</th>
+                  <th className="px-4 py-3 text-left">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineItems.slice(0, 3).map((item, index) => (
+                  <tr
+                    key={index}
+                    className={
+                      index === 1 ? "bg-[#F9F9F9]" : "bg-white"
+                    }
+                  >
+                    <td className="px-4 py-3 text-sm border-b border-gray-100">
+                      {item.description || item.itemDescription || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm border-b border-gray-100">
+                      {item.quantity || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm border-b border-gray-100">
+                      {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
+                    </td>
+                    <td className="px-4 py-3 text-sm border-b border-gray-100">
+                      {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
+                    </td>
+                  </tr>
+                ))}
+
+                <tr className="bg-[#F0F0F0] font-bold text-sm">
+                  <td className="px-4 py-3">Total Payment</td>
+                  <td className="px-4 py-3">-</td>
+                  <td className="px-4 py-3">-</td>
+                  <td className="px-4 py-3">
+                    {formatCurrency(invoice.subtotal || 0, userCurrency)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tax + Grand Total */}
+          <div className="mt-4 flex flex-col items-end">
+            <div className="flex justify-between w-56 text-sm">
+              <span>Tax</span>
+              <span>{formatCurrency(invoice.totalVat || 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between w-56 bg-[#4A9B8E] text-white font-bold px-3 py-2 mt-1">
+              <span>Grand Total</span>
+              <span>{formatCurrency(invoice.grandTotal || 0, userCurrency)}</span>
+            </div>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="mt-10 flex">
+            <div className="w-1/2">
+              <div className="font-bold text-sm">Notes:</div>
+              <div className="text-sm text-gray-600 mt-1">
+                {invoice.paymentTerms || "-"}
+              </div>
+              <div className="border-t border-gray-300 mt-6 w-48" />
+            </div>
+            <div className="w-1/2 text-right flex flex-col items-end">
+              <div className="text-sm mt-2">
+                Date :{" "}
+                {invoice.dueDate
+                  ? moment(invoice.dueDate).format("MMMM D, YYYY")
+                  : moment(invoice.invoiceDate).format("MMMM D, YYYY")}
+              </div>
+
+              <svg
+                className="mt-4"
+                width="120"
+                height="50"
+                viewBox="0 0 120 50"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10,35 Q20,10 30,30 Q35,40 40,25 Q50,5 60,28 Q65,38 75,22 Q85,8 95,30 Q100,38 110,28"
+                  stroke="#222"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                />
+                <line
+                  x1="5"
+                  y1="32"
+                  x2="15"
+                  y2="36"
+                  stroke="#222"
+                  stroke-width="2"
+                />
+              </svg>
+
+              <div className="border-t border-gray-400 mt-2 w-40" />
+              <div className="text-sm text-center mt-2">
+                {invoice.billFrom?.businessName ||
+                  user?.businessName ||
+                  "-"}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-10 flex items-start gap-4">
+            <div className="w-16 h-16 border-2 border-gray-300 flex items-center justify-center text-gray-300 text-xs">
+              QR
+            </div>
+            <div className="text-sm text-gray-600">
+              <div>
+                <span className="font-bold text-gray-800">More Info:</span>
+              </div>
+              <div>{user?.phone || invoice.billFrom?.phone || "-"}</div>
+              <div>{user?.email || invoice.billFrom?.email || "-"}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Old UI (kept for functionality, hidden for visuals) */}
+      <div className="space-y-6 print:p-0 bg-white hidden">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
             <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
@@ -587,7 +730,6 @@ const InvoiceDetail = () => {
                     <QRCode
                       value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)}
                       size={128}
-                      style={{ height: 128, width: 128 }}
                     />
                   </div>
                 )
