@@ -101,6 +101,12 @@
     .invoice-print-container * {
       visibility: visible !important;
     }
+
+    /* Prefer normal ink/toner mode (no reliance on “Background graphics” in the browser print dialog) */
+    .invoice-print-container {
+      -webkit-print-color-adjust: economy;
+      print-color-adjust: economy;
+    }
     
     /* Reset body for printing */
     body {

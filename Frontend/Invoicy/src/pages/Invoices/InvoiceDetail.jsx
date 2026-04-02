@@ -417,7 +417,7 @@ const InvoiceDetail = () => {
       </div>
 
       {/* Old UI (kept for functionality, hidden for visuals) */}
-      <div className="bg-[#F5F5F5] flex justify-center items-start min-h-screen py-10 print:min-h-0 print:py-0">
+      <div className="bg-[#F5F5F5] flex justify-center items-start min-h-screen py-10 print:bg-white print:min-h-0 print:py-0">
         <div className="bg-white max-w-[680px] w-full mx-auto p-12 shadow-md space-y-6 print:shadow-none print:p-0">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
@@ -554,13 +554,13 @@ const InvoiceDetail = () => {
 
         <div className="mt-6 overflow-x-auto">
           <table className="w-full border-separate border-spacing-0">
-            <thead className="bg-[#1A3263]">
+            <thead className="bg-[#1A3263] print:bg-white">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white print:text-[#1A3263] uppercase tracking-wider border-r border-black print:border-b-2 print:border-[#1A3263]">#</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white print:text-[#1A3263] uppercase tracking-wider border-r border-black print:border-b-2 print:border-[#1A3263]">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white print:text-[#1A3263] uppercase tracking-wider border-r border-black print:border-b-2 print:border-[#1A3263]">Qty</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white print:text-[#1A3263] uppercase tracking-wider border-r border-black print:border-b-2 print:border-[#1A3263]">Price</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white print:text-[#1A3263] uppercase tracking-wider print:border-b-2 print:border-[#1A3263]">Total</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
@@ -801,7 +801,10 @@ const InvoiceDetail = () => {
         </div>
         
         {/* Print button at bottom - white text, white border, no blue */}
-        <div className="flex justify-center no-print mt-6">
+        <div className="flex flex-col items-center no-print mt-6 gap-3">
+          <p className="text-center text-xs text-gray-500 max-w-md px-4">
+            In your browser&apos;s print dialog, turn on <strong>Headers and footers</strong> so the date and page numbers appear on the printed page.
+          </p>
           <Button
             onClick={handlePrint}
             className="flex items-center gap-2 !rounded-lg !bg-slate-800 hover:!bg-slate-700 !text-white !border-2 !border-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white dark:!border-white [&_svg]:!text-white [&_svg]:!stroke-white"
