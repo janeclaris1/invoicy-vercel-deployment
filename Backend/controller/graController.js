@@ -23,11 +23,12 @@ const getTeamMemberIds = async (currentUserId) => {
 
 /**
  * Call GRA E-VAT API with user's stored credentials.
- * VER 8.2: Authentication via Request Header SECURITY_KEY (and COMPANY_REFERENCE where required).
+ * VER 8.2 (Postman): https://documenter.getpostman.com/view/29809098/2sBXVeGCzK
+ * Auth = header `security_key` only; taxpayer id is already in the URL path (`/taxpayer/{ref}/...`).
  */
 const callGRA = async (user, path, method, body) => {
-    const companyReference = user.graCompanyReference || "";
-    const securityKey = user.graSecurityKey || "";
+    const companyReference = String(user.graCompanyReference || "").trim();
+    const securityKey = String(user.graSecurityKey || "").trim();
     if (!companyReference || !securityKey) {
         throw new Error("GRA credentials not configured. Set Company Reference and Security Key in Settings → Company.");
     }
@@ -35,10 +36,7 @@ const callGRA = async (user, path, method, body) => {
     const headers = {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "COMPANY_REFERENCE": companyReference,
-        "SECURITY_KEY": securityKey,
-        "security_key": securityKey, // VER 8.2 sample uses lowercase; some gateways expect it
-        "Security_Key": securityKey,
+        security_key: securityKey,
     };
     let res;
     try {
@@ -69,10 +67,10 @@ const callGRA = async (user, path, method, body) => {
     return data;
 };
 
-/** GET request to GRA (e.g. TinDetails, GhanaCardDetails). VER 8.2 uses security_key header. */
+/** GET request to GRA (e.g. TinDetails, GhanaCardDetails). Same header as Postman VER 8.2. */
 const callGRAGet = async (user, path) => {
-    const companyReference = user.graCompanyReference || "";
-    const securityKey = user.graSecurityKey || "";
+    const companyReference = String(user.graCompanyReference || "").trim();
+    const securityKey = String(user.graSecurityKey || "").trim();
     if (!companyReference || !securityKey) {
         throw new Error("GRA credentials not configured. Set Company Reference and Security Key in Settings → Company.");
     }
@@ -83,10 +81,7 @@ const callGRAGet = async (user, path) => {
             method: "GET",
             headers: {
                 Accept: "application/json",
-                "COMPANY_REFERENCE": companyReference,
-                "SECURITY_KEY": securityKey,
-                "security_key": securityKey,
-                "Security_Key": securityKey,
+                security_key: securityKey,
             },
         });
     } catch (e) {
@@ -217,6 +212,7 @@ exports.submitInvoice = async (req, res) => {
         const totalExciseAmount = Number(invoice.totalExciseAmount) || 0;
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
+        // Field order matches GRA VER 8.2 sample docs (easier diff vs curl examples).
         const body = {
             currency: (user.currency || "GHS").toUpperCase(),
             exchangeRate: "1.0",
@@ -226,18 +222,18 @@ exports.submitInvoice = async (req, res) => {
             flag: "INVOICE",
             calculationType,
             totalVat: invoice.totalVat ?? 0,
-            groupReferenceId: (invoice.groupReferenceId || "").slice(0, 50),
             transactionDate,
-            businessPartnerTin: businessPartnerTin.slice(0, 15),
             totalAmount: invoice.grandTotal ?? 0,
-            totalExciseAmount: Number.isFinite(totalExciseAmount) ? totalExciseAmount : 0,
+            totalExciseAmount: Number.isFinite(totalExciseAmount) ? roundTo(totalExciseAmount, 2) : 0,
+            businessPartnerName: businessPartnerName.slice(0, 100),
+            businessPartnerTin: businessPartnerTin.slice(0, 15),
             saleType: (invoice.saleType || "NORMAL").slice(0, 20),
             discountType: (invoice.discountType || "GENERAL").slice(0, 300),
             taxType,
             discountAmount: invoice.totalDiscount ?? 0,
             reference: (invoice.graRefundReference || "").slice(0, 50),
+            groupReferenceId: (invoice.groupReferenceId || "").slice(0, 50),
             purchaseOrderReference: (invoice.purchaseOrderReference || "").slice(0, 50),
-            businessPartnerName: businessPartnerName.slice(0, 100),
             items: itemsForGra,
         };
         // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
