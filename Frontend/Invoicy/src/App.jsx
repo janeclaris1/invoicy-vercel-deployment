@@ -56,6 +56,7 @@ import SupplyChainLayout from "./pages/SupplyChain/SupplyChainLayout";
 import InventoryPage from "./pages/SupplyChain/InventoryPage";
 import ProcurementPage from "./pages/SupplyChain/ProcurementPage";
 import SupplyChainSuppliersPage from "./pages/SupplyChain/SupplyChainSuppliersPage";
+import SupplyChainSupplierAccountPage from "./pages/SupplyChain/SupplyChainSupplierAccountPage";
 import WarehousesPage from "./pages/SupplyChain/WarehousesPage";
 import ForecastingPage from "./pages/SupplyChain/ForecastingPage";
 import HrRecords from "./pages/HR/HrRecords";
@@ -188,6 +189,7 @@ const App = () => {
               <Route index element={<Navigate to="inventory" replace />} />
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="procurement" element={<ProcurementPage />} />
+              <Route path="suppliers/:id" element={<SupplyChainSupplierAccountPage />} />
               <Route path="suppliers" element={<SupplyChainSuppliersPage />} />
               <Route path="warehouses" element={<WarehousesPage />} />
               <Route path="forecasting" element={<ForecastingPage />} />

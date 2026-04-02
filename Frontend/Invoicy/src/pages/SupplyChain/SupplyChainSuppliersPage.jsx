@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, Pencil, Trash2, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import { formatCurrency } from "../../utils/helper";
+import { useAuth } from "../../context/AuthContext";
 
 const SupplyChainSuppliersPage = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -27,11 +30,16 @@ const SupplyChainSuppliersPage = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await axiosInstance.get(API_PATHS.SUPPLY_CHAIN.SUPPLIERS);
-      setSuppliers(Array.isArray(res.data) ? res.data : []);
+      const [supRes, poRes] = await Promise.all([
+        axiosInstance.get(API_PATHS.SUPPLY_CHAIN.SUPPLIERS),
+        axiosInstance.get(API_PATHS.SUPPLY_CHAIN.PURCHASE_ORDERS),
+      ]);
+      setSuppliers(Array.isArray(supRes.data) ? supRes.data : []);
+      setPurchaseOrders(Array.isArray(poRes.data) ? poRes.data : []);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to load suppliers");
       setSuppliers([]);
+      setPurchaseOrders([]);
     } finally {
       setLoading(false);
     }
@@ -40,6 +48,18 @@ const SupplyChainSuppliersPage = () => {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
+  const supplierTotals = useMemo(() => {
+    const map = {};
+    suppliers.forEach((s) => {
+      const sid = String(s._id);
+      const pos = purchaseOrders.filter((po) => poSupplierId(po) === sid);
+      const totalValue = pos.reduce((sum, po) => sum + toNumber(po.totalAmount), 0);
+      const openPOs = pos.filter((po) => ["draft", "sent", "partial"].includes((po.status || "").toLowerCase())).length;
+      map[sid] = { poCount: pos.length, totalValue, openPOs };
+    });
+    return map;
+  }, [suppliers, purchaseOrders]);
 
   const openCreate = () => {
     setEditing(null);
@@ -113,6 +133,8 @@ const SupplyChainSuppliersPage = () => {
               <th className="px-4 py-3 text-left font-medium">Company</th>
               <th className="px-4 py-3 text-left font-medium">Email / Phone</th>
               <th className="px-4 py-3 text-left font-medium">Category</th>
+              <th className="px-4 py-3 text-left font-medium">POs</th>
+              <th className="px-4 py-3 text-left font-medium">Account</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -126,6 +148,27 @@ const SupplyChainSuppliersPage = () => {
                   <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{s.company || "—"}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{s.email || "—"} {s.phone ? ` · ${s.phone}` : ""}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{s.category || "—"}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                    {supplierTotals[String(s._id)]?.poCount ?? 0}
+                    {supplierTotals[String(s._id)]?.openPOs ? (
+                      <span className="text-xs text-amber-600 dark:text-amber-400 ml-1">
+                        ({supplierTotals[String(s._id)].openPOs} open)
+                      </span>
+                    ) : null}
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {formatCurrency(supplierTotals[String(s._id)]?.totalValue ?? 0, userCurrency)}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/supply-chain/suppliers/${s._id}`)}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View account
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button type="button" onClick={() => openEdit(s)} className="p-1.5 text-blue-600 rounded hover:bg-blue-50 dark:hover:bg-slate-700"><Pencil className="w-4 h-4 inline" /></button>
                     <button type="button" onClick={() => handleDelete(s)} className="p-1.5 text-red-600 rounded hover:bg-red-50 dark:hover:bg-slate-700"><Trash2 className="w-4 h-4 inline" /></button>

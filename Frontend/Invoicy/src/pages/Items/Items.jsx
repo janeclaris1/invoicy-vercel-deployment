@@ -75,7 +75,15 @@ const Items = () => {
   const [itemsLoading, setItemsLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState(null);
+  const [showInlineCategoryForm, setShowInlineCategoryForm] = useState(false);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [inlineCategoryForm, setInlineCategoryForm] = useState({
+    name: "",
+    color: "#3B82F6",
+    description: "",
+  });
   const fileInputRef = React.useRef(null);
+  const activeCategories = categories.filter((cat) => cat?.isActive !== false);
 
   useEffect(() => {
     const loadItems = async () => {
@@ -146,6 +154,8 @@ const Items = () => {
       reorderLevel: "",
     });
     setShowModal(true);
+    setShowInlineCategoryForm(false);
+    setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
   };
 
   const openEditItem = (item) => {
@@ -163,6 +173,40 @@ const Items = () => {
       reorderLevel: item.reorderLevel != null ? String(item.reorderLevel) : "",
     });
     setShowModal(true);
+    setShowInlineCategoryForm(false);
+    setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
+  };
+
+  const handleCreateInlineCategory = async () => {
+    const trimmedName = inlineCategoryForm.name.trim();
+    if (!trimmedName) return;
+    setCreatingCategory(true);
+    try {
+      const response = await axiosInstance.post(API_PATHS.CATEGORIES.CREATE, {
+        name: trimmedName,
+        color: inlineCategoryForm.color || "#3B82F6",
+        description: inlineCategoryForm.description || "",
+      });
+      const newCategory = { ...response.data, id: response.data?._id || response.data?.id };
+      setCategories((prev) => [newCategory, ...prev]);
+      setFormData((prev) => ({ ...prev, category: newCategory.name || trimmedName }));
+      setShowInlineCategoryForm(false);
+      setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
+    } catch (err) {
+      const fallbackCategory = {
+        id: Date.now(),
+        name: trimmedName,
+        color: inlineCategoryForm.color || "#3B82F6",
+        description: inlineCategoryForm.description || "",
+      };
+      setCategories((prev) => [fallbackCategory, ...prev]);
+      localStorage.setItem("categories", JSON.stringify([fallbackCategory, ...categories]));
+      setFormData((prev) => ({ ...prev, category: fallbackCategory.name }));
+      setShowInlineCategoryForm(false);
+      setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
+    } finally {
+      setCreatingCategory(false);
+    }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -178,7 +222,7 @@ const Items = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const selectedCategory = categories.find((cat) => cat.name === formData.category) || categories.find((cat) => String(cat.id) === String(formData.category));
+    const selectedCategory = activeCategories.find((cat) => cat.name === formData.category) || activeCategories.find((cat) => String(cat.id) === String(formData.category));
     const categoryName = selectedCategory?.name || formData.category;
     const categoryColor = selectedCategory?.color || "#3B82F6";
     const normalizedPrice = Number(formData.price || 0);
@@ -226,7 +270,7 @@ const Items = () => {
         }, ...prev]);
       }
     } catch (err) {
-      const selectedCat = categories.find((cat) => String(cat.id) === String(formData.category));
+      const selectedCat = activeCategories.find((cat) => String(cat.id) === String(formData.category));
       if (editingItemId) {
         const updated = items.map((item) =>
           item.id === editingItemId
@@ -549,13 +593,61 @@ const Items = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Select Category</option>
-                    {categories.map((cat) => (
+                    <option value="">{activeCategories.length > 0 ? "Select Category" : "No active categories"}</option>
+                    {activeCategories.map((cat) => (
                       <option key={cat.id} value={cat.name}>
                         {cat.name}
                       </option>
                     ))}
                   </select>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <p className="text-xs text-gray-500">
+                      {activeCategories.length > 0
+                        ? "Only active categories are shown."
+                        : "No active categories found. Create one below to continue."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowInlineCategoryForm((prev) => !prev)}
+                      className="text-xs font-medium text-blue-900 hover:text-blue-800"
+                    >
+                      {showInlineCategoryForm ? "Hide" : "Create Category"}
+                    </button>
+                  </div>
+                  {showInlineCategoryForm && (
+                    <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                      <input
+                        type="text"
+                        value={inlineCategoryForm.name}
+                        onChange={(e) => setInlineCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder="Category name"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={inlineCategoryForm.description}
+                        onChange={(e) => setInlineCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
+                        placeholder="Description (optional)"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={inlineCategoryForm.color}
+                          onChange={(e) => setInlineCategoryForm((prev) => ({ ...prev, color: e.target.value }))}
+                          className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCreateInlineCategory}
+                          disabled={creatingCategory || !inlineCategoryForm.name.trim()}
+                          className="px-3 py-2 text-xs rounded bg-blue-900 text-white hover:bg-blue-800 disabled:opacity-50"
+                        >
+                          {creatingCategory ? "Creating..." : "Save Category"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
