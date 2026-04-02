@@ -152,6 +152,36 @@
     tfoot {
       display: table-footer-group;
     }
+
+    /* Invoice detail: print only `.invoice-print-container` (dashboard layout, selects, hints hidden). */
+    body.invoice-print-page * {
+      visibility: hidden;
+    }
+
+    body.invoice-print-page .invoice-print-container,
+    body.invoice-print-page .invoice-print-container * {
+      visibility: visible !important;
+    }
+
+    body.invoice-print-page .invoice-print-container {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      max-width: 100%;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      box-shadow: none !important;
+    }
+
+    body.invoice-print-page .min-h-screen {
+      min-height: 0 !important;
+    }
+
+    body.invoice-print-page main {
+      min-height: 0 !important;
+    }
   }
 }
 

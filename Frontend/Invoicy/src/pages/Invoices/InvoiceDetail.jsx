@@ -47,6 +47,13 @@ const InvoiceDetail = () => {
     fetchInvoice();
   }, [fetchInvoice]);
 
+  /* Isolate print output to the invoice card only (hide dashboard chrome, toolbars, hints). */
+  useEffect(() => {
+    if (!invoice) return undefined;
+    document.body.classList.add("invoice-print-page");
+    return () => document.body.classList.remove("invoice-print-page");
+  }, [invoice]);
+
   useEffect(() => {
     const handler = () => fetchInvoice();
     window.addEventListener("currencyChanged", handler);
@@ -733,16 +740,16 @@ const InvoiceDetail = () => {
                   <img
                     src={invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode}
                     alt="GRA Verification QR Code"
-                    className="w-36 h-36 object-contain border border-slate-500 dark:border-slate-500 rounded-lg bg-white p-2"
+                    className="w-36 h-36 object-contain rounded-lg bg-white p-2"
                   />
                 ) : /^https?:\/\//i.test(String(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode || "")) ? (
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=144x144&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
                     alt="GRA Verification QR Code"
-                    className="w-36 h-36 object-contain border border-slate-500 dark:border-slate-500 rounded-lg bg-white p-2"
+                    className="w-36 h-36 object-contain rounded-lg bg-white p-2"
                   />
                 ) : (
-                  <div className="w-36 h-36 border border-slate-500 dark:border-slate-500 rounded-lg bg-white p-2 inline-flex items-center justify-center overflow-hidden">
+                  <div className="w-36 h-36 rounded-lg bg-white p-2 inline-flex items-center justify-center overflow-hidden">
                     <QRCode
                       value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)}
                       size={128}
@@ -754,7 +761,7 @@ const InvoiceDetail = () => {
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=144x144&data=${encodeURIComponent(`GRA verification pending - Invoice ${invoice.invoiceNumber || ""}`)}`}
                     alt="GRA Verification QR (sample)"
-                    className="w-36 h-36 object-contain border border-slate-500 dark:border-slate-500 rounded-lg bg-white p-2 opacity-80"
+                    className="w-36 h-36 object-contain rounded-lg bg-white p-2 opacity-80"
                     title="Sample QR – submit to GRA to show verification QR"
                   />
                   <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
