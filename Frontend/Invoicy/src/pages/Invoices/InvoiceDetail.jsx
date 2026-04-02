@@ -215,7 +215,7 @@ const InvoiceDetail = () => {
   return (
     <>
       {/* Reference design invoice (Tailwind-only) */}
-      <div className="bg-[#F5F5F5] print:bg-white flex justify-center items-start min-h-screen py-10 print:min-h-0 print:py-0">
+      <div className="hidden bg-[#F5F5F5] print:bg-white flex justify-center items-start min-h-screen py-10 print:min-h-0 print:py-0">
         <div className="bg-white max-w-[680px] w-full mx-auto p-12 shadow-md print:shadow-none">
           {/* Header */}
           <div className="text-center">
@@ -429,7 +429,7 @@ const InvoiceDetail = () => {
       </div>
 
       {/* Old UI (kept for functionality, hidden for visuals) */}
-      <div className="space-y-6 print:p-0 bg-white hidden">
+      <div className="space-y-6 print:p-0 bg-white">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
             <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
