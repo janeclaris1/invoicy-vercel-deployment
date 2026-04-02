@@ -108,6 +108,7 @@ const NextBillingCountdown = ({ currentPeriodEnd }) => {
 
 const DashboardLayout = ({ children, activeMenu }) => {
     const { user, logout } = useAuth();
+    const headerAvatarUrl = useProfilePictureObjectUrl(user?.profilePicture);
     const navigate = useNavigate();
     const location = useLocation();
     const { t, i18n } = useTranslation();
