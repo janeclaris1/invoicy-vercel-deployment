@@ -734,7 +734,6 @@ const InvoiceDetail = () => {
             </div>
             {/* GRA verification QR – bottom right (like GRA sample invoice) */}
             <div className="mt-4 flex flex-col items-end">
-              <div className="text-xs font-medium text-black dark:text-black opacity-90 mb-1">GRA Verification QR</div>
               {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
                 String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                   <img
