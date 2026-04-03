@@ -8,6 +8,20 @@ import { playNotificationSound } from "../../utils/notificationSound";
 import { Minus, Plus, Search, Trash2, Banknote } from "lucide-react";
 import toast from "react-hot-toast";
 
+/** Filter key for items with no category set */
+const UNCATEGORIZED_KEY = "__uncategorized__";
+
+function normCategory(s) {
+    return String(s || "").trim().toLowerCase();
+}
+
+function itemMatchesCategoryFilter(item, categoryFilter) {
+    if (!categoryFilter) return true;
+    const label = String(item.category || "").trim();
+    if (categoryFilter === UNCATEGORIZED_KEY) return !label;
+    return normCategory(label) === normCategory(categoryFilter);
+}
+
 const PAYMENT_METHODS = [
     { id: "cash", label: "Cash" },
     { id: "card", label: "Card" },
@@ -49,6 +63,8 @@ const PosDashboard = () => {
     const [discountAmount, setDiscountAmount] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("cash");
     const [submitting, setSubmitting] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [categoryFilter, setCategoryFilter] = useState("");
 
     const loadCatalog = useCallback(async () => {
         setLoading(true);
@@ -86,6 +102,37 @@ const PosDashboard = () => {
     useEffect(() => {
         loadCatalog();
     }, [loadCatalog]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await axiosInstance.get(API_PATHS.CATEGORIES.GET_ALL);
+                const data = Array.isArray(res.data) ? res.data : [];
+                if (!cancelled) {
+                    setCategories(data.map((c) => ({ ...c, id: c._id || c.id })));
+                }
+            } catch {
+                try {
+                    const saved = localStorage.getItem("categories");
+                    const raw = saved ? JSON.parse(saved) : [];
+                    if (!cancelled) {
+                        setCategories(
+                            (Array.isArray(raw) ? raw : []).map((c) => ({
+                                ...c,
+                                id: c._id || c.id,
+                            }))
+                        );
+                    }
+                } catch {
+                    if (!cancelled) setCategories([]);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         const t = setTimeout(() => scanRef.current?.focus(), 100);
@@ -127,18 +174,35 @@ const PosDashboard = () => {
         });
     }, []);
 
+    const categoryChips = useMemo(() => {
+        const fromApi = [...categories]
+            .filter((c) => String(c.name || "").trim())
+            .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const known = new Set(fromApi.map((c) => normCategory(c.name)));
+        const orphanSet = new Set();
+        for (const i of catalog) {
+            const n = String(i.category || "").trim();
+            if (n && !known.has(normCategory(n))) orphanSet.add(n);
+        }
+        const orphans = Array.from(orphanSet).sort((a, b) => a.localeCompare(b));
+        const showUncategorized = catalog.some((i) => !String(i.category || "").trim());
+        return { fromApi, orphans, showUncategorized };
+    }, [categories, catalog]);
+
     const filteredCatalog = useMemo(() => {
+        let list = catalog.filter((i) => itemMatchesCategoryFilter(i, categoryFilter));
         const q = search.trim().toLowerCase();
-        if (!q) return catalog.slice(0, 72);
-        return catalog
-            .filter(
+        if (q) {
+            list = list.filter(
                 (i) =>
                     (i.name || "").toLowerCase().includes(q) ||
                     (i.skuNorm && i.skuNorm.includes(q)) ||
-                    String(i.id).toLowerCase().includes(q)
-            )
-            .slice(0, 72);
-    }, [catalog, search]);
+                    String(i.id).toLowerCase().includes(q) ||
+                    normCategory(i.category).includes(q)
+            );
+        }
+        return list.slice(0, 72);
+    }, [catalog, search, categoryFilter]);
 
     const lineSubtotal = useMemo(
         () => cart.reduce((s, l) => s + l.qty * l.unitPrice, 0),
@@ -341,8 +405,87 @@ const PosDashboard = () => {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+                    {!loading && (catalog.length > 0 || categoryChips.fromApi.length > 0) && (
+                        <div className="mb-3 -mt-1">
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+                                Category
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setCategoryFilter("")}
+                                    className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
+                                        !categoryFilter
+                                            ? "bg-blue-950 text-white border-blue-950"
+                                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                    }`}
+                                >
+                                    All
+                                </button>
+                                {categoryChips.fromApi.map((c) => {
+                                    const name = String(c.name || "").trim();
+                                    const active = normCategory(categoryFilter) === normCategory(name);
+                                    const color = c.color || "#3B82F6";
+                                    return (
+                                        <button
+                                            key={String(c.id || name)}
+                                            type="button"
+                                            onClick={() => setCategoryFilter(name)}
+                                            className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors inline-flex items-center gap-1 ${
+                                                active
+                                                    ? "bg-blue-950 text-white border-blue-950"
+                                                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                            }`}
+                                        >
+                                            <span
+                                                className="h-1.5 w-1.5 rounded-full shrink-0"
+                                                style={{ backgroundColor: active ? "#fff" : color }}
+                                            />
+                                            {name}
+                                        </button>
+                                    );
+                                })}
+                                {categoryChips.orphans.map((name) => {
+                                    const active = normCategory(categoryFilter) === normCategory(name);
+                                    return (
+                                        <button
+                                            key={`orphan-${name}`}
+                                            type="button"
+                                            onClick={() => setCategoryFilter(name)}
+                                            className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
+                                                active
+                                                    ? "bg-blue-950 text-white border-blue-950"
+                                                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                            }`}
+                                        >
+                                            {name}
+                                        </button>
+                                    );
+                                })}
+                                {categoryChips.showUncategorized ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setCategoryFilter(UNCATEGORIZED_KEY)}
+                                        className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
+                                            categoryFilter === UNCATEGORIZED_KEY
+                                                ? "bg-blue-950 text-white border-blue-950"
+                                                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                        }`}
+                                    >
+                                        Uncategorized
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+                    )}
                     {loading ? (
                         <p className="text-sm text-gray-500">Loading items…</p>
+                    ) : filteredCatalog.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-8 text-center">
+                            {catalog.length === 0
+                                ? "No products yet."
+                                : "No items match this category or search."}
+                        </p>
                     ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5">
                             {filteredCatalog.map((item) => (
