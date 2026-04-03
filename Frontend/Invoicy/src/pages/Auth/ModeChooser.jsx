@@ -6,11 +6,13 @@ const ModeChooser = () => {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Choose your workspace</h1>
-            <p className="text-gray-600 text-sm mb-8">
-                Select <strong>Invoice Suite</strong> for the full dashboard, or <strong>POS</strong> for point-of-sale scanning
-                and quick billing.
-            </p>
+            <div className="rounded-xl bg-blue-950 px-6 py-5 mb-8 shadow-sm">
+                <h1 className="text-2xl font-semibold text-white mb-2">Choose your workspace</h1>
+                <p className="text-sm text-blue-100/95 leading-relaxed">
+                    Select <strong className="text-white font-semibold">Invoice Suite</strong> for the full dashboard, or{" "}
+                    <strong className="text-white font-semibold">POS</strong> for point-of-sale scanning and quick billing.
+                </p>
+            </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
                 <button

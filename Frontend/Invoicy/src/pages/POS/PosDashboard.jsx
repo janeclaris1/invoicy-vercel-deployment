@@ -193,7 +193,7 @@ const PosDashboard = () => {
                 </p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,18rem)]">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-h-[320px]">
                     <div className="relative mb-3">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -230,69 +230,69 @@ const PosDashboard = () => {
                     )}
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-lg font-semibold text-gray-900">Cart</h2>
+                <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm lg:w-full">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-sm font-semibold text-gray-900">Cart</h2>
                         <button
                             type="button"
                             onClick={clearCart}
                             disabled={!cart.length}
-                            className="text-xs font-medium text-red-700 disabled:opacity-40"
+                            className="text-[11px] font-medium text-red-700 disabled:opacity-40"
                         >
-                            Clear all
+                            Clear
                         </button>
                     </div>
                     {cart.length === 0 ? (
-                        <p className="text-sm text-gray-600 py-8 text-center">No items yet.</p>
+                        <p className="text-xs text-gray-600 py-4 text-center">No items yet.</p>
                     ) : (
-                        <ul className="space-y-2 max-h-56 overflow-y-auto mb-4">
+                        <ul className="space-y-1 max-h-40 overflow-y-auto mb-2">
                             {cart.map((line) => (
                                 <li
                                     key={String(line.itemId)}
-                                    className="flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-2 text-sm"
+                                    className="flex items-center gap-1.5 rounded-md bg-white border border-gray-200 px-2 py-1.5 text-xs"
                                 >
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-900 truncate">{line.name}</div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="font-medium text-gray-900 truncate leading-tight">{line.name}</div>
+                                        <div className="text-[11px] text-gray-500">
                                             {formatCurrency(line.unitPrice, userCurrency)} × {line.qty}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-0.5 shrink-0">
                                         <button
                                             type="button"
                                             aria-label="Decrease quantity"
-                                            className="p-1 rounded hover:bg-gray-100"
+                                            className="p-0.5 rounded hover:bg-gray-100"
                                             onClick={() => updateQty(line.itemId, -1)}
                                         >
-                                            <Minus className="h-4 w-4" />
+                                            <Minus className="h-3.5 w-3.5" />
                                         </button>
                                         <button
                                             type="button"
                                             aria-label="Increase quantity"
-                                            className="p-1 rounded hover:bg-gray-100"
+                                            className="p-0.5 rounded hover:bg-gray-100"
                                             onClick={() => {
                                                 playNotificationSound(1);
                                                 updateQty(line.itemId, 1);
                                             }}
                                         >
-                                            <Plus className="h-4 w-4" />
+                                            <Plus className="h-3.5 w-3.5" />
                                         </button>
                                         <button
                                             type="button"
                                             aria-label="Remove line"
-                                            className="p-1 rounded hover:bg-red-50 text-red-600"
+                                            className="p-0.5 rounded hover:bg-red-50 text-red-600"
                                             onClick={() => removeLine(line.itemId)}
                                         >
-                                            <Trash2 className="h-4 w-4" />
+                                            <Trash2 className="h-3.5 w-3.5" />
                                         </button>
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     )}
-                    <div className="flex items-center justify-between border-t border-gray-200 pt-3 mb-3">
-                        <span className="text-sm font-medium text-gray-700">Subtotal</span>
-                        <span className="text-lg font-semibold text-gray-900">
+                    <div className="flex items-center justify-between border-t border-gray-200 pt-2 mb-2">
+                        <span className="text-xs font-medium text-gray-700">Subtotal</span>
+                        <span className="text-sm font-semibold text-gray-900 tabular-nums">
                             {formatCurrency(cartTotal, userCurrency)}
                         </span>
                     </div>
@@ -300,10 +300,10 @@ const PosDashboard = () => {
                         type="button"
                         onClick={checkout}
                         disabled={!cart.length}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-950 text-white py-3 font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-blue-950 text-white py-2 text-xs font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <FilePlus className="h-5 w-5" />
-                        Create invoice from cart
+                        <FilePlus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">New invoice</span>
                     </button>
                 </div>
             </div>
