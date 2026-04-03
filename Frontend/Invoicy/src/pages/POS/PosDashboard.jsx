@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
+import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
 import { playNotificationSound } from "../../utils/notificationSound";
-import { Minus, Plus, Search, Trash2, Banknote } from "lucide-react";
+import { Minus, Plus, Search, Trash2, Banknote, Package } from "lucide-react";
 import toast from "react-hot-toast";
 import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
 
@@ -47,6 +47,44 @@ function parseDecimalInput(raw) {
 
 function toFloat2(raw) {
     return Math.round(parseDecimalInput(raw) * 100) / 100;
+}
+
+/** Data URL, absolute URL, or site-relative path → usable img src */
+function resolveItemImageSrc(raw) {
+    if (raw == null) return null;
+    const s = String(raw).trim();
+    if (!s) return null;
+    if (/^(data:|blob:)/i.test(s)) return s;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.startsWith("//")) return s;
+    const base = String(BASE_URL || "").replace(/\/?$/, "");
+    if (s.startsWith("/")) return `${base}${s}`;
+    return s;
+}
+
+function PosProductImage({ raw, iconClass = "h-8 w-8" }) {
+    const [failed, setFailed] = useState(false);
+    const src = useMemo(() => resolveItemImageSrc(raw), [raw]);
+    useEffect(() => {
+        setFailed(false);
+    }, [raw]);
+    if (!src || failed) {
+        return (
+            <div className="flex h-full w-full min-h-[2.5rem] items-center justify-center bg-gray-100 text-gray-400">
+                <Package className={iconClass} aria-hidden />
+            </div>
+        );
+    }
+    return (
+        <img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+        />
+    );
 }
 
 const PosDashboard = () => {
@@ -170,7 +208,17 @@ const PosDashboard = () => {
                 next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
                 return next;
             }
-            return [...prev, { itemId: id, name, unitPrice: unit, qty: 1, sku: item.sku || "" }];
+            return [
+                ...prev,
+                {
+                    itemId: id,
+                    name,
+                    unitPrice: unit,
+                    qty: 1,
+                    sku: item.sku || "",
+                    image: typeof item.image === "string" ? item.image : "",
+                },
+            ];
         });
     }, []);
 
@@ -204,6 +252,16 @@ const PosDashboard = () => {
         }
         return opts;
     }, [categoryChips]);
+
+    const imageRawForCartLine = useCallback(
+        (line) => {
+            const fromLine = typeof line.image === "string" ? line.image : "";
+            if (fromLine.trim()) return fromLine;
+            const found = catalog.find((c) => String(c.id) === String(line.itemId));
+            return typeof found?.image === "string" ? found.image : "";
+        },
+        [catalog]
+    );
 
     const filteredCatalog = useMemo(() => {
         let list = catalog.filter((i) => itemMatchesCategoryFilter(i, categoryFilter));
@@ -473,15 +531,9 @@ const PosDashboard = () => {
                                     <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide truncate">
                                         {item.sku ? `SKU ${item.sku}` : "\u00a0"}
                                     </span>
-                                    {item.image ? (
-                                        <div className="w-full h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200/80">
-                                            <img
-                                                src={item.image}
-                                                alt=""
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    ) : null}
+                                    <div className="w-full min-h-[4.5rem] flex-1 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200/80">
+                                        <PosProductImage raw={item.image} iconClass="h-7 w-7" />
+                                    </div>
                                     <span className="text-xs font-medium text-gray-900 line-clamp-3 leading-snug flex-1 min-h-0">
                                         {item.name || "Item"}
                                     </span>
@@ -513,8 +565,14 @@ const PosDashboard = () => {
                             {cart.map((line) => (
                                 <li
                                     key={String(line.itemId)}
-                                    className="flex items-center gap-1.5 rounded-md bg-white border border-gray-200 px-2 py-1.5 text-xs"
+                                    className="flex items-center gap-2 rounded-md bg-white border border-gray-200 px-2 py-1.5 text-xs"
                                 >
+                                    <div
+                                        className="h-10 w-10 shrink-0 rounded-md overflow-hidden border border-gray-200 bg-gray-50"
+                                        title={line.name}
+                                    >
+                                        <PosProductImage raw={imageRawForCartLine(line)} iconClass="h-4 w-4" />
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-medium text-gray-900 truncate leading-tight">
                                             {line.name}
