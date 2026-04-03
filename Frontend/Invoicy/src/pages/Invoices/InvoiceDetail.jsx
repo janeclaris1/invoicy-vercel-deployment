@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import moment from "moment";
-import { Loader2, Printer, Edit2, Save, X, FileText, Building2 } from "lucide-react";
+import { Loader2, Printer, Edit2, Save, X, FileText, Building2, Receipt } from "lucide-react";
 import QRCode from "react-qr-code";
 import axiosInstance from "../../utils/axiosInstance";
 import graApi from "../../utils/graApi";
@@ -64,6 +64,12 @@ const InvoiceDetail = () => {
     };
   }, [fetchInvoice]);
 
+  useEffect(() => {
+    const clearPosReceiptMode = () => document.body.classList.remove("invoice-print-pos-receipt");
+    window.addEventListener("afterprint", clearPosReceiptMode);
+    return () => window.removeEventListener("afterprint", clearPosReceiptMode);
+  }, []);
+
   const lineItems = useMemo(() => {
     if (!invoice) return [];
     if (Array.isArray(invoice.item) && invoice.item.length > 0) return invoice.item;
@@ -89,8 +95,16 @@ const InvoiceDetail = () => {
     );
   }, [invoice]);
 
-  const handlePrint = () => {
+  const handlePrintInvoice = () => {
+    document.body.classList.remove("invoice-print-pos-receipt");
     window.print();
+  };
+
+  const handlePrintPosReceipt = () => {
+    document.body.classList.add("invoice-print-pos-receipt");
+    requestAnimationFrame(() => {
+      window.print();
+    });
   };
 
   const handleSavePayment = async () => {
@@ -494,6 +508,7 @@ const InvoiceDetail = () => {
         </div>
 
         <div className="invoice-print-container bg-transparent dark:bg-transparent border-0 p-0 print:border-0 print:shadow-none shadow-none text-black dark:text-black">
+        <div className="invoice-print-full">
           {/* Logo centered at top */}
         {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
           <div className="invoice-logo-wrap flex justify-center mb-4">
@@ -826,16 +841,141 @@ const InvoiceDetail = () => {
         )}
 
         </div>
+
+        <div
+          className="pos-receipt-print hidden text-black text-[11px] leading-snug"
+          aria-hidden="true"
+        >
+          <div className="text-center border-b border-dashed border-gray-600 pb-2 mb-2">
+            <div className="font-bold text-sm">
+              {invoice.billFrom?.businessName || user?.businessName || "-"}
+            </div>
+            <div className="text-[10px] opacity-80">
+              {[invoice.billFrom?.phone || user?.phone, invoice.billFrom?.tin || user?.tin ? `TIN ${invoice.billFrom?.tin || user?.tin}` : null]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+            </div>
+            <div className="font-semibold mt-2 tracking-wide text-xs">POS RECEIPT</div>
+            <div className="text-[10px] mt-0.5">
+              {invoice.invoiceNumber}
+              {" · "}
+              {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY h:mm A") : "—"}
+            </div>
+          </div>
+          <div className="mb-2 text-[10px]">
+            <span className="font-medium">Customer:</span> {invoice.billTo?.clientName || "—"}
+          </div>
+          <div className="space-y-1.5 border-b border-dashed border-gray-600 pb-2 mb-2">
+            {lineItems.map((item, index) => (
+              <div key={index} className="flex justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate">{item.description || item.itemDescription || "Item"}</div>
+                  <div className="text-[10px] opacity-75">
+                    {item.quantity ?? "—"} × {formatCurrency(item.unitPrice ?? item.itemPrice ?? 0, userCurrency)}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right font-medium tabular-nums">
+                  {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1 text-[10px]">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{formatCurrency(invoice.subtotal ?? 0, userCurrency)}</span>
+            </div>
+            {(Number(invoice.totalDiscount) || 0) > 0 && (
+              <div className="flex justify-between">
+                <span>Discount</span>
+                <span className="tabular-nums">−{formatCurrency(invoice.totalDiscount, userCurrency)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>VAT</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalVat ?? 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>NHIL</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalNhil ?? 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>GETFund</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalGetFund ?? 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between font-semibold border-t border-gray-500 pt-1 mt-1">
+              <span>TOTAL</span>
+              <span className="tabular-nums">{formatCurrency(invoice.grandTotal ?? 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Paid</span>
+              <span className="tabular-nums">{formatCurrency(invoice.amountPaid || 0, userCurrency)}</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span>
+                {balanceDue > 0 ? "Balance due" : balanceDue < 0 ? "Credit balance" : "Balance due"}
+              </span>
+              <span className="tabular-nums">{formatCurrency(Math.abs(balanceDue), userCurrency)}</span>
+            </div>
+          </div>
+          {(invoice.graReceiptNumber || invoice.graSdcId) && (
+            <div className="mt-2 pt-2 border-t border-dashed border-gray-600 text-[10px] space-y-0.5">
+              {invoice.graReceiptNumber && (
+                <div>
+                  <span className="font-medium">GRA receipt:</span> {invoice.graReceiptNumber}
+                </div>
+              )}
+              {invoice.graSdcId && (
+                <div>
+                  <span className="font-medium">SDC ID:</span> {invoice.graSdcId}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-3 flex justify-center">
+            {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
+              String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
+                <img
+                  src={invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode}
+                  alt=""
+                  className="w-16 h-16 object-contain"
+                />
+              ) : /^https?:\/\//i.test(String(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode || "")) ? (
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
+                  alt=""
+                  className="w-16 h-16 object-contain"
+                />
+              ) : (
+                <div className="w-16 h-16 flex items-center justify-center overflow-hidden">
+                  <QRCode value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)} size={64} />
+                </div>
+              )
+            ) : null}
+          </div>
+          <div className="text-center text-[10px] mt-2 opacity-70">Thank you</div>
+        </div>
+        </div>
         
         {/* Print button at bottom - slate fill, no border */}
         <div className="flex flex-col items-center no-print mt-6 gap-3">
-          <Button
-            onClick={handlePrint}
-            className="flex items-center gap-2 !rounded-lg !border-0 !bg-slate-800 hover:!bg-slate-700 !text-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white [&_svg]:!text-white [&_svg]:!stroke-white"
-          >
-            <Printer className="w-4 h-4" />
-            Print Invoice
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              onClick={handlePrintInvoice}
+              className="flex items-center gap-2 !rounded-lg !border-0 !bg-slate-800 hover:!bg-slate-700 !text-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white [&_svg]:!text-white [&_svg]:!stroke-white"
+            >
+              <Printer className="w-4 h-4" />
+              Print invoice
+            </Button>
+            <Button
+              onClick={handlePrintPosReceipt}
+              variant="secondary"
+              className="flex items-center gap-2 !rounded-lg text-black dark:text-black border border-slate-300"
+            >
+              <Receipt className="w-4 h-4" />
+              Print POS receipt
+            </Button>
+          </div>
         </div>
         </div>
       </div>

@@ -182,6 +182,35 @@
     body.invoice-print-page main {
       min-height: 0 !important;
     }
+
+    /* POS receipt: narrow slip; hide full invoice layout */
+    body.invoice-print-page:not(.invoice-print-pos-receipt) .pos-receipt-print {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    body.invoice-print-page.invoice-print-pos-receipt .invoice-print-full {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    body.invoice-print-page.invoice-print-pos-receipt .pos-receipt-print {
+      display: block !important;
+      visibility: visible !important;
+      max-width: 72mm !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body.invoice-print-page.invoice-print-pos-receipt .invoice-print-container {
+      max-width: 72mm !important;
+      width: 72mm !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+    }
   }
 }
 
