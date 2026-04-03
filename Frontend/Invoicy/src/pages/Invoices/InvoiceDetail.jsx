@@ -20,7 +20,7 @@ const InvoiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [isEditingPayment, setIsEditingPayment] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentAmount, setPaymentAmount] = useState("0");
   const [paymentNote, setPaymentNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [convertLoading, setConvertLoading] = useState(false);
@@ -33,7 +33,11 @@ const InvoiceDetail = () => {
       const response = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
       const invoiceData = response.data || null;
       setInvoice(invoiceData);
-      setPaymentAmount(invoiceData?.amountPaid || 0);
+      setPaymentAmount(
+        invoiceData?.amountPaid != null && invoiceData.amountPaid !== ""
+          ? String(Number(invoiceData.amountPaid))
+          : "0"
+      );
       setErrorMessage("");
     } catch (error) {
       console.error("Failed to fetch invoice:", error);
@@ -80,10 +84,15 @@ const InvoiceDetail = () => {
   const balanceDue = useMemo(() => {
     if (!invoice) return 0;
     const grandTotal = invoice.grandTotal || 0;
-    const amountPaid = isEditingPayment 
-      ? Number(paymentAmount || 0) 
-      : (invoice.amountPaid || 0);
-    return grandTotal - amountPaid;
+    let amountPaidVal;
+    if (isEditingPayment) {
+      const s = String(paymentAmount ?? "").trim().replace(",", ".");
+      const n = s === "" || s === "." ? 0 : parseFloat(s);
+      amountPaidVal = Number.isFinite(n) ? n : 0;
+    } else {
+      amountPaidVal = invoice.amountPaid || 0;
+    }
+    return grandTotal - amountPaidVal;
   }, [invoice, isEditingPayment, paymentAmount]);
 
   const totalTaxesAmount = useMemo(() => {
@@ -108,25 +117,41 @@ const InvoiceDetail = () => {
   };
 
   const handleSavePayment = async () => {
-    if (paymentAmount < 0) {
+    const s = String(paymentAmount ?? "").trim().replace(",", ".");
+    const paid = s === "" || s === "." ? 0 : parseFloat(s);
+    if (!Number.isFinite(paid)) {
+      toast.error("Enter a valid amount (numbers and decimals allowed).");
+      return;
+    }
+    if (paid < 0) {
       toast.error("Payment amount cannot be negative");
       return;
     }
+    const paidRounded = Math.round(paid * 100) / 100;
 
     setSaving(true);
     try {
       const response = await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(id), {
-        amountPaid: Number(paymentAmount),
+        amountPaid: paidRounded,
         paymentNote: paymentNote.trim() || undefined,
       });
       
       setInvoice(response.data);
+      setPaymentAmount(
+        response.data?.amountPaid != null
+          ? String(Number(response.data.amountPaid))
+          : "0"
+      );
       setIsEditingPayment(false);
       setPaymentNote("");
       toast.success("Payment updated successfully");
-      // Refresh the page data
       const refreshResponse = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
       setInvoice(refreshResponse.data);
+      setPaymentAmount(
+        refreshResponse.data?.amountPaid != null
+          ? String(Number(refreshResponse.data.amountPaid))
+          : "0"
+      );
     } catch (error) {
       console.error("Failed to update payment:", error);
       toast.error(error.response?.data?.message || "Failed to update payment");
@@ -136,9 +161,22 @@ const InvoiceDetail = () => {
   };
 
   const handleCancelEdit = () => {
-    setPaymentAmount(invoice?.amountPaid || 0);
+    setPaymentAmount(
+      invoice?.amountPaid != null && invoice.amountPaid !== ""
+        ? String(Number(invoice.amountPaid))
+        : "0"
+    );
     setPaymentNote("");
     setIsEditingPayment(false);
+  };
+
+  const beginEditPayment = () => {
+    setPaymentAmount(
+      invoice?.amountPaid != null && invoice.amountPaid !== ""
+        ? String(Number(invoice.amountPaid))
+        : "0"
+    );
+    setIsEditingPayment(true);
   };
 
   const handleConvertToInvoice = async () => {
@@ -497,7 +535,7 @@ const InvoiceDetail = () => {
             {!isEditingPayment ? (
               <Button 
                 variant="secondary" 
-                onClick={() => setIsEditingPayment(true)} 
+                onClick={beginEditPayment} 
                 className="flex items-center gap-2 text-black dark:text-black"
               >
                 <Edit2 className="w-4 h-4" />
@@ -704,12 +742,15 @@ const InvoiceDetail = () => {
                 <div className="flex flex-col items-end gap-2 w-full max-w-xs">
                   <div className="flex items-center gap-2 w-full">
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
                       value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="w-24 min-w-0 flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500"
+                      onChange={(e) => {
+                        let v = e.target.value.replace(",", ".");
+                        if (v === "" || /^\d*\.?\d*$/.test(v)) setPaymentAmount(v);
+                      }}
+                      className="w-28 min-w-0 flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
                       placeholder="0.00"
                     />
                     <Button
@@ -745,7 +786,7 @@ const InvoiceDetail = () => {
                   <Button
                     size="small"
                     variant="secondary"
-                    onClick={() => setIsEditingPayment(true)}
+                    onClick={beginEditPayment}
                     className="flex items-center gap-1 no-print"
                   >
                     <Edit2 className="w-3 h-3" />
