@@ -180,14 +180,12 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 }
 
 /**
- * Split invoice-level discount so Σ line shares = invoice totalDiscount (VSDC ties header discountAmount to line discounts; E707 if totals drift).
- * Weights = perLineTaxableBase for both modes so % discounts match invoiceController (percent applies to net subtotal, not gross extended).
+ * Split invoice-level discount so Σ line shares = totalDiscount. Last line absorbs rounding.
  */
-function allocateGeneralDiscountPerLine(lineItems, taxRecalc, totalDiscount, roundTo) {
-    const n = lineItems.length;
+function allocateGeneralDiscountFromWeights(weights, totalDiscount, roundTo) {
+    const n = weights.length;
     if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
-    const weights = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
-    const sumW = weights.reduce((a, b) => a + b, 0);
+    const sumW = weights.reduce((a, b) => a + (Number(b) || 0), 0);
     if (sumW <= 0) return new Array(n).fill(0);
     const out = [];
     let allocated = 0;
@@ -201,6 +199,34 @@ function allocateGeneralDiscountPerLine(lineItems, taxRecalc, totalDiscount, rou
         }
     }
     return out;
+}
+
+/** EXCLUSIVE: net-line weights. INCLUSIVE: default gross extended (flat discount off gross); optionally net base for %-of-net. */
+function allocateGeneralDiscountPerLine(lineItems, taxRecalc, totalDiscount, roundTo, calculationType) {
+    const n = lineItems.length;
+    if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
+    let weights;
+    if (calculationType === "EXCLUSIVE") {
+        weights = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
+    } else {
+        weights = lineItems.map((line) => {
+            const q = Number(line.quantity) || 0;
+            const up = Number(line.unitPrice ?? line.itemPrice) || 0;
+            return roundTo(q * up, 2);
+        });
+    }
+    return allocateGeneralDiscountFromWeights(weights, totalDiscount, roundTo);
+}
+
+function sumInclusiveTurnoverAfterDiscount(lineItems, generalPerLine, roundTo) {
+    let s = 0;
+    lineItems.forEach((line, idx) => {
+        const ext = roundTo((Number(line.quantity) || 0) * (Number(line.unitPrice ?? line.itemPrice) || 0), 2);
+        const lineDisc = Number(line.discount) || 0;
+        const disc = roundTo((generalPerLine[idx] || 0) + lineDisc, 2);
+        s += roundTo(ext - disc, 2);
+    });
+    return roundTo(s, 2);
 }
 
 /**
@@ -283,7 +309,25 @@ exports.submitInvoice = async (req, res) => {
 
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
         const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
-        const generalDiscountPerLine = allocateGeneralDiscountPerLine(lineItems, taxRecalc, taxRecalc.totalDiscount, roundTo);
+        let generalDiscountPerLine = allocateGeneralDiscountPerLine(
+            lineItems,
+            taxRecalc,
+            taxRecalc.totalDiscount,
+            roundTo,
+            calculationType
+        );
+        if (calculationType === "INCLUSIVE" && taxRecalc.totalDiscount > 0) {
+            const anyLineDisc = lineItems.some((l) => (Number(l.discount) || 0) > 0);
+            if (!anyLineDisc) {
+                const netW = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
+                const grossAlloc = generalDiscountPerLine;
+                const netAlloc = allocateGeneralDiscountFromWeights(netW, taxRecalc.totalDiscount, roundTo);
+                const target = roundTo(taxRecalc.grandTotal, 2);
+                const errG = Math.abs(sumInclusiveTurnoverAfterDiscount(lineItems, grossAlloc, roundTo) - target);
+                const errN = Math.abs(sumInclusiveTurnoverAfterDiscount(lineItems, netAlloc, roundTo) - target);
+                generalDiscountPerLine = errN <= errG ? netAlloc : grossAlloc;
+            }
+        }
 
         let sumLineVat = 0;
         /** EXCLUSIVE: GRA totalAmount = Σ taxable + excise only — levy D/E sit in totalLevy so totalAmount+totalVat+totalLevy equals payable (E707 if D/E double-counted). */
@@ -362,18 +406,21 @@ exports.submitInvoice = async (req, res) => {
             itemsForGra.reduce((s, it) => s + roundTo(Number(it.quantity) * Number(it.unitPrice), 2), 0),
             2
         );
-        const sumLevyDE = roundTo(
-            itemsForGra.reduce((s, it) => s + Number(it.levyAmountD || 0) + Number(it.levyAmountE || 0), 0),
-            2
-        );
 
-        // E707: VSDC validates totalAmount against header discount (Σ(q×p) − discountAmount + levies + excise), not always Σ per-line round(ext−disc). INCLUSIVE uses that aggregate; EXCLUSIVE uses same for taxable+excise, falling back to per-line sum if the split diverges.
+        // E707: VER 8.2 sample totalAmount = tax-inclusive supply (q×p after discount) + excise; levy D/E belong in totalLevy only (do not add them into totalAmount). Match lines vs header: Σ round(ext−disc) vs (Σ ext − discountAmount).
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
-            totalAmountForGra = roundTo(
-                sumExtendedItems - discountAmountForGra + sumLevyDE + totalExciseAmount,
+            const lineSumSupply = roundTo(
+                itemsForGra.reduce((s, it) => {
+                    const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
+                    return s + roundTo(ext - Number(it.discountAmount || 0), 2);
+                }, 0),
                 2
             );
+            const aggSupply = roundTo(sumExtendedItems - discountAmountForGra, 2);
+            const supplyCore =
+                Math.abs(lineSumSupply - aggSupply) <= 0.02 ? aggSupply : lineSumSupply;
+            totalAmountForGra = roundTo(supplyCore + totalExciseAmount, 2);
         } else {
             const aggregateExcl = roundTo(sumExtendedItems - discountAmountForGra + totalExciseAmount, 2);
             const lineSumExcl = roundTo(sumExclusiveTaxableBase + totalExciseAmount, 2);
