@@ -234,11 +234,11 @@ function computeGraLineLevyAndVat(quantityStr, unitPriceStr, discountAmount, cal
     const taxIncl = roundTo(extended - disc, 2);
     if (taxIncl <= 0) return { levyA: 0, levyB: 0, lineVat: 0 };
     const net = roundTo(taxIncl / (1 + GRA_ALL_TAX_RATE), 2);
-    return {
-        levyA: roundTo(net * GRA_NHIL_RATE, 2),
-        levyB: roundTo(net * GRA_GETFUND_RATE, 2),
-        lineVat: roundTo(net * GRA_VAT_RATE, 2),
-    };
+    const levyA = roundTo(net * GRA_NHIL_RATE, 2);
+    const levyB = roundTo(net * GRA_GETFUND_RATE, 2);
+    // Residual VAT so net + NHIL + GETFund + VAT = tax-incl. line exactly (avoids E707 when GRA checks totals).
+    const lineVat = roundTo(taxIncl - net - levyA - levyB, 2);
+    return { levyA, levyB, lineVat: lineVat < 0 ? roundTo(net * GRA_VAT_RATE, 2) : lineVat };
 }
 
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
