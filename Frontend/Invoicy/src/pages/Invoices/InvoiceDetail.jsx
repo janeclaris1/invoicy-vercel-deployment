@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import moment from "moment";
 import { Loader2, Printer, Edit2, Save, X, FileText, Building2, Receipt } from "lucide-react";
 import QRCode from "react-qr-code";
@@ -50,6 +50,30 @@ const InvoiceDetail = () => {
   useEffect(() => {
     fetchInvoice();
   }, [fetchInvoice]);
+
+  useEffect(() => {
+    posPrintReceiptRef.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    if (!invoice?._id || location.state?.posPrintReceipt !== true || posPrintReceiptRef.current) return;
+    posPrintReceiptRef.current = true;
+    const t = window.setTimeout(() => {
+      document.body.classList.add("invoice-print-pos-receipt");
+      window.requestAnimationFrame(() => {
+        window.print();
+      });
+    }, 350);
+    const onAfterPrint = () => {
+      document.body.classList.remove("invoice-print-pos-receipt");
+      navigate(`/invoices/${id}`, { replace: true, state: {} });
+    };
+    window.addEventListener("afterprint", onAfterPrint, { once: true });
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, [invoice?._id, location.state?.posPrintReceipt, id, navigate]);
 
   /* Isolate print output to the invoice card only (hide dashboard chrome, toolbars, hints). */
   useEffect(() => {

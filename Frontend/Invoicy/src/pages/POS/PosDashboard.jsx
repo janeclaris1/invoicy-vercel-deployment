@@ -5,8 +5,16 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
 import { playNotificationSound } from "../../utils/notificationSound";
-import { Minus, Plus, Search, Trash2, FilePlus } from "lucide-react";
+import { Minus, Plus, Search, Trash2, Banknote } from "lucide-react";
 import toast from "react-hot-toast";
+
+const PAYMENT_METHODS = [
+    { id: "cash", label: "Cash" },
+    { id: "card", label: "Card" },
+    { id: "momo", label: "Mobile money" },
+    { id: "bank", label: "Bank transfer" },
+    { id: "other", label: "Other" },
+];
 
 function normalizePrice(raw) {
     if (typeof raw === "number" && Number.isFinite(raw)) return raw;
@@ -15,16 +23,33 @@ function normalizePrice(raw) {
     return Number.isFinite(n) ? n : 0;
 }
 
+function parseDecimalInput(raw) {
+    const s = String(raw ?? "").trim().replace(",", ".");
+    if (s === "" || s === ".") return 0;
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function toFloat2(raw) {
+    return Math.round(parseDecimalInput(raw) * 100) / 100;
+}
+
 const PosDashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const userCurrency = user?.currency || "GHS";
     const scanRef = useRef(null);
+    const vatScenario = user?.graVatScenario || "inclusive";
 
     const [catalog, setCatalog] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [cart, setCart] = useState([]);
+    const [discountPercent, setDiscountPercent] = useState("");
+    const [discountAmount, setDiscountAmount] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [submitting, setSubmitting] = useState(false);
+
     const loadCatalog = useCallback(async () => {
         setLoading(true);
         try {
@@ -104,7 +129,7 @@ const PosDashboard = () => {
 
     const filteredCatalog = useMemo(() => {
         const q = search.trim().toLowerCase();
-        if (!q) return catalog.slice(0, 48);
+        if (!q) return catalog.slice(0, 72);
         return catalog
             .filter(
                 (i) =>
@@ -112,13 +137,60 @@ const PosDashboard = () => {
                     (i.skuNorm && i.skuNorm.includes(q)) ||
                     String(i.id).toLowerCase().includes(q)
             )
-            .slice(0, 48);
+            .slice(0, 72);
     }, [catalog, search]);
 
-    const cartTotal = useMemo(
+    const lineSubtotal = useMemo(
         () => cart.reduce((s, l) => s + l.qty * l.unitPrice, 0),
         [cart]
     );
+
+    const { subtotal, grandTotal, totalDiscount } = useMemo(() => {
+        const VAT_RATE = 0.15;
+        const NHIL_RATE = 0.025;
+        const GETFUND_RATE = 0.025;
+        const ALL_TAX_RATE = VAT_RATE + NHIL_RATE + GETFUND_RATE;
+
+        let baseSubtotal = 0;
+        let totalTaxInclusive = 0;
+
+        if (vatScenario === "exclusive") {
+            cart.forEach((line) => {
+                baseSubtotal += line.qty * line.unitPrice;
+            });
+            baseSubtotal = Number(baseSubtotal.toFixed(2));
+        } else {
+            cart.forEach((line) => {
+                totalTaxInclusive += line.qty * line.unitPrice;
+            });
+            baseSubtotal = Number((totalTaxInclusive / (1 + ALL_TAX_RATE)).toFixed(2));
+        }
+
+        const discountAmountNum = parseDecimalInput(discountAmount);
+        const discountPercentNum = parseDecimalInput(discountPercent);
+        let discount = 0;
+        if (discountAmountNum > 0) {
+            discount = discountAmountNum;
+        } else if (discountPercentNum > 0) {
+            discount = (baseSubtotal * discountPercentNum) / 100;
+        }
+
+        const discountedSubtotal = baseSubtotal - discount;
+        const vat = discountedSubtotal * VAT_RATE;
+        const nhil = discountedSubtotal * NHIL_RATE;
+        const getFund = discountedSubtotal * GETFUND_RATE;
+        const totalTax = vat + nhil + getFund;
+        const grand =
+            vatScenario === "exclusive"
+                ? discountedSubtotal + totalTax
+                : totalTaxInclusive - discount;
+
+        return {
+            subtotal: Number(baseSubtotal.toFixed(2)),
+            grandTotal: Number(grand.toFixed(2)),
+            totalDiscount: Number(discount.toFixed(2)),
+        };
+    }, [cart, discountPercent, discountAmount, vatScenario]);
 
     const onScanKeyDown = (e) => {
         if (e.key !== "Enter") return;
@@ -147,20 +219,81 @@ const PosDashboard = () => {
         setCart((prev) => prev.filter((l) => String(l.itemId) !== String(itemId)));
     };
 
-    const clearCart = () => setCart([]);
+    const clearCart = () => {
+        setCart([]);
+        setDiscountPercent("");
+        setDiscountAmount("");
+    };
 
-    const checkout = () => {
+    const amountPaidValue = Math.max(0, grandTotal);
+
+    const receivePayment = async () => {
         if (!cart.length) {
             toast.error("Cart is empty");
             return;
         }
-        const posCartLines = cart.map((l) => ({
-            catalogId: l.itemId,
-            itemDescription: l.name,
+        const methodLabel =
+            PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label || paymentMethod;
+        const itemsForApi = cart.map((l) => ({
+            description: l.name,
             quantity: l.qty,
-            itemPrice: l.unitPrice,
+            unitPrice: l.unitPrice,
+            itemId: l.itemId,
         }));
-        navigate("/invoices/new", { state: { posCartLines } });
+        const today = new Date().toISOString().split("T")[0];
+        const billFrom = {
+            businessName: user?.businessName || "",
+            email: user?.email || "",
+            address: user?.address || "",
+            phone: user?.phone || "",
+            tin: user?.tin || "",
+        };
+        const payload = {
+            invoiceDate: today,
+            dueDate: today,
+            billFrom,
+            billTo: {
+                clientName: "Walk-in (POS)",
+                email: "",
+                address: "",
+                phone: "",
+                tin: "",
+            },
+            items: itemsForApi,
+            notes: `POS sale · Payment: ${methodLabel}`,
+            paymentTerms: methodLabel,
+            type: "invoice",
+            status: "Fully Paid",
+            amountPaid: amountPaidValue,
+            balanceDue: 0,
+            discountPercent: toFloat2(discountPercent),
+            discountAmount: toFloat2(discountAmount),
+            companyLogo: user?.companyLogo || "",
+            companySignature: user?.companySignature || "",
+            companyStamp: user?.companyStamp || "",
+        };
+
+        setSubmitting(true);
+        try {
+            const res = await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, payload);
+            const invoice = res.data?.invoice;
+            if (!invoice?._id) {
+                toast.error("Sale saved but invoice id missing. Check invoices list.");
+                return;
+            }
+            window.dispatchEvent(new CustomEvent("invoicesUpdated"));
+            toast.success("Payment recorded");
+            navigate(`/invoices/${invoice._id}`, { state: { posPrintReceipt: true } });
+        } catch (error) {
+            const msg =
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                error.response?.data?.errors?.[0]?.msg ||
+                "Could not complete sale. Try again.";
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -168,7 +301,9 @@ const PosDashboard = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-900">Point of sale</h1>
-                    <p className="text-sm text-gray-600">Scan a barcode (SKU) or tap a product. Each add plays a short beep.</p>
+                    <p className="text-sm text-gray-600">
+                        Scan a barcode (SKU) or tap a product. Take payment, then print the receipt.
+                    </p>
                 </div>
                 <Link
                     to="/dashboard"
@@ -189,11 +324,12 @@ const PosDashboard = () => {
                     onKeyDown={onScanKeyDown}
                 />
                 <p className="mt-2 text-xs text-gray-500">
-                    Barcode scanners usually type text and press Enter. Items match on <strong>SKU</strong> (or item id).
+                    Barcode scanners usually type text and press Enter. Items match on <strong>SKU</strong> (or item
+                    id).
                 </p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,18rem)]">
+            <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,20rem)]">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-h-[320px]">
                     <div className="relative mb-3">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -208,30 +344,31 @@ const PosDashboard = () => {
                     {loading ? (
                         <p className="text-sm text-gray-500">Loading items…</p>
                     ) : (
-                        <ul className="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5">
                             {filteredCatalog.map((item) => (
-                                <li key={String(item.id)}>
-                                    <button
-                                        type="button"
-                                        className="flex w-full items-center justify-between gap-2 py-2.5 text-left text-sm hover:bg-gray-50 px-1 rounded-lg"
-                                        onClick={() => addToCart(item, true)}
-                                    >
-                                        <span className="font-medium text-gray-900 truncate">{item.name}</span>
-                                        <span className="shrink-0 text-gray-600">
-                                            {formatCurrency(item.priceNum, userCurrency)}
-                                            {item.sku ? (
-                                                <span className="ml-2 text-xs text-gray-400">SKU {item.sku}</span>
-                                            ) : null}
-                                        </span>
-                                    </button>
-                                </li>
+                                <button
+                                    key={String(item.id)}
+                                    type="button"
+                                    onClick={() => addToCart(item, true)}
+                                    className="group aspect-square rounded-xl border border-gray-200 bg-gray-50/80 p-2 flex flex-col items-stretch justify-between text-left shadow-sm hover:border-blue-900 hover:bg-white hover:shadow transition-colors"
+                                >
+                                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide truncate">
+                                        {item.sku ? `SKU ${item.sku}` : "\u00a0"}
+                                    </span>
+                                    <span className="text-xs font-medium text-gray-900 line-clamp-3 leading-snug flex-1 min-h-0">
+                                        {item.name || "Item"}
+                                    </span>
+                                    <span className="text-xs font-semibold text-blue-950 tabular-nums">
+                                        {formatCurrency(item.priceNum, userCurrency)}
+                                    </span>
+                                </button>
                             ))}
-                        </ul>
+                        </div>
                     )}
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm lg:w-full">
-                    <div className="flex items-center justify-between mb-2">
+                <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm lg:w-full flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-gray-900">Cart</h2>
                         <button
                             type="button"
@@ -245,14 +382,16 @@ const PosDashboard = () => {
                     {cart.length === 0 ? (
                         <p className="text-xs text-gray-600 py-4 text-center">No items yet.</p>
                     ) : (
-                        <ul className="space-y-1 max-h-40 overflow-y-auto mb-2">
+                        <ul className="space-y-1 max-h-44 overflow-y-auto">
                             {cart.map((line) => (
                                 <li
                                     key={String(line.itemId)}
                                     className="flex items-center gap-1.5 rounded-md bg-white border border-gray-200 px-2 py-1.5 text-xs"
                                 >
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-900 truncate leading-tight">{line.name}</div>
+                                        <div className="font-medium text-gray-900 truncate leading-tight">
+                                            {line.name}
+                                        </div>
                                         <div className="text-[11px] text-gray-500">
                                             {formatCurrency(line.unitPrice, userCurrency)} × {line.qty}
                                         </div>
@@ -290,20 +429,93 @@ const PosDashboard = () => {
                             ))}
                         </ul>
                     )}
-                    <div className="flex items-center justify-between border-t border-gray-200 pt-2 mb-2">
-                        <span className="text-xs font-medium text-gray-700">Subtotal</span>
-                        <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                            {formatCurrency(cartTotal, userCurrency)}
-                        </span>
+
+                    <div className="border-t border-gray-200 pt-2 space-y-1.5">
+                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Discount</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <label className="block">
+                                <span className="sr-only">Discount percent</span>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="%"
+                                    value={discountPercent}
+                                    onChange={(e) => {
+                                        setDiscountPercent(e.target.value);
+                                        setDiscountAmount("");
+                                    }}
+                                    className="w-full rounded-md border border-gray-200 px-2 py-1.5 text-xs"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="sr-only">Discount amount</span>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder={userCurrency}
+                                    value={discountAmount}
+                                    onChange={(e) => {
+                                        setDiscountAmount(e.target.value);
+                                        setDiscountPercent("");
+                                    }}
+                                    className="w-full rounded-md border border-gray-200 px-2 py-1.5 text-xs"
+                                />
+                            </label>
+                        </div>
+                        <p className="text-[10px] text-gray-500">
+                            Use percent <strong>or</strong> fixed amount (not both). Matches invoice tax settings.
+                        </p>
                     </div>
+
+                    <div className="space-y-1 text-xs border-t border-gray-200 pt-2">
+                        <div className="flex justify-between text-gray-600">
+                            <span>Subtotal (net basis)</span>
+                            <span className="tabular-nums">{formatCurrency(subtotal, userCurrency)}</span>
+                        </div>
+                        {totalDiscount > 0 ? (
+                            <div className="flex justify-between text-gray-600">
+                                <span>Discount</span>
+                                <span className="tabular-nums">−{formatCurrency(totalDiscount, userCurrency)}</span>
+                            </div>
+                        ) : null}
+                        <div className="flex justify-between text-gray-600">
+                            <span>Lines (incl. tax)</span>
+                            <span className="tabular-nums">{formatCurrency(lineSubtotal, userCurrency)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-gray-900 pt-1">
+                            <span>Total due</span>
+                            <span className="tabular-nums text-sm">{formatCurrency(grandTotal, userCurrency)}</span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-2 space-y-1.5">
+                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Payment method</p>
+                        <div className="flex flex-wrap gap-1">
+                            {PAYMENT_METHODS.map((m) => (
+                                <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => setPaymentMethod(m.id)}
+                                    className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
+                                        paymentMethod === m.id
+                                            ? "bg-blue-950 text-white border-blue-950"
+                                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                    }`}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <button
                         type="button"
-                        onClick={checkout}
-                        disabled={!cart.length}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-blue-950 text-white py-2 text-xs font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                        onClick={receivePayment}
+                        disabled={!cart.length || submitting}
+                        className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-blue-950 text-white py-2.5 text-xs font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <FilePlus className="h-4 w-4 shrink-0" />
-                        <span className="truncate">New invoice</span>
+                        <Banknote className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{submitting ? "Saving…" : "Receive payment & print"}</span>
                     </button>
                 </div>
             </div>
