@@ -41,7 +41,7 @@ const getItems = async (req, res) => {
 // @access  Private
 const createItem = async (req, res) => {
   try {
-    const { name, description, category, categoryColor, price, unit, sku, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
+    const { name, description, category, categoryColor, price, unit, sku, image, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
     const item = await Item.create({
       user: req.user._id,
       name,
@@ -51,6 +51,7 @@ const createItem = async (req, res) => {
       price: Number(price) || 0,
       unit: unit || 'unit',
       sku: sku || '',
+      image: typeof image === 'string' ? image : '',
       taxRate: Number(taxRate) || 0,
       trackStock: Boolean(trackStock),
       quantityInStock: trackStock ? Number(quantityInStock) || 0 : 0,
@@ -75,7 +76,7 @@ const updateItem = async (req, res) => {
     if (!teamMemberIds.some(id => id.toString() === item.user.toString())) {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    const { name, description, category, categoryColor, price, unit, sku, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
+    const { name, description, category, categoryColor, price, unit, sku, image, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
     item.name = name ?? item.name;
     item.description = description ?? item.description;
     item.category = category ?? item.category;
@@ -83,6 +84,7 @@ const updateItem = async (req, res) => {
     item.price = price !== undefined ? Number(price) : item.price;
     item.unit = unit ?? item.unit;
     item.sku = sku ?? item.sku;
+    if (image !== undefined) item.image = typeof image === 'string' ? image : '';
     item.taxRate = taxRate !== undefined ? Number(taxRate) : item.taxRate;
     if (trackStock !== undefined) item.trackStock = Boolean(trackStock);
     if (quantityInStock !== undefined && item.trackStock) item.quantityInStock = Number(quantityInStock);

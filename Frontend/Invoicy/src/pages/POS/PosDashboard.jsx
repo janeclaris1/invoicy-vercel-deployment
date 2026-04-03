@@ -473,6 +473,15 @@ const PosDashboard = () => {
                                     <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide truncate">
                                         {item.sku ? `SKU ${item.sku}` : "\u00a0"}
                                     </span>
+                                    {item.image ? (
+                                        <div className="w-full h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200/80">
+                                            <img
+                                                src={item.image}
+                                                alt=""
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    ) : null}
                                     <span className="text-xs font-medium text-gray-900 line-clamp-3 leading-snug flex-1 min-h-0">
                                         {item.name || "Item"}
                                     </span>

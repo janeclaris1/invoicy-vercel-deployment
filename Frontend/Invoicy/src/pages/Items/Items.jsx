@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins, ImageIcon } from "lucide-react";
+import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
+
+const MAX_ITEM_IMAGE_BYTES = 1.5 * 1024 * 1024;
 
 const Items = () => {
   const { user } = useAuth();
@@ -22,6 +25,7 @@ const Items = () => {
     trackStock: false,
     quantityInStock: "",
     reorderLevel: "",
+    image: "",
   });
 
   // Default categories (fallback)
@@ -83,6 +87,7 @@ const Items = () => {
     description: "",
   });
   const fileInputRef = React.useRef(null);
+  const itemImageInputRef = React.useRef(null);
   const activeCategories = categories.filter((cat) => cat?.isActive !== false);
 
   useEffect(() => {
@@ -139,6 +144,27 @@ const Items = () => {
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
   };
 
+  const handleItemImageFile = (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file (JPEG, PNG, or WebP).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_ITEM_IMAGE_BYTES) {
+      toast.error("Image must be 1.5 MB or smaller.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((prev) => ({ ...prev, image: typeof reader.result === "string" ? reader.result : "" }));
+    };
+    reader.onerror = () => toast.error("Could not read the image file.");
+    reader.readAsDataURL(file);
+  };
+
   const openAddItem = () => {
     setEditingItemId(null);
     setFormData({
@@ -152,10 +178,12 @@ const Items = () => {
       trackStock: false,
       quantityInStock: "",
       reorderLevel: "",
+      image: "",
     });
     setShowModal(true);
     setShowInlineCategoryForm(false);
     setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
+    if (itemImageInputRef.current) itemImageInputRef.current.value = "";
   };
 
   const openEditItem = (item) => {
@@ -171,10 +199,12 @@ const Items = () => {
       trackStock: Boolean(item.trackStock),
       quantityInStock: item.quantityInStock != null ? String(item.quantityInStock) : "",
       reorderLevel: item.reorderLevel != null ? String(item.reorderLevel) : "",
+      image: typeof item.image === "string" ? item.image : "",
     });
     setShowModal(true);
     setShowInlineCategoryForm(false);
     setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
+    if (itemImageInputRef.current) itemImageInputRef.current.value = "";
   };
 
   const handleCreateInlineCategory = async () => {
@@ -237,6 +267,7 @@ const Items = () => {
           price: normalizedPrice,
           unit: formData.unit,
           sku: formData.sku,
+          image: formData.image || "",
           taxRate: formData.taxRate,
           trackStock: formData.trackStock,
           quantityInStock: formData.trackStock ? Number(formData.quantityInStock) || 0 : 0,
@@ -257,6 +288,7 @@ const Items = () => {
           price: normalizedPrice,
           unit: formData.unit,
           sku: formData.sku,
+          image: formData.image || "",
           taxRate: formData.taxRate,
           trackStock: formData.trackStock,
           quantityInStock: formData.trackStock ? Number(formData.quantityInStock) || 0 : 0,
@@ -318,7 +350,9 @@ const Items = () => {
       trackStock: false,
       quantityInStock: "",
       reorderLevel: "",
+      image: "",
     });
+    if (itemImageInputRef.current) itemImageInputRef.current.value = "";
   };
 
   const filteredItems = items.filter((item) => {
@@ -488,8 +522,12 @@ const Items = () => {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-6 h-6 text-gray-700" />
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                  {item.image ? (
+                    <img src={item.image} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-6 h-6 text-gray-700" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{item.name}</h3>
@@ -580,6 +618,41 @@ const Items = () => {
                     rows="3"
                     placeholder="Describe this item..."
                   />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Product photo (optional)</label>
+                  <div className="flex flex-wrap items-start gap-4">
+                    <div className="w-24 h-24 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
+                      {formData.image ? (
+                        <img src={formData.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-10 h-10 text-gray-300" />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 min-w-0">
+                      <input
+                        ref={itemImageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-900 file:text-white hover:file:bg-blue-800"
+                        onChange={handleItemImageFile}
+                      />
+                      <p className="text-xs text-gray-500">JPEG, PNG, or WebP. Max 1.5 MB. Shown on Items and POS.</p>
+                      {formData.image ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, image: "" }));
+                            if (itemImageInputRef.current) itemImageInputRef.current.value = "";
+                          }}
+                          className="text-sm text-red-600 hover:underline text-left w-fit"
+                        >
+                          Remove photo
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
 
                 <div>

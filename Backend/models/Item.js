@@ -13,6 +13,8 @@ const itemSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   unit: { type: String, default: 'unit' },
   sku: { type: String, default: '' },
+  /** Data URL (image/jpeg, image/png, image/webp) or HTTPS URL to product photo */
+  image: { type: String, default: '' },
   taxRate: { type: Number, default: 0 },
   usageCount: { type: Number, default: 0 },
   // Stock management
