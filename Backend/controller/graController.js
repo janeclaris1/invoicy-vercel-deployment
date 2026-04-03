@@ -302,8 +302,9 @@ exports.submitInvoice = async (req, res) => {
         );
 
         let sumLineVat = 0;
-        /** EXCLUSIVE: sum of line payable (taxable + VAT + levies + line excise). */
-        let sumExclusivePayable = 0;
+        /** EXCLUSIVE: GRA totalAmount = Σ taxable (pre-VAT/NHIL/GETFund) + levy D/E + excise — not full payable (VER 8.2 sample). */
+        let sumExclusiveTaxableBase = 0;
+        let sumExclusiveLevyDE = 0;
         const itemsForGra = lineItems.map((line, idx) => {
             const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
             const qtyStr = String(line.quantity ?? 0);
@@ -323,7 +324,8 @@ exports.submitInvoice = async (req, res) => {
             const extended = roundTo(Number(qtyStr) * unitPriceNum, 2);
             if (calculationType === "EXCLUSIVE") {
                 const taxable = roundTo(extended - discountAmount, 2);
-                sumExclusivePayable += taxable + lineVat + levyA + levyB + levyD + levyE + exciseAmount;
+                sumExclusiveTaxableBase += taxable;
+                sumExclusiveLevyDE += levyD + levyE;
             }
             return {
                 // Never send MongoDB ObjectIds — GRA returns E818 citing itemCode when levy validation fails.
@@ -368,18 +370,9 @@ exports.submitInvoice = async (req, res) => {
         const headerExciseScaled = roundTo(headerExcise * levyDiscountFactor, 2);
         const totalExciseAmount = lineExciseSum > 0 ? lineExciseSum : headerExciseScaled;
 
-        // E707: With rounded net (83.33 + 12.50 + 4.16 = 99.99 vs 100 line), VSDC often validates totalAmount = Σ net + totalVat + totalLevy (+ excise), not the headline tax-incl. line only.
-        const invGrand = Number(invoice.grandTotal);
-        const baseGrand = Number.isFinite(invGrand) ? invGrand : taxRecalc.grandTotal;
-        const nearTol = (a, b, tol) => Math.abs(a - b) <= tol;
+        // E707: GRA VER 8.2 semantics (see official sample): EXCLUSIVE → totalAmount = Σ taxable + D + E + excise (VAT/NHIL/GETFund in totalVat/totalLevy only). INCLUSIVE → totalAmount = Σ tax-incl. line (after discount) + D + E + excise.
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
-            const sumNetFromPayload = itemsForGra.reduce((s, it) => {
-                const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
-                const after = roundTo(ext - Number(it.discountAmount || 0), 2);
-                return s + (after > 0 ? roundTo(after / (1 + GRA_ALL_TAX_RATE), 2) : 0);
-            }, 0);
-            const fromLevies = roundTo(sumNetFromPayload + totalVatForGra + totalLevy, 2);
             const turnoverDE = roundTo(
                 itemsForGra.reduce((s, it) => {
                     const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
@@ -388,29 +381,12 @@ exports.submitInvoice = async (req, res) => {
                 }, 0),
                 2
             );
-            const turnoverPlusExcise = roundTo(turnoverDE + totalExciseAmount, 2);
-            const levyPlusExcise = roundTo(fromLevies + totalExciseAmount, 2);
-            // E707: VSDC matches totalAmount to Σ net + VAT + levies (+ excise). Do not snap 99.99→100 from invoice grand alone.
-            totalAmountForGra = totalExciseAmount > 0 ? levyPlusExcise : fromLevies;
-            const headline = totalExciseAmount > 0 ? turnoverPlusExcise : turnoverDE;
-            const r = (x) => roundTo(x, 2);
-            if (r(totalAmountForGra) === r(headline) && r(headline) === r(baseGrand)) {
-                totalAmountForGra = r(baseGrand);
-            }
+            totalAmountForGra = roundTo(turnoverDE + totalExciseAmount, 2);
         } else {
-            let ta = roundTo(sumExclusivePayable, 2);
-            if (lineExciseSum <= 0 && headerExciseScaled > 0) {
-                ta = roundTo(ta + headerExciseScaled, 2);
-            }
-            const fromRecalcEx = roundTo(
-                taxRecalc.grandTotal + (lineExciseSum > 0 ? lineExciseSum : headerExciseScaled),
+            totalAmountForGra = roundTo(
+                sumExclusiveTaxableBase + sumExclusiveLevyDE + totalExciseAmount,
                 2
             );
-            if (nearTol(ta, baseGrand, 0.1) || nearTol(fromRecalcEx, baseGrand, 0.1)) {
-                totalAmountForGra = roundTo(baseGrand, 2);
-            } else {
-                totalAmountForGra = ta;
-            }
         }
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
