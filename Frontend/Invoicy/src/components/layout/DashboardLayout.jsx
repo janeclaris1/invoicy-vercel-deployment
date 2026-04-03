@@ -265,7 +265,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
             : "ml-64";
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex">
+        <div className="min-h-screen min-h-[100dvh] bg-gray-50 dark:bg-slate-950 flex pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
             {/* Sidebar */}
             {!hideSidebar && (
             <aside
@@ -348,8 +348,8 @@ const DashboardLayout = ({ children, activeMenu }) => {
             {/* Main Content */}
             <div className={`flex-1 flex flex-col transition-all duration-300 ${mainOffsetClass}`}>
                 {/* Top Navbar */}
-                <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-30">
-                    <div className="flex items-center space-x-4">
+                <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 min-h-14 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 pt-[max(0px,env(safe-area-inset-top))] pb-2 sm:pb-0 sm:h-16 sm:min-h-0 sticky top-0 z-30">
+                    <div className="flex items-center gap-2 sm:space-x-4 min-w-0 flex-1">
                         {!hideSidebar && isMobile && (
                             <button
                                 onClick={toggleSidebar}
@@ -362,13 +362,13 @@ const DashboardLayout = ({ children, activeMenu }) => {
                                 )}
                             </button>
                         )}
-                        <div>
-                            <h1 className="text-base font-semibold text-gray-900 dark:text-slate-100">
+                        <div className="min-w-0">
+                            <h1 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-slate-100 truncate max-w-[min(100%,14rem)] sm:max-w-none">
                                 {location.pathname === "/choose-mode"
                                     ? "Choose workspace"
                                     : t("header.welcome", { name: user?.name || "" })}
                             </h1>
-                            <p className="text-sm text-gray-500 dark:text-slate-400 hidden sm:block">
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 hidden sm:block">
                                 {isPosPage ? "POS checkout" : t("header.subtitle")}
                             </p>
                             {!user?.isPlatformAdmin && user?.subscription?.currentPeriodEnd && (
@@ -377,7 +377,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                         </div>
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <select
                             value={i18n.language}
                             onChange={(e) => {
@@ -385,7 +385,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                                 i18n.changeLanguage(next);
                                 localStorage.setItem("lang", next);
                             }}
-                            className="h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700"
+                            className="h-10 min-h-[44px] sm:h-9 sm:min-h-0 max-w-[5.5rem] sm:max-w-none px-2 sm:px-3 rounded-lg border border-gray-200 bg-white text-xs sm:text-sm text-gray-700 touch-manipulation"
                             aria-label={t("language.label")}
                         >
                             <option value="en">{t("language.en")}</option>
@@ -407,7 +407,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                 </header>
 
                 {/* Main content area */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
                     {children}
                 </main>
             </div>

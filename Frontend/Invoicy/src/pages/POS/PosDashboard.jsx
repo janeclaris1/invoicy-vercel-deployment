@@ -520,7 +520,7 @@ const PosDashboard = () => {
                                 : "No items match this category or search."}
                         </p>
                     ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[min(70vh,28rem)] overflow-y-auto pr-0.5">
                             {filteredCatalog.map((item) => (
                                 <button
                                     key={String(item.id)}
@@ -697,9 +697,9 @@ const PosDashboard = () => {
                         type="button"
                         onClick={receivePayment}
                         disabled={!cart.length || submitting}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-blue-950 text-white py-2.5 text-xs font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-950 text-white min-h-[48px] px-3 py-3 text-sm font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation active:scale-[0.99]"
                     >
-                        <Banknote className="h-4 w-4 shrink-0" />
+                        <Banknote className="h-5 w-5 shrink-0" />
                         <span className="truncate">{submitting ? "Saving…" : "Receive payment & print"}</span>
                     </button>
                 </div>
