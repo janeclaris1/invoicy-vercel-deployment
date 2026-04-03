@@ -781,15 +781,11 @@ const InvoiceDetail = () => {
                   </div>
                 )
               ) : (
-                <>
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`GRA verification pending - Invoice ${invoice.invoiceNumber || ""}`)}`}
-                    alt="GRA Verification QR (sample)"
-                    className="w-24 h-24 object-contain rounded-lg bg-white p-1 opacity-80"
-                    title="Sample QR – submit to GRA to show verification QR"
-                  />
-                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">Sample – submit to GRA for verification QR</p>
-                </>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`GRA verification pending - Invoice ${invoice.invoiceNumber || ""}`)}`}
+                  alt="GRA verification QR (pending)"
+                  className="w-24 h-24 object-contain rounded-lg bg-white p-1 opacity-80"
+                />
               )}
             </div>
           </div>
@@ -833,9 +829,6 @@ const InvoiceDetail = () => {
         
         {/* Print button at bottom - slate fill, no border */}
         <div className="flex flex-col items-center no-print mt-6 gap-3">
-          <p className="text-center text-xs text-gray-500 max-w-md px-4">
-            In your browser&apos;s print dialog, turn on <strong>Headers and footers</strong> so the date and page numbers appear on the printed page.
-          </p>
           <Button
             onClick={handlePrint}
             className="flex items-center gap-2 !rounded-lg !border-0 !bg-slate-800 hover:!bg-slate-700 !text-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white [&_svg]:!text-white [&_svg]:!stroke-white"
