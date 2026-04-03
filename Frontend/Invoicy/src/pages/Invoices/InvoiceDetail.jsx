@@ -14,6 +14,8 @@ import { useAuth } from "../../context/AuthContext";
 const InvoiceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const posPrintReceiptRef = useRef(false);
   const { user } = useAuth();
   const userCurrency = user?.currency || 'GHS';
   const [invoice, setInvoice] = useState(null);
