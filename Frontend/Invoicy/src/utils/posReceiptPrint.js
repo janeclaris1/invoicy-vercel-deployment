@@ -16,6 +16,93 @@ function lineItemsFromInvoice(invoice) {
     return [];
 }
 
+function hasGraData(invoice) {
+    if (!invoice) return false;
+    return !!(
+        invoice.graQrCode ||
+        invoice.graVerificationUrl ||
+        invoice.graVerificationCode ||
+        invoice.graReceiptNumber ||
+        invoice.graSdcId ||
+        invoice.graStatus ||
+        invoice.graMrc ||
+        invoice.graReceiptDateTime ||
+        invoice.graMcDateTime ||
+        invoice.graDistributorTin ||
+        (invoice.graFlag != null && invoice.graFlag !== "") ||
+        invoice.graLineItemCount != null ||
+        invoice.graReceiptSignature
+    );
+}
+
+/** QR image for GRA verification (same rules as invoice detail POS receipt). */
+function graQrImgTag(invoice) {
+    const raw =
+        invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode || "";
+    if (!raw) return "";
+    const s = String(raw);
+    let src = "";
+    if (s.startsWith("data:image")) {
+        src = s;
+    } else {
+        src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(s)}`;
+    }
+    return `<div class="c gra-qr"><img src="${escapeHtml(src)}" alt="GRA QR" width="96" height="96" style="width:96px;height:96px;object-fit:contain;display:inline-block" /></div>`;
+}
+
+function formatGraDate(d) {
+    if (!d) return "";
+    try {
+        return moment(d).format("MMM D, YYYY h:mm A");
+    } catch (_) {
+        return String(d);
+    }
+}
+
+function buildGraSectionHtml(invoice) {
+    if (!hasGraData(invoice)) return "";
+
+    const rows = [];
+    const push = (label, val) => {
+        const v = val != null && String(val).trim() !== "" ? String(val).trim() : "";
+        if (v) rows.push({ label, value: v });
+    };
+
+    push("GRA receipt", invoice.graReceiptNumber);
+    push("SDC ID", invoice.graSdcId);
+    push("Verification code", invoice.graVerificationCode);
+    push("Verification URL", invoice.graVerificationUrl);
+    push("Status", invoice.graStatus);
+    push("MRC", invoice.graMrc);
+    push("Flag", invoice.graFlag);
+    push("Distributor TIN", invoice.graDistributorTin);
+    if (invoice.graLineItemCount != null && invoice.graLineItemCount !== "")
+        push("Line items (GRA)", String(invoice.graLineItemCount));
+    if (invoice.graReceiptDateTime) push("GRA receipt time", formatGraDate(invoice.graReceiptDateTime));
+    if (invoice.graMcDateTime) push("MC date/time", formatGraDate(invoice.graMcDateTime));
+
+    const sig = invoice.graReceiptSignature ? String(invoice.graReceiptSignature).trim() : "";
+    if (sig) {
+        const short = sig.length > 72 ? `${sig.slice(0, 70)}…` : sig;
+        rows.push({ label: "Signature", value: short });
+    }
+
+    const linesHtml = rows
+        .map(
+            ({ label, value }) =>
+                `<div class="gra-row"><span class="bold">${escapeHtml(label)}:</span> <span class="gra-val">${escapeHtml(value)}</span></div>`
+        )
+        .join("");
+
+    const qrHtml = graQrImgTag(invoice);
+
+    return `<div class="dash small gra-block">
+  <div class="bold c" style="margin-bottom:6px;letter-spacing:0.04em">GRA / E-VAT</div>
+  ${linesHtml}
+  ${qrHtml}
+</div>`;
+}
+
 /** Full HTML document string for a thermal-style POS receipt. */
 export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
     const billFrom = invoice.billFrom || {};
@@ -46,18 +133,7 @@ export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
 
     const when = invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY h:mm A") : "—";
 
-    const graBlock =
-        invoice.graReceiptNumber || invoice.graSdcId
-            ? `<div class="dash small">${
-                  invoice.graReceiptNumber
-                      ? `<div><span class="bold">GRA receipt:</span> ${escapeHtml(invoice.graReceiptNumber)}</div>`
-                      : ""
-              }${
-                  invoice.graSdcId
-                      ? `<div><span class="bold">SDC ID:</span> ${escapeHtml(invoice.graSdcId)}</div>`
-                      : ""
-              }</div>`
-            : "";
+    const graBlock = buildGraSectionHtml(invoice);
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt ${escapeHtml(
         invoice.invoiceNumber || ""
@@ -77,6 +153,9 @@ export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
   .dash { border-bottom: 1px dashed #666; padding-bottom: 8px; margin-bottom: 8px; margin-top: 8px; }
   .tot { display:flex; justify-content:space-between; font-size:10px; margin: 3px 0; }
   .tot.total { font-weight:700; border-top: 1px solid #555; padding-top: 6px; margin-top: 6px; }
+  .gra-block { word-break: break-word; }
+  .gra-row { margin: 4px 0; line-height: 1.3; }
+  .gra-val { font-weight: 400; }
   @media print {
     html, body { padding: 8px; width: 72mm; max-width: 72mm; }
   }
@@ -161,12 +240,36 @@ export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
         { once: true }
     );
 
-    // Wait for layout before print (avoids blank preview in Chrome / Safari)
-    setTimeout(() => {
+    let printStarted = false;
+    const runPrintOnce = () => {
+        if (printStarted) return;
+        printStarted = true;
         requestAnimationFrame(() => {
             requestAnimationFrame(runPrint);
         });
-    }, 300);
+    };
+
+    // Wait for GRA QR images (external) to load before print when present
+    const schedulePrint = () => {
+        const imgs = Array.from(doc.images || []);
+        const pending = imgs.filter((im) => !im.complete);
+        if (pending.length === 0) {
+            setTimeout(runPrintOnce, 250);
+            return;
+        }
+        let left = pending.length;
+        const onImg = () => {
+            left--;
+            if (left <= 0) runPrintOnce();
+        };
+        pending.forEach((im) => {
+            im.addEventListener("load", onImg, { once: true });
+            im.addEventListener("error", onImg, { once: true });
+        });
+        setTimeout(runPrintOnce, 3500);
+    };
+
+    setTimeout(schedulePrint, 200);
 
     // If afterprint never fires (e.g. dialog dismissed oddly), still remove iframe
     setTimeout(cleanup, 120000);
