@@ -180,23 +180,13 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 }
 
 /**
- * Split invoice-level discount so GRA’s per-line check stays consistent:
- * - EXCLUSIVE: weight = net line total (same as perLineTaxableBase).
- * - INCLUSIVE: weight = tax-inclusive extended amount round(q×price) — GRA applies discount before splitting VAT/NHIL/GETFund.
+ * Split invoice-level discount so Σ line shares = invoice totalDiscount (VSDC ties header discountAmount to line discounts; E707 if totals drift).
+ * Weights = perLineTaxableBase for both modes so % discounts match invoiceController (percent applies to net subtotal, not gross extended).
  */
-function allocateGeneralDiscountPerLine(lineItems, taxRecalc, calculationType, totalDiscount, roundTo) {
+function allocateGeneralDiscountPerLine(lineItems, taxRecalc, totalDiscount, roundTo) {
     const n = lineItems.length;
     if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
-    let weights;
-    if (calculationType === "EXCLUSIVE") {
-        weights = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
-    } else {
-        weights = lineItems.map((line) => {
-            const q = Number(line.quantity) || 0;
-            const up = Number(line.unitPrice ?? line.itemPrice) || 0;
-            return roundTo(q * up, 2);
-        });
-    }
+    const weights = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
     const sumW = weights.reduce((a, b) => a + b, 0);
     if (sumW <= 0) return new Array(n).fill(0);
     const out = [];
@@ -293,13 +283,7 @@ exports.submitInvoice = async (req, res) => {
 
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
         const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
-        const generalDiscountPerLine = allocateGeneralDiscountPerLine(
-            lineItems,
-            taxRecalc,
-            calculationType,
-            taxRecalc.totalDiscount,
-            roundTo
-        );
+        const generalDiscountPerLine = allocateGeneralDiscountPerLine(lineItems, taxRecalc, taxRecalc.totalDiscount, roundTo);
 
         let sumLineVat = 0;
         /** EXCLUSIVE: GRA totalAmount = Σ taxable + excise only — levy D/E sit in totalLevy so totalAmount+totalVat+totalLevy equals payable (E707 if D/E double-counted). */
@@ -368,27 +352,34 @@ exports.submitInvoice = async (req, res) => {
         const headerExciseScaled = roundTo(headerExcise * levyDiscountFactor, 2);
         const totalExciseAmount = lineExciseSum > 0 ? lineExciseSum : headerExciseScaled;
 
-        // E707: VER 8.2 sample (EXCLUSIVE): totalAmount = taxable supply (+ excise); VAT/NHIL/GETFund in headers; levy D/E only in totalLevy. INCLUSIVE: Σ tax-incl. line after discount + D + E + excise.
-        let totalAmountForGra;
-        if (calculationType === "INCLUSIVE") {
-            const turnoverDE = roundTo(
-                itemsForGra.reduce((s, it) => {
-                    const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
-                    const after = roundTo(ext - Number(it.discountAmount || 0), 2);
-                    return s + after + Number(it.levyAmountD || 0) + Number(it.levyAmountE || 0);
-                }, 0),
-                2
-            );
-            totalAmountForGra = roundTo(turnoverDE + totalExciseAmount, 2);
-        } else {
-            totalAmountForGra = roundTo(sumExclusiveTaxableBase + totalExciseAmount, 2);
-        }
-
         // Header discount must match Σ line discountAmount (general allocation + line discounts), or VSDC ties totalAmount to Σ(q×p)−header and returns E707.
         const discountAmountForGra = roundTo(
             itemsForGra.reduce((s, it) => s + Number(it.discountAmount || 0), 0),
             2
         );
+
+        const sumExtendedItems = roundTo(
+            itemsForGra.reduce((s, it) => s + roundTo(Number(it.quantity) * Number(it.unitPrice), 2), 0),
+            2
+        );
+        const sumLevyDE = roundTo(
+            itemsForGra.reduce((s, it) => s + Number(it.levyAmountD || 0) + Number(it.levyAmountE || 0), 0),
+            2
+        );
+
+        // E707: VSDC validates totalAmount against header discount (Σ(q×p) − discountAmount + levies + excise), not always Σ per-line round(ext−disc). INCLUSIVE uses that aggregate; EXCLUSIVE uses same for taxable+excise, falling back to per-line sum if the split diverges.
+        let totalAmountForGra;
+        if (calculationType === "INCLUSIVE") {
+            totalAmountForGra = roundTo(
+                sumExtendedItems - discountAmountForGra + sumLevyDE + totalExciseAmount,
+                2
+            );
+        } else {
+            const aggregateExcl = roundTo(sumExtendedItems - discountAmountForGra + totalExciseAmount, 2);
+            const lineSumExcl = roundTo(sumExclusiveTaxableBase + totalExciseAmount, 2);
+            totalAmountForGra =
+                Math.abs(aggregateExcl - lineSumExcl) > 0.05 ? lineSumExcl : aggregateExcl;
+        }
 
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 

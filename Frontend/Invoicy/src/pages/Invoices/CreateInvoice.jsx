@@ -14,6 +14,23 @@ import Button from "../../components/ui/Button";
 import SelectField from "../../components/ui/SelectField";
 import { formatCurrency } from "../../utils/helper";
 
+function parseDecimalInput(raw) {
+  const s = String(raw ?? "").trim().replace(",", ".");
+  if (s === "" || s === ".") return 0;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toFloat2(raw) {
+  return Math.round(parseDecimalInput(raw) * 100) / 100;
+}
+
+function decimalStringFromStored(v) {
+  if (v == null || v === "") return "0";
+  const n = Number(v);
+  return Number.isFinite(n) ? String(n) : "0";
+}
+
 const CreateInvoice = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,6 +45,8 @@ const CreateInvoice = () => {
         existingInvoice.amountPaid != null && existingInvoice.amountPaid !== ""
           ? String(Number(existingInvoice.amountPaid))
           : "0",
+      discountPercent: decimalStringFromStored(existingInvoice.discountPercent),
+      discountAmount: decimalStringFromStored(existingInvoice.discountAmount),
       // Always use company settings from user profile, even when editing
       companyLogo: existingInvoice.companyLogo || user?.companyLogo || "",
       companySignature: existingInvoice.companySignature || user?.companySignature || "",
@@ -57,8 +76,8 @@ const CreateInvoice = () => {
       amountPaid: "0",
       type: location.state?.type || "invoice",
       balanceDue: 0,
-      discountPercent: 0,
-      discountAmount: 0,
+      discountPercent: "0",
+      discountAmount: "0",
       companyLogo: user?.companyLogo || "",
       companySignature: user?.companySignature || "",
       companyStamp: user?.companyStamp || "",
@@ -224,6 +243,8 @@ const CreateInvoice = () => {
           existingInvoice.amountPaid != null && existingInvoice.amountPaid !== ""
             ? String(Number(existingInvoice.amountPaid))
             : "0",
+        discountPercent: decimalStringFromStored(existingInvoice.discountPercent),
+        discountAmount: decimalStringFromStored(existingInvoice.discountAmount),
         // Always use company settings from user profile as fallback
         companyLogo: existingInvoice.companyLogo || user?.companyLogo || "",
         companySignature: existingInvoice.companySignature || user?.companySignature || "",
@@ -288,22 +309,17 @@ const CreateInvoice = () => {
       return;
     }
 
-    if (name === "amountPaid") {
+    if (name === "amountPaid" || name === "discountPercent" || name === "discountAmount") {
       let v = value.replace(",", ".");
       if (v === "" || /^\d*\.?\d*$/.test(v)) {
-        setFormData((prev) => ({ ...prev, amountPaid: v }));
+        setFormData((prev) => ({ ...prev, [name]: v }));
       }
       return;
     }
 
-    const numericFields = ["discountPercent", "discountAmount"];
     setFormData((prev) => ({
       ...prev,
-      [name]: numericFields.includes(name)
-        ? value === ""
-          ? ""
-          : parseFloat(value)
-        : value,
+      [name]: value,
     }));
   };
 
@@ -397,11 +413,13 @@ const CreateInvoice = () => {
       baseSubtotal = totalTaxInclusive / (1 + ALL_TAX_RATE);
     }
 
+    const discountAmountNum = parseDecimalInput(formData.discountAmount);
+    const discountPercentNum = parseDecimalInput(formData.discountPercent);
     let discount = 0;
-    if (Number(formData.discountAmount) > 0) {
-      discount = Number(formData.discountAmount) || 0;
-    } else if (Number(formData.discountPercent) > 0) {
-      discount = (baseSubtotal * Number(formData.discountPercent)) / 100;
+    if (discountAmountNum > 0) {
+      discount = discountAmountNum;
+    } else if (discountPercentNum > 0) {
+      discount = (baseSubtotal * discountPercentNum) / 100;
     }
 
     const discountedSubtotal = baseSubtotal - discount;
@@ -425,13 +443,7 @@ const CreateInvoice = () => {
     };
   })();
 
-  const amountPaidValue = (() => {
-    const s = String(formData.amountPaid ?? "").trim().replace(",", ".");
-    if (s === "" || s === ".") return 0;
-    const n = parseFloat(s);
-    if (!Number.isFinite(n)) return 0;
-    return Math.max(0, Math.round(n * 100) / 100);
-  })();
+  const amountPaidValue = Math.max(0, toFloat2(formData.amountPaid));
   const balanceDelta = grandTotal - amountPaidValue;
   const balanceDueValue = Math.max(balanceDelta, 0);
   const overpaidValue = Math.max(amountPaidValue - grandTotal, 0);
@@ -462,6 +474,8 @@ const CreateInvoice = () => {
         companyLogo: formData.companyLogo || user?.companyLogo || "",
         companySignature: formData.companySignature || user?.companySignature || "",
         companyStamp: formData.companyStamp || user?.companyStamp || "",
+        discountPercent: toFloat2(formData.discountPercent),
+        discountAmount: toFloat2(formData.discountAmount),
         amountPaid: amountPaidValue,
         balanceDue: balanceDueValue,
         branch: billFromBranch || null,
