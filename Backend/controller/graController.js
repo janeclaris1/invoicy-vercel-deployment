@@ -302,6 +302,7 @@ exports.submitInvoice = async (req, res) => {
         );
 
         let sumLineVat = 0;
+        let sumTotalAmountParts = 0;
         const itemsForGra = lineItems.map((line, idx) => {
             const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
             const qtyStr = String(line.quantity ?? 0);
@@ -318,6 +319,15 @@ exports.submitInvoice = async (req, res) => {
             const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
             const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
+            // E707: totalAmount from same line fields GRA uses. INCLUSIVE: tax-incl line net, excise added once at header sum; EXCLUSIVE: full line payable incl. line excise.
+            const extended = roundTo(Number(qtyStr) * unitPriceNum, 2);
+            if (calculationType === "INCLUSIVE") {
+                const afterDisc = roundTo(extended - discountAmount, 2);
+                sumTotalAmountParts += afterDisc;
+            } else {
+                const taxable = roundTo(extended - discountAmount, 2);
+                sumTotalAmountParts += taxable + lineVat + levyA + levyB + levyD + levyE + exciseAmount;
+            }
             return {
                 // Never send MongoDB ObjectIds — GRA returns E818 citing itemCode when levy validation fails.
                 itemCode: `ITEM-${idx + 1}`,
@@ -354,7 +364,19 @@ exports.submitInvoice = async (req, res) => {
         const totalVatForGra = roundTo(sumLineVat, 2);
 
         const headerExcise = Number(invoice.totalExciseAmount) || 0;
-        const totalExciseAmount = roundTo(headerExcise * levyDiscountFactor, 2);
+        const lineExciseSum = roundTo(
+            itemsForGra.reduce((s, it) => s + Number(it.exciseAmount || 0), 0),
+            2
+        );
+        const headerExciseScaled = roundTo(headerExcise * levyDiscountFactor, 2);
+        const totalExciseAmount = lineExciseSum > 0 ? lineExciseSum : headerExciseScaled;
+
+        let totalAmountForGra = roundTo(sumTotalAmountParts, 2);
+        if (calculationType === "INCLUSIVE") {
+            totalAmountForGra = roundTo(sumTotalAmountParts + totalExciseAmount, 2);
+        } else if (lineExciseSum <= 0 && headerExciseScaled > 0) {
+            totalAmountForGra = roundTo(totalAmountForGra + headerExciseScaled, 2);
+        }
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
         // Field order matches GRA VER 8.2 sample docs (easier diff vs curl examples).
@@ -368,7 +390,7 @@ exports.submitInvoice = async (req, res) => {
             calculationType,
             totalVat: totalVatForGra,
             transactionDate,
-            totalAmount: taxRecalc.grandTotal,
+            totalAmount: totalAmountForGra,
             totalExciseAmount: Number.isFinite(totalExciseAmount) ? roundTo(totalExciseAmount, 2) : 0,
             businessPartnerName: businessPartnerName.slice(0, 100),
             businessPartnerTin: businessPartnerTin.slice(0, 15),
