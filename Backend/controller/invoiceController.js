@@ -472,8 +472,14 @@ exports.updateInvoice = async (req, res) => {
             if (!isNaN(gt) && gt >= 0) grandTotal = gt;
         }
 
-        // Calculate balance and status from payment amount
-        const paidValue = Number(amountPaid) !== undefined ? Number(amountPaid) : invoice.amountPaid || 0;
+        // Calculate balance and status from payment amount (omit amountPaid in body → keep existing; Number(undefined) is NaN, not undefined)
+        let paidValue;
+        if (amountPaid === undefined) {
+            paidValue = Number(invoice.amountPaid) || 0;
+        } else {
+            const n = Number(amountPaid);
+            paidValue = Number.isFinite(n) ? n : (Number(invoice.amountPaid) || 0);
+        }
         const balanceDue = grandTotal - paidValue; // Can be negative if overpaid
         
         // Determine status: use manually set status if provided, otherwise calculate from payment
