@@ -302,9 +302,8 @@ exports.submitInvoice = async (req, res) => {
         );
 
         let sumLineVat = 0;
-        /** EXCLUSIVE: GRA totalAmount = Σ taxable (pre-VAT/NHIL/GETFund) + levy D/E + excise — not full payable (VER 8.2 sample). */
+        /** EXCLUSIVE: GRA totalAmount = Σ taxable + excise only — levy D/E sit in totalLevy so totalAmount+totalVat+totalLevy equals payable (E707 if D/E double-counted). */
         let sumExclusiveTaxableBase = 0;
-        let sumExclusiveLevyDE = 0;
         const itemsForGra = lineItems.map((line, idx) => {
             const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
             const qtyStr = String(line.quantity ?? 0);
@@ -325,7 +324,6 @@ exports.submitInvoice = async (req, res) => {
             if (calculationType === "EXCLUSIVE") {
                 const taxable = roundTo(extended - discountAmount, 2);
                 sumExclusiveTaxableBase += taxable;
-                sumExclusiveLevyDE += levyD + levyE;
             }
             return {
                 // Never send MongoDB ObjectIds — GRA returns E818 citing itemCode when levy validation fails.
@@ -370,7 +368,7 @@ exports.submitInvoice = async (req, res) => {
         const headerExciseScaled = roundTo(headerExcise * levyDiscountFactor, 2);
         const totalExciseAmount = lineExciseSum > 0 ? lineExciseSum : headerExciseScaled;
 
-        // E707: GRA VER 8.2 semantics (see official sample): EXCLUSIVE → totalAmount = Σ taxable + D + E + excise (VAT/NHIL/GETFund in totalVat/totalLevy only). INCLUSIVE → totalAmount = Σ tax-incl. line (after discount) + D + E + excise.
+        // E707: VER 8.2 sample (EXCLUSIVE): totalAmount = taxable supply (+ excise); VAT/NHIL/GETFund in headers; levy D/E only in totalLevy. INCLUSIVE: Σ tax-incl. line after discount + D + E + excise.
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
             const turnoverDE = roundTo(
@@ -383,11 +381,15 @@ exports.submitInvoice = async (req, res) => {
             );
             totalAmountForGra = roundTo(turnoverDE + totalExciseAmount, 2);
         } else {
-            totalAmountForGra = roundTo(
-                sumExclusiveTaxableBase + sumExclusiveLevyDE + totalExciseAmount,
-                2
-            );
+            totalAmountForGra = roundTo(sumExclusiveTaxableBase + totalExciseAmount, 2);
         }
+
+        // Header discount must match Σ line discountAmount (general allocation + line discounts), or VSDC ties totalAmount to Σ(q×p)−header and returns E707.
+        const discountAmountForGra = roundTo(
+            itemsForGra.reduce((s, it) => s + Number(it.discountAmount || 0), 0),
+            2
+        );
+
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
         // Field order matches GRA VER 8.2 sample docs (easier diff vs curl examples).
@@ -408,7 +410,7 @@ exports.submitInvoice = async (req, res) => {
             saleType: (invoice.saleType || "NORMAL").slice(0, 20),
             discountType: (invoice.discountType || "GENERAL").slice(0, 300),
             taxType,
-            discountAmount: taxRecalc.totalDiscount,
+            discountAmount: discountAmountForGra,
             reference: (invoice.graRefundReference || "").slice(0, 50),
             groupReferenceId: (invoice.groupReferenceId || "").slice(0, 50),
             purchaseOrderReference: (invoice.purchaseOrderReference || "").slice(0, 50),
