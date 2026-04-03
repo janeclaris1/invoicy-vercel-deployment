@@ -11,6 +11,7 @@ import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { getPostLoginRedirectPath } from "../../utils/appMode";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -137,8 +138,8 @@ const Login = () => {
                     login(updated);
                   }
                   setVerifyingSubscription(false);
-                  setSuccess("Subscription confirmed! Taking you to dashboard…");
-                  setTimeout(() => navigate("/dashboard"), 600);
+                  setSuccess("Subscription confirmed! Taking you to the app…");
+                  setTimeout(() => navigate(getPostLoginRedirectPath()), 600);
                   done = true;
                   break;
                 }
@@ -147,12 +148,15 @@ const Login = () => {
             }
             if (!done) {
               setVerifyingSubscription(false);
-              setSuccess("Taking you to dashboard…");
-              setTimeout(() => navigate("/dashboard?payment=success"), 1200);
+              setSuccess("Taking you to the app…");
+              setTimeout(() => {
+                const next = getPostLoginRedirectPath();
+                navigate(`${next}?payment=success`);
+              }, 1200);
             }
           } else {
             setSuccess("Login successful");
-            let redirect = "/dashboard";
+            let redirect = getPostLoginRedirectPath();
             try {
               const raw = sessionStorage.getItem("checkoutPlan");
               if (raw) {
@@ -297,7 +301,11 @@ const Login = () => {
               {verifyingSubscription && (
                 <button
                   type="button"
-                  onClick={() => { setVerifyingSubscription(false); window.location.href = "/dashboard?payment=success"; }}
+                  onClick={() => {
+                    setVerifyingSubscription(false);
+                    const next = getPostLoginRedirectPath();
+                    window.location.href = `${next}?payment=success`;
+                  }}
                   className="mt-2 text-sm text-blue-600 font-medium hover:underline"
                 >
                   Go to dashboard now

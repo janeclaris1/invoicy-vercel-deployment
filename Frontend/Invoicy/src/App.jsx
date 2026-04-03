@@ -109,6 +109,8 @@ import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ModeChooser from "./pages/Auth/ModeChooser";
+import PosDashboard from "./pages/POS/PosDashboard";
 
 
 
@@ -136,6 +138,8 @@ const App = () => {
 
           {/*Protected Routes*/}
           <Route element={<ProtectedRoute />}>
+            <Route path="/choose-mode" element={<ModeChooser />} />
+            <Route path="/pos" element={<PosDashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="clients" element={<Clients />} />
             <Route path="checkout" element={<Checkout />} />

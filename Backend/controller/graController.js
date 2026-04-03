@@ -207,9 +207,29 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 }
 
 /**
- * Split invoice-level discount so Σ line shares = totalDiscount. Last line absorbs rounding.
+ * Proportional discount in pesewas; Σ shares = totalDiscount (largest-remainder, not “last line dumps” error).
  */
 function allocateGeneralDiscountFromWeights(weights, totalDiscount, roundTo) {
+    const n = weights.length;
+    if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
+    const sumW = weights.reduce((a, b) => a + (Number(b) || 0), 0);
+    if (sumW <= 0) return new Array(n).fill(0);
+
+    const exact = weights.map((w) => (totalDiscount * (Number(w) || 0)) / sumW);
+    const floors = exact.map((x) => Math.floor(Number(x) * 100 + 1e-9) / 100);
+    let sumFloors = floors.reduce((a, b) => a + b, 0);
+    let centsLeft = Math.round((totalDiscount - sumFloors) * 100 + 1e-9);
+    const order = exact.map((x, i) => ({ i, r: x - floors[i] })).sort((a, b) => b.r - a.r);
+    const out = [...floors];
+    for (let k = 0; k < order.length && centsLeft > 0; k++) {
+        out[order[k].i] = roundTo(out[order[k].i] + 0.01, 2);
+        centsLeft -= 1;
+    }
+    return out;
+}
+
+/** Legacy last-line-absorbs (small n only); kept for trying alternate splits. */
+function allocateGeneralDiscountLastLineAbsorb(weights, totalDiscount, roundTo) {
     const n = weights.length;
     if (n === 0 || totalDiscount <= 0) return new Array(n).fill(0);
     const sumW = weights.reduce((a, b) => a + (Number(b) || 0), 0);
@@ -226,6 +246,16 @@ function allocateGeneralDiscountFromWeights(weights, totalDiscount, roundTo) {
         }
     }
     return out;
+}
+
+function sumGraInclusiveLineSupplyAfterDiscount(itemsForGra, roundTo) {
+    return roundTo(
+        itemsForGra.reduce((s, it) => {
+            const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
+            return s + roundTo(ext - Number(it.discountAmount || 0), 2);
+        }, 0),
+        2
+    );
 }
 
 /** EXCLUSIVE: net-line weights. INCLUSIVE: default gross extended (flat discount off gross); optionally net base for %-of-net. */
@@ -343,24 +373,46 @@ exports.submitInvoice = async (req, res) => {
                 : taxRecalc.subtotal > 0
                     ? roundTo(taxRecalc.discountedSubtotal / taxRecalc.subtotal, 6)
                     : 1;
-        let generalDiscountPerLine = allocateGeneralDiscountPerLine(
-            lineItems,
-            taxRecalc,
-            taxRecalc.totalDiscount,
-            roundTo,
-            calculationType
-        );
+        let generalDiscountPerLine;
         if (calculationType === "INCLUSIVE" && taxRecalc.totalDiscount > 0) {
-            const anyLineDisc = lineItems.some((l) => (Number(l.discount) || 0) > 0);
-            if (!anyLineDisc) {
-                const netW = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
-                const grossAlloc = generalDiscountPerLine;
-                const netAlloc = allocateGeneralDiscountFromWeights(netW, taxRecalc.totalDiscount, roundTo);
-                const target = roundTo(taxRecalc.grandTotal, 2);
-                const errG = Math.abs(sumInclusiveTurnoverAfterDiscount(lineItems, grossAlloc, roundTo) - target);
-                const errN = Math.abs(sumInclusiveTurnoverAfterDiscount(lineItems, netAlloc, roundTo) - target);
-                generalDiscountPerLine = errN <= errG ? netAlloc : grossAlloc;
+            const lineDiscSum = lineItems.reduce((s, l) => s + (Number(l.discount) || 0), 0);
+            const headerSupplyTarget = roundTo(
+                taxRecalc.totalTaxInclusive - taxRecalc.totalDiscount - lineDiscSum,
+                2
+            );
+            const grossW = lineItems.map((line) =>
+                roundTo((Number(line.quantity) || 0) * (Number(line.unitPrice ?? line.itemPrice) || 0), 2)
+            );
+            const netW = (taxRecalc.perLineTaxableBase || []).map((b) => Number(b) || 0);
+            const candAllocs = [
+                allocateGeneralDiscountFromWeights(grossW, taxRecalc.totalDiscount, roundTo),
+                allocateGeneralDiscountLastLineAbsorb(grossW, taxRecalc.totalDiscount, roundTo),
+                allocateGeneralDiscountFromWeights(netW, taxRecalc.totalDiscount, roundTo),
+                allocateGeneralDiscountLastLineAbsorb(netW, taxRecalc.totalDiscount, roundTo),
+            ];
+            const seen = new Set();
+            let bestErr = Infinity;
+            generalDiscountPerLine = candAllocs[0];
+            for (const gen of candAllocs) {
+                const key = gen.join(",");
+                if (seen.has(key)) continue;
+                seen.add(key);
+                const err = Math.abs(
+                    sumInclusiveTurnoverAfterDiscount(lineItems, gen, roundTo) - headerSupplyTarget
+                );
+                if (err < bestErr) {
+                    bestErr = err;
+                    generalDiscountPerLine = gen;
+                }
             }
+        } else {
+            generalDiscountPerLine = allocateGeneralDiscountPerLine(
+                lineItems,
+                taxRecalc,
+                taxRecalc.totalDiscount,
+                roundTo,
+                calculationType
+            );
         }
 
         let sumLineVat = 0;
@@ -441,32 +493,16 @@ exports.submitInvoice = async (req, res) => {
             2
         );
 
-        // E707: INCLUSIVE sample supply = 50×450 = 22500; VSDC often ties totalAmount to declared totalVat:
-        // supply = (totalVat ÷ 15%) × (1 + NHIL% + GETFL% + VAT%) on the same net base. With discount, Σ lines
-        // can drift by cent-level rounding; deriving from totalVat matches header-level validation.
+        // E707: VSDC expects header coherence: totalAmount ≈ Σ(q×p) − discountAmount (+ excise). Σ line amounts must
+        // match (we pick discount split to minimize drift). Do not derive totalAmount from totalVat — that can disagree
+        // with line items and still return E707.
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
-            const lineSumSupply = roundTo(
-                itemsForGra.reduce((s, it) => {
-                    const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
-                    return s + roundTo(ext - Number(it.discountAmount || 0), 2);
-                }, 0),
-                2
-            );
-            const aggSupply = roundTo(sumExtendedItems - discountAmountForGra, 2);
-            let supplyCore =
-                Math.abs(lineSumSupply - aggSupply) <= 0.02 ? aggSupply : lineSumSupply;
-
-            if (totalVatForGra > 1e-6) {
-                const vatDerivedSupply = roundTo(
-                    (totalVatForGra / GRA_VAT_RATE) * (1 + GRA_ALL_TAX_RATE),
-                    2
-                );
-                if (discountAmountForGra > 0) {
-                    supplyCore = vatDerivedSupply;
-                } else if (Math.abs(vatDerivedSupply - supplyCore) <= 0.05) {
-                    supplyCore = vatDerivedSupply;
-                }
+            const headerSupply = roundTo(sumExtendedItems - discountAmountForGra, 2);
+            const lineSumSupply = sumGraInclusiveLineSupplyAfterDiscount(itemsForGra, roundTo);
+            let supplyCore = headerSupply;
+            if (Math.abs(lineSumSupply - headerSupply) > 0.05) {
+                supplyCore = lineSumSupply;
             }
             totalAmountForGra = roundTo(supplyCore + totalExciseAmount, 2);
         } else {

@@ -37,6 +37,23 @@ const CreateInvoice = () => {
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
   const existingInvoice = location.state?.invoice || null;
+  const posCartLines =
+    !existingInvoice && Array.isArray(location.state?.posCartLines) ? location.state.posCartLines : null;
+  const itemsFromPos =
+    posCartLines && posCartLines.length > 0
+      ? posCartLines.map((line, i) => {
+          const qty = Number(line.quantity) || 1;
+          const price = Number(line.itemPrice) || 0;
+          return {
+            sn: i + 1,
+            catalogId: line.catalogId || null,
+            itemDescription: line.itemDescription || line.name || "",
+            quantity: qty,
+            itemPrice: price,
+            amount: qty * price,
+          };
+        })
+      : [];
 
   const [formData, setFormData] = useState(
     existingInvoice ? {
@@ -69,7 +86,7 @@ const CreateInvoice = () => {
         phone: "",
         tin: "",
       },
-      items: [],
+      items: itemsFromPos,
       notes: "",
       paymentTerms: "",
       status: "Unpaid",

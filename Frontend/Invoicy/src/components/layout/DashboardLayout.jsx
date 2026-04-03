@@ -232,6 +232,10 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const sidebarCollapsed = !isMobile && false; // Set to true to collapse sidebar on desktop
 
+    const hideSidebar =
+        location.pathname === "/pos" || location.pathname === "/choose-mode";
+    const isPosPage = location.pathname === "/pos";
+
     const plan = (user?.subscription?.plan || "basic").toLowerCase();
     const isTrialActive =
         (user?.subscription?.status || "").toLowerCase() === "trialing" &&
@@ -250,9 +254,18 @@ const DashboardLayout = ({ children, activeMenu }) => {
         return children;
     };
 
+    const mainOffsetClass = hideSidebar
+        ? "ml-0"
+        : isMobile
+          ? "ml-0"
+          : sidebarCollapsed
+            ? "ml-20"
+            : "ml-64";
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex">
             {/* Sidebar */}
+            {!hideSidebar && (
             <aside
                 className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 transform h-screen ${
                     isMobile
@@ -320,9 +333,10 @@ const DashboardLayout = ({ children, activeMenu }) => {
                     </button>
                 </div>
             </aside>
+            )}
 
             {/* Mobile Overlay */}
-            {isMobile && sidebarOpen && (
+            {!hideSidebar && isMobile && sidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/10 bg-opacity-25 z-40 backdrop-blur-sm"
                     onClick={() => setSidebarOpen(false)}
@@ -330,15 +344,11 @@ const DashboardLayout = ({ children, activeMenu }) => {
             )}
 
             {/* Main Content */}
-            <div
-                className={`flex-1 flex flex-col transition-all duration-300 ${
-                    isMobile ? "ml-0" : sidebarCollapsed ? "ml-20" : "ml-64"
-                }`}
-            >
+            <div className={`flex-1 flex flex-col transition-all duration-300 ${mainOffsetClass}`}>
                 {/* Top Navbar */}
                 <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-30">
                     <div className="flex items-center space-x-4">
-                        {isMobile && (
+                        {!hideSidebar && isMobile && (
                             <button
                                 onClick={toggleSidebar}
                                 className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors duration-200"
@@ -352,10 +362,12 @@ const DashboardLayout = ({ children, activeMenu }) => {
                         )}
                         <div>
                             <h1 className="text-base font-semibold text-gray-900 dark:text-slate-100">
-                                {t("header.welcome", { name: user?.name || "" })}
+                                {location.pathname === "/choose-mode"
+                                    ? "Choose workspace"
+                                    : t("header.welcome", { name: user?.name || "" })}
                             </h1>
                             <p className="text-sm text-gray-500 dark:text-slate-400 hidden sm:block">
-                                {t("header.subtitle")}
+                                {isPosPage ? "POS checkout" : t("header.subtitle")}
                             </p>
                             {!user?.isPlatformAdmin && user?.subscription?.currentPeriodEnd && (
                                 <NextBillingCountdown currentPeriodEnd={user.subscription.currentPeriodEnd} />
