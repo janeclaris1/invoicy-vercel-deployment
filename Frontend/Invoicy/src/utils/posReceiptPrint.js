@@ -9,12 +9,15 @@ function escapeHtml(s) {
         .replace(/"/g, "&quot;");
 }
 
-/**
- * Opens a narrow receipt in a new window and triggers print. Returns false if the popup was blocked.
- */
-export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
-    if (!invoice) return false;
+function lineItemsFromInvoice(invoice) {
+    if (!invoice) return [];
+    if (Array.isArray(invoice.item) && invoice.item.length > 0) return invoice.item;
+    if (Array.isArray(invoice.items) && invoice.items.length > 0) return invoice.items;
+    return [];
+}
 
+/** Full HTML document string for a thermal-style POS receipt. */
+export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
     const billFrom = invoice.billFrom || {};
     const profile = fallbackProfile || {};
     const biz = billFrom.businessName || profile.businessName || "—";
@@ -22,7 +25,7 @@ export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
     const tin = billFrom.tin || profile.tin || "";
     const meta = [phone, tin ? `TIN ${tin}` : ""].filter(Boolean).join(" · ") || "—";
 
-    const lineItems = Array.isArray(invoice.item) ? invoice.item : [];
+    const lineItems = lineItemsFromInvoice(invoice);
     const balanceDue = (Number(invoice.grandTotal) || 0) - (Number(invoice.amountPaid) || 0);
 
     const itemsHtml = lineItems
@@ -56,12 +59,13 @@ export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
               }</div>`
             : "";
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt ${escapeHtml(
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt ${escapeHtml(
         invoice.invoiceNumber || ""
     )}</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; padding: 12px; max-width: 72mm; margin: 0 auto; color: #000; line-height: 1.35; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; font-size: 11px; padding: 12px; max-width: 72mm; margin: 0 auto; color: #000; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .c { text-align: center; }
   .bold { font-weight: 700; }
   .small { font-size: 10px; }
@@ -73,7 +77,9 @@ export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
   .dash { border-bottom: 1px dashed #666; padding-bottom: 8px; margin-bottom: 8px; margin-top: 8px; }
   .tot { display:flex; justify-content:space-between; font-size:10px; margin: 3px 0; }
   .tot.total { font-weight:700; border-top: 1px solid #555; padding-top: 6px; margin-top: 6px; }
-  @media print { body { padding: 8px; } }
+  @media print {
+    html, body { padding: 8px; width: 72mm; max-width: 72mm; }
+  }
 </style></head><body>
   <div class="c dash">
     <div class="bold" style="font-size:13px">${escapeHtml(biz)}</div>
@@ -98,25 +104,72 @@ export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
   ${graBlock}
   <div class="c small muted" style="margin-top:12px">Thank you</div>
 </body></html>`;
+}
 
-    const w = window.open("", "_blank", "noopener,noreferrer,width=420,height=640");
-    if (!w) return false;
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    w.addEventListener(
+/**
+ * Prints a POS receipt without leaving the current page (hidden iframe).
+ * Returns false only if invoice is missing or the print window cannot be used.
+ */
+export function printPosReceiptWindow(invoice, userCurrency, fallbackProfile) {
+    if (!invoice) return false;
+
+    const html = buildPosReceiptHtml(invoice, userCurrency, fallbackProfile);
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.setAttribute("title", "POS receipt");
+    Object.assign(iframe.style, {
+        position: "fixed",
+        right: "0",
+        bottom: "0",
+        width: "1px",
+        height: "1px",
+        border: "0",
+        opacity: "0",
+        pointerEvents: "none",
+    });
+    document.body.appendChild(iframe);
+
+    const win = iframe.contentWindow;
+    const doc = iframe.contentDocument || win.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    const cleanup = () => {
+        try {
+            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        } catch (_) {
+            /* ignore */
+        }
+    };
+
+    const runPrint = () => {
+        try {
+            win.focus();
+            win.print();
+        } catch (e) {
+            console.error("POS receipt print failed:", e);
+        }
+    };
+
+    win.addEventListener(
         "afterprint",
         () => {
-            try {
-                w.close();
-            } catch (_) {
-                /* ignore */
-            }
+            setTimeout(cleanup, 0);
         },
         { once: true }
     );
+
+    // Wait for layout before print (avoids blank preview in Chrome / Safari)
     setTimeout(() => {
-        w.print();
-    }, 100);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(runPrint);
+        });
+    }, 300);
+
+    // If afterprint never fires (e.g. dialog dismissed oddly), still remove iframe
+    setTimeout(cleanup, 120000);
+
     return true;
 }
