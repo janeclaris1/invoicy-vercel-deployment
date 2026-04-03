@@ -230,7 +230,7 @@ const PosDashboard = () => {
                     )}
                 </div>
 
-                <div className="rounded-xl border border-emerald-900/20 bg-emerald-50/40 p-4 shadow-sm">
+                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-lg font-semibold text-gray-900">Cart</h2>
                         <button
@@ -290,7 +290,7 @@ const PosDashboard = () => {
                             ))}
                         </ul>
                     )}
-                    <div className="flex items-center justify-between border-t border-emerald-900/10 pt-3 mb-3">
+                    <div className="flex items-center justify-between border-t border-gray-200 pt-3 mb-3">
                         <span className="text-sm font-medium text-gray-700">Subtotal</span>
                         <span className="text-lg font-semibold text-gray-900">
                             {formatCurrency(cartTotal, userCurrency)}
@@ -300,7 +300,7 @@ const PosDashboard = () => {
                         type="button"
                         onClick={checkout}
                         disabled={!cart.length}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-700 text-white py-3 font-medium hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-950 text-white py-3 font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <FilePlus className="h-5 w-5" />
                         Create invoice from cart
