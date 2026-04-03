@@ -36,6 +36,12 @@ exports.createInvoice = async (req, res) => {
             posSale: rawPosSale,
         } = req.body;
 
+        const isPosSaleFlag =
+            rawPosSale === true ||
+            rawPosSale === "true" ||
+            rawPosSale === 1 ||
+            rawPosSale === "1";
+
         const normalizedBillTo = (billTo && Object.keys(billTo).length > 0)
             ? billTo
             : {
