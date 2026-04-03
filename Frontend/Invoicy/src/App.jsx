@@ -111,6 +111,7 @@ import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ModeChooser from "./pages/Auth/ModeChooser";
 import PosDashboard from "./pages/POS/PosDashboard";
+import PosSalesPage from "./pages/Sales/PosSalesPage";
 
 
 
@@ -145,6 +146,7 @@ const App = () => {
             <Route path="checkout" element={<Checkout />} />
             <Route path="invoices" element={<AllInvoices />} />
             <Route path="quotations" element={<AllInvoices typeFilter="quotation" />} />
+            <Route path="sales/pos" element={<PosSalesPage />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />
             <Route path="customers" element={<Customers />} />

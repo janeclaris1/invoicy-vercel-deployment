@@ -351,6 +351,7 @@ const PosDashboard = () => {
             companyLogo: user?.companyLogo || "",
             companySignature: user?.companySignature || "",
             companyStamp: user?.companyStamp || "",
+            posSale: true,
         };
 
         setSubmitting(true);

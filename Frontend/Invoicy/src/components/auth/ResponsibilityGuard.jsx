@@ -32,6 +32,7 @@ const ALWAYS_ALLOWED = ["/profile", "/support", "/hr/self-service"];
 const getRequiredResponsibility = (pathname) => {
   if (ALWAYS_ALLOWED.some((p) => pathname.startsWith(p))) return null;
   if (pathname.startsWith("/invoices/")) return "invoices";
+  if (pathname.startsWith("/sales/")) return "invoices";
   if (pathname.startsWith("/accounting")) return "accounting";
   const hrReq = HR_PATH_TO_RESPONSIBILITY[pathname];
   if (hrReq) return hrReq;

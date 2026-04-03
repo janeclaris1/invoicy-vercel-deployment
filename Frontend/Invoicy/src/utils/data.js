@@ -1,4 +1,4 @@
-import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users, Truck, FolderOpen, Package, Boxes, FileCheck, MessageCircle, Megaphone, Target, TrendingUp, Calculator, Building2, FolderKanban, Cog, Warehouse, ClipboardList } from "lucide-react";
+import { BarChart2, FileText, Mail, Sparkles, LayoutDashboard, Plus, User, Users, Truck, FolderOpen, Package, Boxes, FileCheck, MessageCircle, Megaphone, Target, TrendingUp, Calculator, Building2, FolderKanban, Cog, Warehouse, ClipboardList, ShoppingBag } from "lucide-react";
 
 // Import assets so the bundler includes them and production URLs work (string paths like "src/assets/..." 404 in deployed builds)
 import avatarUser from "../assets/user.png";
@@ -204,6 +204,13 @@ export const NAVIGATION_MENU = [
             { id: "quotations", name: "Quotations", icon: null, responsibility: "invoices" },
             { id: "invoices/new", name: "Create Invoice", icon: null, responsibility: "invoices" },
         ],
+    },
+    {
+        id: "sales",
+        name: "Sales",
+        icon: ShoppingBag,
+        responsibility: "invoices",
+        children: [{ id: "sales/pos", icon: null, responsibility: "invoices" }],
     },
     { id: "customers", name: "Customers", icon: Users, responsibility: "customers" },
     { id: "suppliers", name: "Suppliers", icon: Truck, responsibility: "suppliers" },

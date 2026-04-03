@@ -115,6 +115,8 @@ const invoiceSchema = new mongoose.Schema({
     graLineItemCount: { type: Number },
     graStatus: { type: String },
     vatScenario: { type: String, enum: ['inclusive', 'exclusive'], default: 'inclusive' },
+    /** Set when sale is created from the POS screen (for sales reports). */
+    posSale: { type: Boolean, default: false },
 }, { timestamps: true }
 
 );

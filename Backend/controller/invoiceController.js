@@ -32,7 +32,8 @@ exports.createInvoice = async (req, res) => {
             discountPercent = 0,   // Optional - percent
             discountAmount = 0,    // Optional - flat
             type: invoiceType = 'invoice',
-            branch: branchId = null
+            branch: branchId = null,
+            posSale: rawPosSale,
         } = req.body;
 
         const normalizedBillTo = (billTo && Object.keys(billTo).length > 0)
@@ -195,6 +196,7 @@ exports.createInvoice = async (req, res) => {
             graVerificationCode: graVerificationCode || undefined,
             vatScenario,
             branch: branchId || null,
+            posSale: isPosSaleFlag,
         });
 
         await invoice.save();
@@ -288,7 +290,18 @@ exports.getInvoices = async (req, res) => {
         }
         
         const branchFilter = req.query.branch && String(req.query.branch).trim() ? { branch: req.query.branch.trim() } : {};
-        const invoices = await Invoice.find({ user: { $in: teamMemberIds }, ...branchFilter })
+        const posSaleOnly = req.query.posSale === 'true' || req.query.posSale === '1';
+
+        const query = { user: { $in: teamMemberIds }, ...branchFilter };
+        if (posSaleOnly) {
+            query.type = 'invoice';
+            query.$or = [
+                { posSale: true },
+                { notes: { $regex: '^POS sale ·' } },
+            ];
+        }
+
+        const invoices = await Invoice.find(query)
             .populate("user", "name email")
             .populate("branch", "name")
             .sort({ createdAt: -1 });

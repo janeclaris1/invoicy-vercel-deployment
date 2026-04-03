@@ -115,7 +115,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeNavItem, setActiveNavItem] = useState(activeMenu || "dashboard");
-    const [expandedNavIds, setExpandedNavIds] = useState({ hr: false, invoices: false });
+    const [expandedNavIds, setExpandedNavIds] = useState({ hr: false, invoices: false, sales: false });
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -160,7 +160,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     useEffect(() => {
         const path = location.pathname.replace(/^\//, "") || "dashboard";
-        const navItem = path.startsWith("marketing/") ? "marketing" : path.startsWith("crm/") ? "crm" : path.startsWith("social/") ? "social" : path.startsWith("integrations/") ? "integrations" : path.startsWith("accounting/") ? "accounting" : path === "quotations" ? "quotations" : path;
+        const navItem = path.startsWith("marketing/") ? "marketing" : path.startsWith("crm/") ? "crm" : path.startsWith("social/") ? "social" : path.startsWith("integrations/") ? "integrations" : path.startsWith("accounting/") ? "accounting" : path === "quotations" ? "quotations" : path.startsWith("sales/") ? path : path;
         setActiveNavItem(navItem);
         setExpandedNavIds((prev) => ({
             ...prev,
@@ -193,6 +193,8 @@ const DashboardLayout = ({ children, activeMenu }) => {
     };
 
     const navLabelKey = (id) => {
+        if (id === "sales") return "nav.sales";
+        if (id === "sales/pos") return "nav.sales_pos";
         if (id === "invoices/new") return "nav.create_invoice";
         if (id === "quotations") return "nav.quotations";
         if (id === "stock") return "nav.stock";
