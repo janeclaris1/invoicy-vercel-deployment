@@ -750,7 +750,7 @@ const InvoiceDetail = () => {
                         let v = e.target.value.replace(",", ".");
                         if (v === "" || /^\d*\.?\d*$/.test(v)) setPaymentAmount(v);
                       }}
-                      className="w-28 min-w-0 flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
+                      className="min-w-[9rem] w-40 max-w-[12rem] flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
                       placeholder="0.00"
                     />
                     <Button

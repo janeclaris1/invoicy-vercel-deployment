@@ -24,6 +24,10 @@ const CreateInvoice = () => {
   const [formData, setFormData] = useState(
     existingInvoice ? {
       ...existingInvoice,
+      amountPaid:
+        existingInvoice.amountPaid != null && existingInvoice.amountPaid !== ""
+          ? String(Number(existingInvoice.amountPaid))
+          : "0",
       // Always use company settings from user profile, even when editing
       companyLogo: existingInvoice.companyLogo || user?.companyLogo || "",
       companySignature: existingInvoice.companySignature || user?.companySignature || "",
@@ -50,7 +54,7 @@ const CreateInvoice = () => {
       notes: "",
       paymentTerms: "",
       status: "Unpaid",
-      amountPaid: 0,
+      amountPaid: "0",
       type: location.state?.type || "invoice",
       balanceDue: 0,
       discountPercent: 0,
@@ -216,6 +220,10 @@ const CreateInvoice = () => {
         ...existingInvoice,
         invoiceDate: moment(existingInvoice.invoiceDate).format("YYYY-MM-DD"),
         dueDate: moment(existingInvoice.dueDate).format("YYYY-MM-DD"),
+        amountPaid:
+          existingInvoice.amountPaid != null && existingInvoice.amountPaid !== ""
+            ? String(Number(existingInvoice.amountPaid))
+            : "0",
         // Always use company settings from user profile as fallback
         companyLogo: existingInvoice.companyLogo || user?.companyLogo || "",
         companySignature: existingInvoice.companySignature || user?.companySignature || "",
@@ -280,7 +288,15 @@ const CreateInvoice = () => {
       return;
     }
 
-    const numericFields = ["discountPercent", "discountAmount", "amountPaid"];
+    if (name === "amountPaid") {
+      let v = value.replace(",", ".");
+      if (v === "" || /^\d*\.?\d*$/.test(v)) {
+        setFormData((prev) => ({ ...prev, amountPaid: v }));
+      }
+      return;
+    }
+
+    const numericFields = ["discountPercent", "discountAmount"];
     setFormData((prev) => ({
       ...prev,
       [name]: numericFields.includes(name)
@@ -409,7 +425,13 @@ const CreateInvoice = () => {
     };
   })();
 
-  const amountPaidValue = Math.max(0, Number(formData.amountPaid) || 0);
+  const amountPaidValue = (() => {
+    const s = String(formData.amountPaid ?? "").trim().replace(",", ".");
+    if (s === "" || s === ".") return 0;
+    const n = parseFloat(s);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.round(n * 100) / 100);
+  })();
   const balanceDelta = grandTotal - amountPaidValue;
   const balanceDueValue = Math.max(balanceDelta, 0);
   const overpaidValue = Math.max(amountPaidValue - grandTotal, 0);
