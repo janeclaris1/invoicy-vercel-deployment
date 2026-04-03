@@ -152,18 +152,45 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
     }
 
     const totalDiscount = round(Math.max(Number(invoice.totalDiscount) || 0, 0));
-    const discountedSubtotal = round(subtotal - totalDiscount);
+
+    let discountedSubtotal;
+    let grandTotal;
+
+    if (vatScenario === "exclusive") {
+        discountedSubtotal = round(subtotal - totalDiscount);
+        const totalNhil = round(discountedSubtotal * GRA_NHIL_RATE);
+        const totalGetFund = round(discountedSubtotal * GRA_GETFUND_RATE);
+        const totalVat = round(discountedSubtotal * GRA_VAT_RATE);
+        grandTotal = round(discountedSubtotal + totalVat + totalNhil + totalGetFund);
+        return {
+            subtotal,
+            discountedSubtotal,
+            totalTaxInclusive,
+            totalVat,
+            totalNhil,
+            totalGetFund,
+            grandTotal,
+            vatScenario,
+            totalDiscount,
+            perLineTaxableBase,
+        };
+    }
+
+    // INCLUSIVE: grandTotal = totalTaxInclusive − totalDiscount (flat off gross or %-of-net amount in GHS).
+    // Effective post-discount net for *report* fields: prefer net = subtotal − totalDiscount when it
+    // reconciles to grandTotal; else derive from grandTotal ÷ (1 + rate) (flat off gross).
+    grandTotal = round(totalTaxInclusive - totalDiscount);
+    const fromNet = round(subtotal - totalDiscount);
+    const fromGrossDerived = round(grandTotal / (1 + GRA_ALL_TAX_RATE));
+    const reconNet = round(fromNet * (1 + GRA_ALL_TAX_RATE));
+    const reconGross = round(fromGrossDerived * (1 + GRA_ALL_TAX_RATE));
+    const errNet = Math.abs(reconNet - grandTotal);
+    const errGross = Math.abs(reconGross - grandTotal);
+    discountedSubtotal = errNet <= errGross ? fromNet : fromGrossDerived;
 
     const totalNhil = round(discountedSubtotal * GRA_NHIL_RATE);
     const totalGetFund = round(discountedSubtotal * GRA_GETFUND_RATE);
     const totalVat = round(discountedSubtotal * GRA_VAT_RATE);
-
-    let grandTotal;
-    if (vatScenario === "exclusive") {
-        grandTotal = round(discountedSubtotal + totalVat + totalNhil + totalGetFund);
-    } else {
-        grandTotal = round(totalTaxInclusive - totalDiscount);
-    }
 
     return {
         subtotal,
@@ -308,7 +335,14 @@ exports.submitInvoice = async (req, res) => {
         };
 
         const taxRecalc = recalculateGhanaTaxForGra(invoice, lineItems);
-        const levyDiscountFactor = taxRecalc.subtotal > 0 ? taxRecalc.discountedSubtotal / taxRecalc.subtotal : 1;
+        const levyDiscountFactor =
+            calculationType === "INCLUSIVE"
+                ? taxRecalc.totalTaxInclusive > 0
+                    ? roundTo(taxRecalc.grandTotal / taxRecalc.totalTaxInclusive, 6)
+                    : 1
+                : taxRecalc.subtotal > 0
+                    ? roundTo(taxRecalc.discountedSubtotal / taxRecalc.subtotal, 6)
+                    : 1;
         let generalDiscountPerLine = allocateGeneralDiscountPerLine(
             lineItems,
             taxRecalc,
@@ -407,7 +441,9 @@ exports.submitInvoice = async (req, res) => {
             2
         );
 
-        // E707: VER 8.2 sample totalAmount = tax-inclusive supply (q×p after discount) + excise; levy D/E belong in totalLevy only (do not add them into totalAmount). Match lines vs header: Σ round(ext−disc) vs (Σ ext − discountAmount).
+        // E707: INCLUSIVE sample supply = 50×450 = 22500; VSDC often ties totalAmount to declared totalVat:
+        // supply = (totalVat ÷ 15%) × (1 + NHIL% + GETFL% + VAT%) on the same net base. With discount, Σ lines
+        // can drift by cent-level rounding; deriving from totalVat matches header-level validation.
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
             const lineSumSupply = roundTo(
@@ -418,8 +454,20 @@ exports.submitInvoice = async (req, res) => {
                 2
             );
             const aggSupply = roundTo(sumExtendedItems - discountAmountForGra, 2);
-            const supplyCore =
+            let supplyCore =
                 Math.abs(lineSumSupply - aggSupply) <= 0.02 ? aggSupply : lineSumSupply;
+
+            if (totalVatForGra > 1e-6) {
+                const vatDerivedSupply = roundTo(
+                    (totalVatForGra / GRA_VAT_RATE) * (1 + GRA_ALL_TAX_RATE),
+                    2
+                );
+                if (discountAmountForGra > 0) {
+                    supplyCore = vatDerivedSupply;
+                } else if (Math.abs(vatDerivedSupply - supplyCore) <= 0.05) {
+                    supplyCore = vatDerivedSupply;
+                }
+            }
             totalAmountForGra = roundTo(supplyCore + totalExciseAmount, 2);
         } else {
             const aggregateExcl = roundTo(sumExtendedItems - discountAmountForGra + totalExciseAmount, 2);
