@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
@@ -7,6 +7,7 @@ import { formatCurrency } from "../../utils/helper";
 import { playNotificationSound } from "../../utils/notificationSound";
 import { Minus, Plus, Search, Trash2, Banknote } from "lucide-react";
 import toast from "react-hot-toast";
+import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
 
 /** Filter key for items with no category set */
 const UNCATEGORIZED_KEY = "__uncategorized__";
@@ -50,7 +51,6 @@ function toFloat2(raw) {
 
 const PosDashboard = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
     const userCurrency = user?.currency || "GHS";
     const scanRef = useRef(null);
     const vatScenario = user?.graVatScenario || "inclusive";
@@ -363,8 +363,12 @@ const PosDashboard = () => {
                 return;
             }
             window.dispatchEvent(new CustomEvent("invoicesUpdated"));
+            clearCart();
             toast.success("Payment recorded");
-            navigate(`/invoices/${invoice._id}`, { state: { posPrintReceipt: true } });
+            const printed = printPosReceiptWindow(invoice, userCurrency, user);
+            if (!printed) {
+                toast.error("Pop-up blocked — allow pop-ups to print, or find this sale under Sales → POS.");
+            }
         } catch (error) {
             const msg =
                 error.response?.data?.error ||
