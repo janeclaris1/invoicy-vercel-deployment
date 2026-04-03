@@ -13,11 +13,24 @@
     --dashboard-stat-label: #334155;
     --dashboard-stat-value: #0f172a;
     -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
   }
 
   body {
     background-color: #fcfbfc;
     color: #111827;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+  }
+
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
   }
 
   /* Touch: avoid 300ms delay on controls where supported */

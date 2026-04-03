@@ -265,7 +265,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
             : "ml-64";
 
     return (
-        <div className="min-h-screen min-h-[100dvh] bg-gray-50 dark:bg-slate-950 flex pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
+        <div className="min-h-screen min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-gray-50 dark:bg-slate-950 flex pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
             {/* Sidebar */}
             {!hideSidebar && (
             <aside
@@ -345,10 +345,10 @@ const DashboardLayout = ({ children, activeMenu }) => {
                 />
             )}
 
-            {/* Main Content */}
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${mainOffsetClass}`}>
+            {/* Main Content — min-w-0 lets flex child shrink so inner content cannot widen the page */}
+            <div className={`flex-1 flex flex-col min-w-0 w-full max-w-full transition-all duration-300 ${mainOffsetClass}`}>
                 {/* Top Navbar */}
-                <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 min-h-14 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 pt-[max(0px,env(safe-area-inset-top))] pb-2 sm:pb-0 sm:h-16 sm:min-h-0 sticky top-0 z-30">
+                <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 min-h-14 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 pt-[max(0px,env(safe-area-inset-top))] pb-2 sm:pb-0 sm:h-16 sm:min-h-0 sticky top-0 z-30 min-w-0 w-full max-w-full">
                     <div className="flex items-center gap-2 sm:space-x-4 min-w-0 flex-1">
                         {!hideSidebar && isMobile && (
                             <button
@@ -407,7 +407,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                 </header>
 
                 {/* Main content area */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+                <main className="flex-1 min-w-0 w-full max-w-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
                     {children}
                 </main>
             </div>
