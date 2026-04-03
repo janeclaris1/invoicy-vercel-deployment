@@ -374,6 +374,7 @@ const CreateInvoice = () => {
         {
           sn: prev.items.length + 1,
           catalogId: selected.id,
+          catalogImage: selected.image || "",
           itemDescription: selected.name || "",
           quantity: 1,
           itemPrice: numericPrice,
@@ -404,6 +405,14 @@ const CreateInvoice = () => {
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const catalogImageForLine = (line) => {
+    if (line?.catalogImage) return line.catalogImage;
+    const cid = line.catalogId || line.itemId;
+    if (!cid || !itemsCatalog.length) return null;
+    const c = itemsCatalog.find((x) => String(x.id) === String(cid));
+    return c?.image || null;
   };
 
   const vatScenario = user?.graVatScenario || "inclusive";
@@ -778,6 +787,7 @@ const CreateInvoice = () => {
           <table className="w-full divide-y divide-slate-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider w-14">Photo</th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">#</th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Description</th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Quantity</th>
@@ -787,8 +797,21 @@ const CreateInvoice = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {formData.items.map((item, index) => (
+              {formData.items.map((item, index) => {
+                const lineImg = catalogImageForLine(item);
+                return (
                 <tr key={index} className="hover:bg-blue-50 transition-colors duration-150">
+                  <td className="px-4 sm:px-6 py-4 align-middle">
+                    {lineImg ? (
+                      <img
+                        src={lineImg}
+                        alt=""
+                        className="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-gray-50"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 border-dashed" title="No photo" />
+                    )}
+                  </td>
                   <td className="px-4 sm:px-6 py-4 text-left">{index + 1}</td>
                   <td className="px-4 sm:px-6 py-3 text-left">
                     <input
@@ -837,7 +860,7 @@ const CreateInvoice = () => {
                     </Button>
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>

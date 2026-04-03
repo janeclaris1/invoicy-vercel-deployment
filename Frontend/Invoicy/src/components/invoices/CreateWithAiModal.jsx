@@ -56,6 +56,7 @@ const CreateWithAiModal = ({ isOpen, onClose }) => {
                     return {
                         sn: idx + 1,
                         catalogId: catalogItem._id || catalogItem.id,
+                        catalogImage: catalogItem.image || "",
                         itemDescription: catalogItem.name || "",
                         itemPrice: price,
                         quantity: qty,
