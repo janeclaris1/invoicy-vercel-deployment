@@ -368,10 +368,10 @@ exports.submitInvoice = async (req, res) => {
         const headerExciseScaled = roundTo(headerExcise * levyDiscountFactor, 2);
         const totalExciseAmount = lineExciseSum > 0 ? lineExciseSum : headerExciseScaled;
 
-        // E707: VSDC typically checks totalAmount = Σ net + totalVat + totalLevy (net from each line’s tax-incl amount after discount).
+        // E707: With rounded net (83.33 + 12.50 + 4.16 = 99.99 vs 100 line), VSDC often validates totalAmount = Σ net + totalVat + totalLevy (+ excise), not the headline tax-incl. line only.
         const invGrand = Number(invoice.grandTotal);
         const baseGrand = Number.isFinite(invGrand) ? invGrand : taxRecalc.grandTotal;
-        const near05 = (a, b) => Math.abs(a - b) <= 0.1;
+        const nearTol = (a, b, tol) => Math.abs(a - b) <= tol;
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
             const sumNetFromPayload = itemsForGra.reduce((s, it) => {
@@ -390,21 +390,12 @@ exports.submitInvoice = async (req, res) => {
             );
             const turnoverPlusExcise = roundTo(turnoverDE + totalExciseAmount, 2);
             const levyPlusExcise = roundTo(fromLevies + totalExciseAmount, 2);
-            const recalcGrand = roundTo(taxRecalc.totalTaxInclusive - taxRecalc.totalDiscount, 2);
-            const candidates = [
-                turnoverDE,
-                turnoverPlusExcise,
-                fromLevies,
-                levyPlusExcise,
-                recalcGrand,
-                roundTo(recalcGrand + totalExciseAmount, 2),
-            ];
-            totalAmountForGra = turnoverDE;
-            for (const c of candidates) {
-                if (near05(c, baseGrand)) {
-                    totalAmountForGra = roundTo(baseGrand, 2);
-                    break;
-                }
+            // E707: VSDC matches totalAmount to Σ net + VAT + levies (+ excise). Do not snap 99.99→100 from invoice grand alone.
+            totalAmountForGra = totalExciseAmount > 0 ? levyPlusExcise : fromLevies;
+            const headline = totalExciseAmount > 0 ? turnoverPlusExcise : turnoverDE;
+            const r = (x) => roundTo(x, 2);
+            if (r(totalAmountForGra) === r(headline) && r(headline) === r(baseGrand)) {
+                totalAmountForGra = r(baseGrand);
             }
         } else {
             let ta = roundTo(sumExclusivePayable, 2);
@@ -415,7 +406,7 @@ exports.submitInvoice = async (req, res) => {
                 taxRecalc.grandTotal + (lineExciseSum > 0 ? lineExciseSum : headerExciseScaled),
                 2
             );
-            if (near05(ta, baseGrand) || near05(fromRecalcEx, baseGrand)) {
+            if (nearTol(ta, baseGrand, 0.1) || nearTol(fromRecalcEx, baseGrand, 0.1)) {
                 totalAmountForGra = roundTo(baseGrand, 2);
             } else {
                 totalAmountForGra = ta;
