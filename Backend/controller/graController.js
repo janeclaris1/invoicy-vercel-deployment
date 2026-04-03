@@ -302,8 +302,8 @@ exports.submitInvoice = async (req, res) => {
         );
 
         let sumLineVat = 0;
-        /** INCLUSIVE: sum of tax-inclusive line amounts after discount (GRA totalAmount matches Postman: qty×price − line discount). */
-        let sumInclusiveAfterDisc = 0;
+        /** INCLUSIVE: Σ (afterDisc ÷ (1+rate)) at full precision — matches levy/VAT derivation; GRA E707 often checks Σnet + totalVat + totalLevy. */
+        let sumNetInclusiveForControl = 0;
         /** EXCLUSIVE: sum of line payable (taxable + VAT + levies + line excise). */
         let sumExclusivePayable = 0;
         const itemsForGra = lineItems.map((line, idx) => {
@@ -325,7 +325,9 @@ exports.submitInvoice = async (req, res) => {
             const extended = roundTo(Number(qtyStr) * unitPriceNum, 2);
             if (calculationType === "INCLUSIVE") {
                 const afterDisc = roundTo(extended - discountAmount, 2);
-                sumInclusiveAfterDisc += afterDisc;
+                if (afterDisc > 0) {
+                    sumNetInclusiveForControl += afterDisc / (1 + GRA_ALL_TAX_RATE);
+                }
             } else {
                 const taxable = roundTo(extended - discountAmount, 2);
                 sumExclusivePayable += taxable + lineVat + levyA + levyB + levyD + levyE + exciseAmount;
@@ -376,26 +378,50 @@ exports.submitInvoice = async (req, res) => {
         // E707: Postman INCLUSIVE sample uses totalAmount = tax-incl sale (+ CST/tourism on top). Excise often in totalExciseAmount only.
         const invGrand = Number(invoice.grandTotal);
         const baseGrand = Number.isFinite(invGrand) ? invGrand : taxRecalc.grandTotal;
-        const sumDE = roundTo(
-            itemsForGra.reduce((s, it) => s + Number(it.levyAmountD || 0) + Number(it.levyAmountE || 0), 0),
-            2
-        );
         const near05 = (a, b) => Math.abs(a - b) <= 0.05;
         let totalAmountForGra;
         if (calculationType === "INCLUSIVE") {
-            const taNoExcise = roundTo(sumInclusiveAfterDisc + sumDE, 2);
-            const taWithExcise = roundTo(taNoExcise + totalExciseAmount, 2);
-            if (near05(baseGrand, taNoExcise) || near05(baseGrand, taWithExcise)) {
-                totalAmountForGra = roundTo(baseGrand, 2);
-            } else {
-                totalAmountForGra = totalExciseAmount > 0 ? taWithExcise : taNoExcise;
-            }
+            const fromComponentsNoExcise = roundTo(sumNetInclusiveForControl + totalVatForGra + totalLevy, 2);
+            const fromComponentsWithExcise = roundTo(fromComponentsNoExcise + totalExciseAmount, 2);
+            const fromTurnoverNoExcise = roundTo(
+                itemsForGra.reduce((s, it) => {
+                    const ext = roundTo(Number(it.quantity) * Number(it.unitPrice), 2);
+                    const after = roundTo(ext - Number(it.discountAmount || 0), 2);
+                    return s + after + Number(it.levyAmountD || 0) + Number(it.levyAmountE || 0);
+                }, 0),
+                2
+            );
+            const fromTurnoverWithExcise = roundTo(fromTurnoverNoExcise + totalExciseAmount, 2);
+            const fromRecalc = roundTo(taxRecalc.totalTaxInclusive - taxRecalc.totalDiscount, 2);
+            const candidates = [
+                fromComponentsNoExcise,
+                fromComponentsWithExcise,
+                fromTurnoverNoExcise,
+                fromTurnoverWithExcise,
+                fromRecalc,
+                roundTo(fromRecalc + totalExciseAmount, 2),
+            ];
+            const pick = () => {
+                for (const c of candidates) {
+                    if (near05(c, baseGrand)) return roundTo(baseGrand, 2);
+                }
+                return fromComponentsNoExcise;
+            };
+            totalAmountForGra = pick();
         } else {
             let ta = roundTo(sumExclusivePayable, 2);
             if (lineExciseSum <= 0 && headerExciseScaled > 0) {
                 ta = roundTo(ta + headerExciseScaled, 2);
             }
-            totalAmountForGra = near05(ta, baseGrand) ? roundTo(baseGrand, 2) : ta;
+            const fromRecalcEx = roundTo(
+                taxRecalc.grandTotal + (lineExciseSum > 0 ? lineExciseSum : headerExciseScaled),
+                2
+            );
+            if (near05(ta, baseGrand) || near05(fromRecalcEx, baseGrand)) {
+                totalAmountForGra = roundTo(baseGrand, 2);
+            } else {
+                totalAmountForGra = ta;
+            }
         }
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
