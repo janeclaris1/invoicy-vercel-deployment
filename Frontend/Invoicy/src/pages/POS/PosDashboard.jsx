@@ -189,6 +189,22 @@ const PosDashboard = () => {
         return { fromApi, orphans, showUncategorized };
     }, [categories, catalog]);
 
+    const categoryOptions = useMemo(() => {
+        const opts = [{ value: "", label: "All categories" }];
+        const { fromApi, orphans, showUncategorized } = categoryChips;
+        for (const c of fromApi) {
+            const name = String(c.name || "").trim();
+            if (name) opts.push({ value: name, label: name });
+        }
+        for (const name of orphans) {
+            opts.push({ value: name, label: name });
+        }
+        if (showUncategorized) {
+            opts.push({ value: UNCATEGORIZED_KEY, label: "Uncategorized" });
+        }
+        return opts;
+    }, [categoryChips]);
+
     const filteredCatalog = useMemo(() => {
         let list = catalog.filter((i) => itemMatchesCategoryFilter(i, categoryFilter));
         const q = search.trim().toLowerCase();
@@ -395,89 +411,43 @@ const PosDashboard = () => {
 
             <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,20rem)]">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-h-[320px]">
-                    <div className="relative mb-3">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="search"
-                            placeholder="Search items…"
-                            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                    {!loading && (catalog.length > 0 || categoryChips.fromApi.length > 0) && (
-                        <div className="mb-3 -mt-1">
-                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
-                                Category
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setCategoryFilter("")}
-                                    className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
-                                        !categoryFilter
-                                            ? "bg-blue-950 text-white border-blue-950"
-                                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                                    }`}
-                                >
-                                    All
-                                </button>
-                                {categoryChips.fromApi.map((c) => {
-                                    const name = String(c.name || "").trim();
-                                    const active = normCategory(categoryFilter) === normCategory(name);
-                                    const color = c.color || "#3B82F6";
-                                    return (
-                                        <button
-                                            key={String(c.id || name)}
-                                            type="button"
-                                            onClick={() => setCategoryFilter(name)}
-                                            className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors inline-flex items-center gap-1 ${
-                                                active
-                                                    ? "bg-blue-950 text-white border-blue-950"
-                                                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                                            }`}
-                                        >
-                                            <span
-                                                className="h-1.5 w-1.5 rounded-full shrink-0"
-                                                style={{ backgroundColor: active ? "#fff" : color }}
-                                            />
-                                            {name}
-                                        </button>
-                                    );
-                                })}
-                                {categoryChips.orphans.map((name) => {
-                                    const active = normCategory(categoryFilter) === normCategory(name);
-                                    return (
-                                        <button
-                                            key={`orphan-${name}`}
-                                            type="button"
-                                            onClick={() => setCategoryFilter(name)}
-                                            className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
-                                                active
-                                                    ? "bg-blue-950 text-white border-blue-950"
-                                                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                                            }`}
-                                        >
-                                            {name}
-                                        </button>
-                                    );
-                                })}
-                                {categoryChips.showUncategorized ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setCategoryFilter(UNCATEGORIZED_KEY)}
-                                        className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
-                                            categoryFilter === UNCATEGORIZED_KEY
-                                                ? "bg-blue-950 text-white border-blue-950"
-                                                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        Uncategorized
-                                    </button>
-                                ) : null}
-                            </div>
+                    <div className="grid gap-3 sm:grid-cols-2 sm:items-end mb-3">
+                        <div className="relative sm:col-span-1">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <label htmlFor="pos-item-search" className="sr-only">
+                                Search items
+                            </label>
+                            <input
+                                id="pos-item-search"
+                                type="search"
+                                placeholder="Search items…"
+                                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
                         </div>
-                    )}
+                        <div className="sm:col-span-1">
+                            <label htmlFor="pos-category" className="block text-xs font-medium text-gray-500 mb-1">
+                                Category
+                            </label>
+                            <select
+                                id="pos-category"
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                disabled={loading}
+                                className="w-full rounded-lg border border-gray-200 py-2 px-3 text-sm bg-white disabled:opacity-50"
+                            >
+                                {categoryOptions.map((opt, idx) => (
+                                    <option
+                                        key={opt.value === "" ? "__all__" : `${opt.value}-${idx}`}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                     {loading ? (
                         <p className="text-sm text-gray-500">Loading items…</p>
                     ) : filteredCatalog.length === 0 ? (
