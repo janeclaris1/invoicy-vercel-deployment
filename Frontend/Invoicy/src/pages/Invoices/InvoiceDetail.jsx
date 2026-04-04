@@ -585,8 +585,8 @@ const InvoiceDetail = () => {
           </div>
         </div>
 
-        <div className="invoice-bill-from-to mt-12 text-left border-0 rounded-xl overflow-hidden">
-          <table className="w-full text-xs text-black table-fixed">
+        <div className="invoice-bill-from-to mt-6 sm:mt-8 text-left border-0 rounded-xl overflow-hidden">
+          <table className="w-full text-[11px] leading-[1.25] text-black table-fixed">
             <colgroup>
               <col className="w-[24%]" />
               <col className="w-[26%]" />
@@ -595,52 +595,52 @@ const InvoiceDetail = () => {
             </colgroup>
             <tbody>
               <tr>
-                <td colSpan={2} className="px-1 py-2">
-                  <div className="bg-[#4A9B8E] text-white text-[10px] font-bold uppercase px-3 py-1 inline-block">
+                <td colSpan={2} className="px-1 py-1">
+                  <div className="bg-[#4A9B8E] text-white text-[9px] font-bold uppercase px-2 py-0.5 inline-block leading-none">
                     BILL FROM
                   </div>
                 </td>
-                <td colSpan={2} className="px-1 py-2 text-left">
-                  <div className="bg-[#4A9B8E] text-white text-[10px] font-bold uppercase px-3 py-1 inline-block">
+                <td colSpan={2} className="px-1 py-1 text-left">
+                  <div className="bg-[#4A9B8E] text-white text-[9px] font-bold uppercase px-2 py-0.5 inline-block leading-none">
                     BILL TO
                   </div>
                 </td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium align-top">Customer Name:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.billTo?.clientName || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-left align-top">Vendor:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
+                <td className="px-1 py-0.5 font-medium align-top">Customer Name:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.clientName || "-"}</td>
+                <td className="px-1 py-0.5 font-medium text-left align-top">Vendor:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium align-top">Customer TIN:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.billTo?.tin || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-left align-top">Vendor TIN:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.tin || user?.tin || "-"}</td>
+                <td className="px-1 py-0.5 font-medium align-top">Customer TIN:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.tin || "-"}</td>
+                <td className="px-1 py-0.5 font-medium text-left align-top">Vendor TIN:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.tin || user?.tin || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium align-top">Invoice No:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.invoiceNumber || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-left align-top">Phone:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.phone || user?.phone || "-"}</td>
+                <td className="px-1 py-0.5 font-medium align-top">Invoice No:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.invoiceNumber || "-"}</td>
+                <td className="px-1 py-0.5 font-medium text-left align-top">Phone:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.phone || user?.phone || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium align-top">Invoice Date:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-left align-top">Currency:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.currency || userCurrency || "-"}</td>
+                <td className="px-1 py-0.5 font-medium align-top">Invoice Date:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
+                <td className="px-1 py-0.5 font-medium text-left align-top">Currency:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.currency || userCurrency || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium align-top">Due Date:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-left align-top">Served By:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{user?.name || "-"}</td>
+                <td className="px-1 py-0.5 font-medium align-top">Due Date:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
+                <td className="px-1 py-0.5 font-medium text-left align-top">Served By:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{user?.name || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium align-top">Address:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.billTo?.address || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-left align-top">Address:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.address || user?.address || "-"}</td>
+                <td className="px-1 py-0.5 font-medium align-top">Address:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.address || "-"}</td>
+                <td className="px-1 py-0.5 font-medium text-left align-top">Address:</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.address || user?.address || "-"}</td>
               </tr>
             </tbody>
           </table>
