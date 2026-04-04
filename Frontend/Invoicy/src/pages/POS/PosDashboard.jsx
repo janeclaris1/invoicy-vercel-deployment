@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
@@ -17,6 +17,9 @@ import {
     XCircle,
     Loader2,
     X,
+    Eye,
+    Pencil,
+    Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
@@ -122,7 +125,6 @@ function PosProductImage({ raw, iconClass = "h-8 w-8" }) {
 
 const PosDashboard = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
     const userCurrency = user?.currency || "GHS";
     const scanRef = useRef(null);
     const vatScenario = user?.graVatScenario || "inclusive";
@@ -143,6 +145,8 @@ const PosDashboard = () => {
     const [allInvoicesList, setAllInvoicesList] = useState([]);
     const [loadingAllInvoices, setLoadingAllInvoices] = useState(false);
     const [allInvoicesDateSort, setAllInvoicesDateSort] = useState("newest");
+    const [previewInvoice, setPreviewInvoice] = useState(null);
+    const [loadingPreviewId, setLoadingPreviewId] = useState(null);
 
     const loadCatalog = useCallback(async () => {
         setLoading(true);
@@ -215,13 +219,17 @@ const PosDashboard = () => {
     }, [allInvoicesList, allInvoicesDateSort]);
 
     useEffect(() => {
-        if (!allInvoicesModalOpen) return;
         const onKey = (e) => {
-            if (e.key === "Escape") setAllInvoicesModalOpen(false);
+            if (e.key !== "Escape") return;
+            if (previewInvoice) {
+                setPreviewInvoice(null);
+                return;
+            }
+            if (allInvoicesModalOpen) setAllInvoicesModalOpen(false);
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [allInvoicesModalOpen]);
+    }, [allInvoicesModalOpen, previewInvoice]);
 
     useEffect(() => {
         const onInvoicesUpdated = () => {
@@ -500,9 +508,36 @@ const PosDashboard = () => {
         if (!ok) toast.error("Pop-up blocked — allow pop-ups to print.");
     };
 
+    const openInvoicePreviewInPos = async (id) => {
+        setLoadingPreviewId(id);
+        try {
+            const res = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
+            setPreviewInvoice(res.data);
+        } catch (e) {
+            toast.error(e.response?.data?.message || "Could not open invoice.");
+        } finally {
+            setLoadingPreviewId(null);
+        }
+    };
+
+    const printInvoiceById = async (id) => {
+        try {
+            const res = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(id));
+            printOrderQuick(res.data);
+        } catch (e) {
+            toast.error(e.response?.data?.message || "Could not load invoice to print.");
+        }
+    };
+
     const loadPosOrderFromModal = async (orderId) => {
         setAllInvoicesModalOpen(false);
+        setPreviewInvoice(null);
         await beginEditOrder(orderId);
+    };
+
+    const closeAllInvoicesModal = () => {
+        setAllInvoicesModalOpen(false);
+        setPreviewInvoice(null);
     };
 
     const amountPaidValue = Math.max(0, grandTotal);
@@ -915,7 +950,7 @@ const PosDashboard = () => {
                         type="button"
                         className="absolute inset-0 bg-black/50"
                         aria-label="Close dialog"
-                        onClick={() => setAllInvoicesModalOpen(false)}
+                        onClick={closeAllInvoicesModal}
                     />
                     <div
                         className="relative flex max-h-[min(92vh,720px)] w-full max-w-4xl flex-col rounded-t-xl border border-gray-200 bg-white shadow-xl sm:rounded-xl"
@@ -944,7 +979,7 @@ const PosDashboard = () => {
                                 </label>
                                 <button
                                     type="button"
-                                    onClick={() => setAllInvoicesModalOpen(false)}
+                                    onClick={closeAllInvoicesModal}
                                     className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
                                     aria-label="Close"
                                 >
@@ -1011,16 +1046,23 @@ const PosDashboard = () => {
                                                         </td>
                                                         <td className="py-2 pr-2 text-gray-700">{inv.status || "—"}</td>
                                                         <td className="py-2 pl-2 text-right">
-                                                            <div className="flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-x-2 sm:gap-y-0.5">
+                                                            <div className="flex justify-end gap-0.5 flex-wrap">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        setAllInvoicesModalOpen(false);
-                                                                        navigate(`/invoices/${id}`);
-                                                                    }}
-                                                                    className="text-xs font-medium text-blue-900 hover:underline"
+                                                                    onClick={() => openInvoicePreviewInPos(id)}
+                                                                    disabled={loadingPreviewId === id}
+                                                                    title="View invoice"
+                                                                    aria-label="View invoice"
+                                                                    className="p-2 rounded-lg border border-gray-200 hover:bg-blue-50 text-blue-900 disabled:opacity-50"
                                                                 >
-                                                                    Open
+                                                                    {loadingPreviewId === id ? (
+                                                                        <Loader2
+                                                                            className="h-4 w-4 animate-spin"
+                                                                            aria-hidden
+                                                                        />
+                                                                    ) : (
+                                                                        <Eye className="h-4 w-4" aria-hidden />
+                                                                    )}
                                                                 </button>
                                                                 {pos ? (
                                                                     <>
@@ -1028,18 +1070,27 @@ const PosDashboard = () => {
                                                                             type="button"
                                                                             onClick={() => loadPosOrderFromModal(id)}
                                                                             disabled={loadingEditId === id}
-                                                                            className="text-xs font-medium text-blue-900 hover:underline disabled:opacity-50"
+                                                                            title="Edit in POS"
+                                                                            aria-label="Edit in POS"
+                                                                            className="p-2 rounded-lg border border-gray-200 hover:bg-amber-50 text-amber-900 disabled:opacity-50"
                                                                         >
-                                                                            {loadingEditId === id
-                                                                                ? "Loading…"
-                                                                                : "Edit in POS"}
+                                                                            {loadingEditId === id ? (
+                                                                                <Loader2
+                                                                                    className="h-4 w-4 animate-spin"
+                                                                                    aria-hidden
+                                                                                />
+                                                                            ) : (
+                                                                                <Pencil className="h-4 w-4" aria-hidden />
+                                                                            )}
                                                                         </button>
                                                                         <button
                                                                             type="button"
-                                                                            onClick={() => printOrderQuick(inv)}
-                                                                            className="text-xs font-medium text-gray-700 hover:underline"
+                                                                            onClick={() => printInvoiceById(id)}
+                                                                            title="Print receipt"
+                                                                            aria-label="Print receipt"
+                                                                            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-800"
                                                                         >
-                                                                            Print
+                                                                            <Printer className="h-4 w-4" aria-hidden />
                                                                         </button>
                                                                     </>
                                                                 ) : null}
@@ -1052,6 +1103,190 @@ const PosDashboard = () => {
                                     </table>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {previewInvoice ? (
+                <div
+                    className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="pos-invoice-preview-title"
+                >
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-black/60"
+                        aria-label="Close invoice preview"
+                        onClick={() => setPreviewInvoice(null)}
+                    />
+                    <div
+                        className="relative w-full max-w-lg max-h-[min(90vh,640px)] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="sticky top-0 z-[1] flex flex-wrap items-start justify-between gap-2 border-b border-gray-200 bg-white px-4 py-3 sm:px-5">
+                            <div className="min-w-0">
+                                <h3
+                                    id="pos-invoice-preview-title"
+                                    className="text-lg font-semibold text-gray-900 truncate"
+                                >
+                                    {previewInvoice.invoiceNumber || "Invoice"}
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    <span className="capitalize">{String(previewInvoice.type || "invoice")}</span>
+                                    {previewInvoice.posSale === true ||
+                                    /^POS sale ·/i.test(String(previewInvoice.notes || "")) ? (
+                                        <span className="ml-1 font-semibold text-blue-800">· POS</span>
+                                    ) : null}
+                                    {previewInvoice.status ? (
+                                        <span className="ml-2">· {previewInvoice.status}</span>
+                                    ) : null}
+                                </p>
+                            </div>
+                            <div className="flex shrink-0 gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => printInvoiceById(previewInvoice._id)}
+                                    title="Print"
+                                    aria-label="Print receipt"
+                                    className="rounded-lg border border-gray-200 p-2 text-gray-800 hover:bg-gray-50"
+                                >
+                                    <Printer className="h-4 w-4" aria-hidden />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewInvoice(null)}
+                                    title="Close"
+                                    aria-label="Close"
+                                    className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="px-4 py-3 sm:px-5 space-y-4 text-sm">
+                            <div className="grid gap-1 text-xs text-gray-600">
+                                {previewInvoice.invoiceDate ? (
+                                    <p>
+                                        <span className="font-medium text-gray-700">Date: </span>
+                                        {new Date(previewInvoice.invoiceDate).toLocaleString(undefined, {
+                                            dateStyle: "medium",
+                                            timeStyle: "short",
+                                        })}
+                                    </p>
+                                ) : null}
+                                {previewInvoice.dueDate ? (
+                                    <p>
+                                        <span className="font-medium text-gray-700">Due: </span>
+                                        {new Date(previewInvoice.dueDate).toLocaleDateString()}
+                                    </p>
+                                ) : null}
+                                <p>
+                                    <span className="font-medium text-gray-700">Customer: </span>
+                                    {previewInvoice.billTo?.clientName || "—"}
+                                </p>
+                            </div>
+                            <div className="overflow-x-auto -mx-1">
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="text-left text-gray-500 border-b border-gray-200">
+                                            <th className="py-1.5 pr-2 font-medium">Item</th>
+                                            <th className="py-1.5 pr-2 font-medium text-right">Qty</th>
+                                            <th className="py-1.5 pr-2 font-medium text-right">Price</th>
+                                            <th className="py-1.5 pl-2 font-medium text-right">Line</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(Array.isArray(previewInvoice.item) ? previewInvoice.item : []).map(
+                                            (line, idx) => (
+                                                <tr key={idx} className="border-b border-gray-100 last:border-0">
+                                                    <td className="py-1.5 pr-2 text-gray-800 max-w-[12rem]">
+                                                        {line.description || "—"}
+                                                    </td>
+                                                    <td className="py-1.5 pr-2 text-right tabular-nums">
+                                                        {line.quantity ?? "—"}
+                                                    </td>
+                                                    <td className="py-1.5 pr-2 text-right tabular-nums">
+                                                        {formatCurrency(line.unitPrice ?? 0, userCurrency)}
+                                                    </td>
+                                                    <td className="py-1.5 pl-2 text-right tabular-nums font-medium">
+                                                        {formatCurrency(
+                                                            line.total ?? line.amount ?? 0,
+                                                            userCurrency
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="space-y-1 text-xs border-t border-gray-200 pt-3">
+                                <div className="flex justify-between text-gray-600">
+                                    <span>Subtotal</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(previewInvoice.subtotal ?? 0, userCurrency)}
+                                    </span>
+                                </div>
+                                {(Number(previewInvoice.totalDiscount) || 0) > 0 ? (
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Discount</span>
+                                        <span className="tabular-nums">
+                                            −{formatCurrency(previewInvoice.totalDiscount ?? 0, userCurrency)}
+                                        </span>
+                                    </div>
+                                ) : null}
+                                <div className="flex justify-between text-gray-600">
+                                    <span>VAT</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(previewInvoice.totalVat ?? 0, userCurrency)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-gray-600">
+                                    <span>NHIL</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(previewInvoice.totalNhil ?? 0, userCurrency)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-gray-600">
+                                    <span>GETFund</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(previewInvoice.totalGetFund ?? 0, userCurrency)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between font-semibold text-gray-900 pt-1">
+                                    <span>Total</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(previewInvoice.grandTotal ?? 0, userCurrency)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-gray-600">
+                                    <span>Paid</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(previewInvoice.amountPaid ?? 0, userCurrency)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between font-medium text-gray-900">
+                                    <span>Balance due</span>
+                                    <span className="tabular-nums">
+                                        {formatCurrency(
+                                            Math.max(
+                                                0,
+                                                (Number(previewInvoice.grandTotal) || 0) -
+                                                    (Number(previewInvoice.amountPaid) || 0)
+                                            ),
+                                            userCurrency
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                            {previewInvoice.notes ? (
+                                <p className="text-xs text-gray-600 border-t border-gray-100 pt-3">
+                                    <span className="font-medium text-gray-700">Notes: </span>
+                                    {previewInvoice.notes}
+                                </p>
+                            ) : null}
                         </div>
                     </div>
                 </div>
