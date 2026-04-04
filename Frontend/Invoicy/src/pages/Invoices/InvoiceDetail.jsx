@@ -11,13 +11,13 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
-/** Single line, no wrap, no horizontal scroll; long values truncate with ellipsis (full text in title). */
+/** Single line, no wrap; long values truncate (full text in title). Small gap between label and value. */
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="flex min-w-0 gap-x-1 text-[9px] sm:text-[10px]">
+    <div className="flex min-w-0 items-baseline gap-x-2 text-[9px] sm:text-[10px]">
       <span className="font-medium shrink-0 whitespace-nowrap">{label}</span>
-      <span className="min-w-0 flex-1 truncate" title={display}>
+      <span className="min-w-0 flex-1 truncate whitespace-nowrap" title={display}>
         {display}
       </span>
     </div>
