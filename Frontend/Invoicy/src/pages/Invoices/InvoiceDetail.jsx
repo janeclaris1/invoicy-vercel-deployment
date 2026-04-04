@@ -15,11 +15,9 @@ import { useAuth } from "../../context/AuthContext";
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="grid grid-cols-[11rem_minmax(0,1fr)] sm:grid-cols-[12.5rem_minmax(0,1fr)] gap-x-3 items-baseline text-[9px] sm:text-[10px]">
+    <div className="grid grid-cols-[11rem_minmax(0,1fr)] sm:grid-cols-[12.5rem_minmax(0,1fr)] gap-x-2 items-start text-[9px] sm:text-[10px] leading-tight">
       <span className="font-medium whitespace-nowrap">{label}</span>
-      <span className="min-w-0 truncate whitespace-nowrap" title={display}>
-        {display}
-      </span>
+      <span className="min-w-0 break-all text-left">{display}</span>
     </div>
   );
 }
@@ -703,7 +701,7 @@ const InvoiceDetail = () => {
                 <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
                   EVAT RECEIPT INFORMATION
                 </div>
-                <div className="space-y-0.5">
+                <div className="space-y-0">
                   <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
                   <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
                   <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
