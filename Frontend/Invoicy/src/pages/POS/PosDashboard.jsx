@@ -13,13 +13,9 @@ import {
     Banknote,
     Package,
     Truck,
-    Eye,
-    Pencil,
-    Printer,
     Save,
     XCircle,
     Loader2,
-    RefreshCw,
     X,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -142,8 +138,6 @@ const PosDashboard = () => {
     const [categories, setCategories] = useState([]);
     const [categoryFilter, setCategoryFilter] = useState("");
     const [editingInvoiceId, setEditingInvoiceId] = useState(null);
-    const [posOrders, setPosOrders] = useState([]);
-    const [loadingOrders, setLoadingOrders] = useState(false);
     const [loadingEditId, setLoadingEditId] = useState(null);
     const [allInvoicesModalOpen, setAllInvoicesModalOpen] = useState(false);
     const [allInvoicesList, setAllInvoicesList] = useState([]);
@@ -187,29 +181,6 @@ const PosDashboard = () => {
         loadCatalog();
     }, [loadCatalog]);
 
-    const loadPosOrders = useCallback(async () => {
-        setLoadingOrders(true);
-        try {
-            const res = await axiosInstance.get(`${API_PATHS.INVOICES.GET_ALL_INVOICES}?posSale=true`);
-            const list = Array.isArray(res.data) ? res.data : [];
-            setPosOrders(list);
-        } catch {
-            setPosOrders([]);
-        } finally {
-            setLoadingOrders(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadPosOrders();
-    }, [loadPosOrders]);
-
-    useEffect(() => {
-        const onInvoicesUpdated = () => loadPosOrders();
-        window.addEventListener("invoicesUpdated", onInvoicesUpdated);
-        return () => window.removeEventListener("invoicesUpdated", onInvoicesUpdated);
-    }, [loadPosOrders]);
-
     const loadAllInvoices = useCallback(async () => {
         setLoadingAllInvoices(true);
         try {
@@ -251,6 +222,14 @@ const PosDashboard = () => {
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [allInvoicesModalOpen]);
+
+    useEffect(() => {
+        const onInvoicesUpdated = () => {
+            if (allInvoicesModalOpen) loadAllInvoices();
+        };
+        window.addEventListener("invoicesUpdated", onInvoicesUpdated);
+        return () => window.removeEventListener("invoicesUpdated", onInvoicesUpdated);
+    }, [allInvoicesModalOpen, loadAllInvoices]);
 
     useEffect(() => {
         let cancelled = false;
@@ -519,6 +498,11 @@ const PosDashboard = () => {
     const printOrderQuick = (inv) => {
         const ok = printPosReceiptWindow(inv, userCurrency, user);
         if (!ok) toast.error("Pop-up blocked — allow pop-ups to print.");
+    };
+
+    const loadPosOrderFromModal = async (orderId) => {
+        setAllInvoicesModalOpen(false);
+        await beginEditOrder(orderId);
     };
 
     const amountPaidValue = Math.max(0, grandTotal);
@@ -920,102 +904,6 @@ const PosDashboard = () => {
                 </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                    <h2 className="text-sm font-semibold text-gray-900">Saved POS orders</h2>
-                    <button
-                        type="button"
-                        onClick={() => loadPosOrders()}
-                        disabled={loadingOrders}
-                        title="Refresh list"
-                        aria-label="Refresh list"
-                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                        {loadingOrders ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-900" aria-hidden />
-                        ) : (
-                            <RefreshCw className="h-4 w-4 text-gray-600" aria-hidden />
-                        )}
-                    </button>
-                </div>
-                {loadingOrders && posOrders.length === 0 ? (
-                    <p className="text-sm text-gray-500">Loading orders…</p>
-                ) : posOrders.length === 0 ? (
-                    <p className="text-sm text-gray-500">No POS orders yet.</p>
-                ) : (
-                    <div className="overflow-x-auto -mx-1">
-                        <table className="w-full text-xs min-w-[520px]">
-                            <thead>
-                                <tr className="text-left text-gray-500 border-b border-gray-200">
-                                    <th className="py-2 pr-2 font-medium">Date</th>
-                                    <th className="py-2 pr-2 font-medium">Invoice</th>
-                                    <th className="py-2 pr-2 font-medium text-right">Total</th>
-                                    <th className="py-2 pr-2 font-medium">Status</th>
-                                    <th className="py-2 pl-2 font-medium text-right w-[1%]">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {posOrders.map((ord) => {
-                                    const id = ord._id;
-                                    const when = ord.createdAt
-                                        ? new Date(ord.createdAt).toLocaleString(undefined, {
-                                              dateStyle: "short",
-                                              timeStyle: "short",
-                                          })
-                                        : "—";
-                                    return (
-                                        <tr key={String(id)} className="border-b border-gray-100 last:border-0">
-                                            <td className="py-2 pr-2 text-gray-700 whitespace-nowrap">{when}</td>
-                                            <td className="py-2 pr-2 font-mono text-gray-900">{ord.invoiceNumber || "—"}</td>
-                                            <td className="py-2 pr-2 text-right tabular-nums">
-                                                {formatCurrency(ord.grandTotal ?? 0, userCurrency)}
-                                            </td>
-                                            <td className="py-2 pr-2 text-gray-700">{ord.status || "—"}</td>
-                                            <td className="py-2 pl-2">
-                                                <div className="flex justify-end gap-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => beginEditOrder(id)}
-                                                        disabled={loadingEditId === id}
-                                                        title="Edit order"
-                                                        aria-label="Edit order"
-                                                        className="p-2 rounded-lg border border-gray-200 hover:bg-blue-50 text-blue-900 disabled:opacity-50"
-                                                    >
-                                                        {loadingEditId === id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                                                        ) : (
-                                                            <Pencil className="h-4 w-4" aria-hidden />
-                                                        )}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/invoices/${id}`)}
-                                                        title="View invoice"
-                                                        aria-label="View invoice"
-                                                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-800"
-                                                    >
-                                                        <Eye className="h-4 w-4" aria-hidden />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => printOrderQuick(ord)}
-                                                        title="Print receipt"
-                                                        aria-label="Print receipt"
-                                                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-800"
-                                                    >
-                                                        <Printer className="h-4 w-4" aria-hidden />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
             {allInvoicesModalOpen ? (
                 <div
                     className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4"
@@ -1083,7 +971,7 @@ const PosDashboard = () => {
                                                 <th className="py-2 pr-2 font-medium">Customer</th>
                                                 <th className="py-2 pr-2 font-medium text-right">Total</th>
                                                 <th className="py-2 pr-2 font-medium">Status</th>
-                                                <th className="py-2 pl-2 font-medium text-right w-[1%]">View</th>
+                                                <th className="py-2 pl-2 font-medium text-right w-[1%]">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1097,7 +985,8 @@ const PosDashboard = () => {
                                                       })
                                                     : "—";
                                                 const typ = String(inv.type || "invoice");
-                                                const pos = inv.posSale === true;
+                                                const posFromNotes = /^POS sale ·/i.test(String(inv.notes || ""));
+                                                const pos = inv.posSale === true || posFromNotes;
                                                 return (
                                                     <tr key={String(id)} className="border-b border-gray-100 last:border-0">
                                                         <td className="py-2 pr-2 text-gray-700 whitespace-nowrap">
@@ -1122,16 +1011,39 @@ const PosDashboard = () => {
                                                         </td>
                                                         <td className="py-2 pr-2 text-gray-700">{inv.status || "—"}</td>
                                                         <td className="py-2 pl-2 text-right">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setAllInvoicesModalOpen(false);
-                                                                    navigate(`/invoices/${id}`);
-                                                                }}
-                                                                className="text-xs font-medium text-blue-900 hover:underline"
-                                                            >
-                                                                Open
-                                                            </button>
+                                                            <div className="flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-x-2 sm:gap-y-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setAllInvoicesModalOpen(false);
+                                                                        navigate(`/invoices/${id}`);
+                                                                    }}
+                                                                    className="text-xs font-medium text-blue-900 hover:underline"
+                                                                >
+                                                                    Open
+                                                                </button>
+                                                                {pos ? (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => loadPosOrderFromModal(id)}
+                                                                            disabled={loadingEditId === id}
+                                                                            className="text-xs font-medium text-blue-900 hover:underline disabled:opacity-50"
+                                                                        >
+                                                                            {loadingEditId === id
+                                                                                ? "Loading…"
+                                                                                : "Edit in POS"}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => printOrderQuick(inv)}
+                                                                            className="text-xs font-medium text-gray-700 hover:underline"
+                                                                        >
+                                                                            Print
+                                                                        </button>
+                                                                    </>
+                                                                ) : null}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
