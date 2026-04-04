@@ -684,54 +684,10 @@ const InvoiceDetail = () => {
           </table>
         </div>
 
-        {/* Left: Notes | Right: Tax summary + QR */}
+        {/* Column 1: VAT summary + QR (flush left) | Column 2: Notes + EVAT */}
         <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-transparent dark:bg-transparent text-black dark:text-black rounded-xl p-0 dark:p-0">
-          {/* Left column: Notes */}
-          <div className="flex flex-col gap-4">
-            <div className="text-xs sm:text-[13px]">
-              <div>Notes: {invoice.notes || "-"}</div>
-              <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
-            </div>
-            {(invoice.graSdcId ||
-              invoice.graReceiptNumber ||
-              invoice.graVerificationCode ||
-              invoice.graReceiptSignature ||
-              invoice.graMrc ||
-              invoice.graReceiptDateTime ||
-              invoice.graLineItemCount != null) && (
-              <div className="text-black dark:text-black text-left min-w-0 max-w-full">
-                <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
-                  EVAT RECEIPT INFORMATION
-                </div>
-                <div className="space-y-3">
-                  <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
-                  <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
-                  <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
-                  <EvatInfoRow label="SIGNATURE:" value={invoice.graReceiptSignature} />
-                  <EvatInfoRow label="MRC:" value={invoice.graMrc} />
-                  <EvatInfoRow
-                    label="DATE & TIME:"
-                    value={
-                      invoice.graReceiptDateTime
-                        ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A")
-                        : null
-                    }
-                  />
-                  <EvatInfoRow
-                    label="LINE‑ITEM COUNT:"
-                    value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
-                  />
-                </div>
-              </div>
-            )}
-            {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
-              <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
-                Verify on GRA portal →
-              </a>
-            )}
-          </div>
-          {/* Right column: Subtotal, tax details, and GRA QR — flush left in grid cell */}
-          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full max-w-[14rem] justify-self-start">
+          {/* Left column: Subtotal, tax details, and GRA QR — extreme left of card */}
+          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full min-w-0 max-w-[14rem] justify-self-start">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
               <p className="text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
@@ -873,6 +829,50 @@ const InvoiceDetail = () => {
                 />
               )}
             </div>
+          </div>
+          {/* Right column: Notes + EVAT */}
+          <div className="flex flex-col gap-4 min-w-0">
+            <div className="text-xs sm:text-[13px]">
+              <div>Notes: {invoice.notes || "-"}</div>
+              <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
+            </div>
+            {(invoice.graSdcId ||
+              invoice.graReceiptNumber ||
+              invoice.graVerificationCode ||
+              invoice.graReceiptSignature ||
+              invoice.graMrc ||
+              invoice.graReceiptDateTime ||
+              invoice.graLineItemCount != null) && (
+              <div className="text-black dark:text-black text-left min-w-0 max-w-full">
+                <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
+                  EVAT RECEIPT INFORMATION
+                </div>
+                <div className="space-y-3">
+                  <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
+                  <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
+                  <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
+                  <EvatInfoRow label="SIGNATURE:" value={invoice.graReceiptSignature} />
+                  <EvatInfoRow label="MRC:" value={invoice.graMrc} />
+                  <EvatInfoRow
+                    label="DATE & TIME:"
+                    value={
+                      invoice.graReceiptDateTime
+                        ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A")
+                        : null
+                    }
+                  />
+                  <EvatInfoRow
+                    label="LINE‑ITEM COUNT:"
+                    value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
+                  />
+                </div>
+              </div>
+            )}
+            {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
+              <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
+                Verify on GRA portal →
+              </a>
+            )}
           </div>
         </div>
 
@@ -1028,8 +1028,8 @@ const InvoiceDetail = () => {
         </div>
         
         {/* Print button at bottom - slate fill, no border */}
-        <div className="flex flex-col items-center no-print mt-6 gap-3">
-          <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-col items-start no-print mt-6 gap-3 w-full">
+          <div className="flex flex-wrap items-center justify-start gap-2 w-full">
             <Button
               onClick={handlePrintInvoice}
               className="flex items-center gap-2 !rounded-lg !border-0 !bg-slate-800 hover:!bg-slate-700 !text-white dark:!bg-slate-800 dark:hover:!bg-slate-700 dark:!text-white [&_svg]:!text-white [&_svg]:!stroke-white"
