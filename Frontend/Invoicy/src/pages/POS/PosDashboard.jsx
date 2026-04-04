@@ -12,10 +12,6 @@ import {
     Trash2,
     Banknote,
     Package,
-    CreditCard,
-    Smartphone,
-    Building2,
-    MoreHorizontal,
     Truck,
     Eye,
     Pencil,
@@ -24,6 +20,7 @@ import {
     XCircle,
     Loader2,
     RefreshCw,
+    X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
@@ -43,12 +40,12 @@ function itemMatchesCategoryFilter(item, categoryFilter) {
 }
 
 const PAYMENT_METHODS = [
-    { id: "cash", label: "Cash", Icon: Banknote },
-    { id: "card", label: "Card", Icon: CreditCard },
-    { id: "momo", label: "Mobile money", Icon: Smartphone },
-    { id: "bank", label: "Bank transfer", Icon: Building2 },
-    { id: "other", label: "Other", Icon: MoreHorizontal },
-    { id: "cod", label: "Cash on delivery", Icon: Truck },
+    { id: "cash", label: "Cash" },
+    { id: "card", label: "Card" },
+    { id: "momo", label: "Mobile money" },
+    { id: "bank", label: "Bank transfer" },
+    { id: "other", label: "Other" },
+    { id: "cod", label: "Cash on delivery" },
 ];
 
 function paymentMethodIdFromInvoice(inv) {
@@ -148,6 +145,10 @@ const PosDashboard = () => {
     const [posOrders, setPosOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [loadingEditId, setLoadingEditId] = useState(null);
+    const [allInvoicesModalOpen, setAllInvoicesModalOpen] = useState(false);
+    const [allInvoicesList, setAllInvoicesList] = useState([]);
+    const [loadingAllInvoices, setLoadingAllInvoices] = useState(false);
+    const [allInvoicesDateSort, setAllInvoicesDateSort] = useState("newest");
 
     const loadCatalog = useCallback(async () => {
         setLoading(true);
@@ -208,6 +209,48 @@ const PosDashboard = () => {
         window.addEventListener("invoicesUpdated", onInvoicesUpdated);
         return () => window.removeEventListener("invoicesUpdated", onInvoicesUpdated);
     }, [loadPosOrders]);
+
+    const loadAllInvoices = useCallback(async () => {
+        setLoadingAllInvoices(true);
+        try {
+            const res = await axiosInstance.get(API_PATHS.INVOICES.GET_ALL_INVOICES);
+            setAllInvoicesList(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setAllInvoicesList([]);
+            toast.error("Could not load invoices.");
+        } finally {
+            setLoadingAllInvoices(false);
+        }
+    }, []);
+
+    const openAllInvoicesModal = () => {
+        setAllInvoicesModalOpen(true);
+        loadAllInvoices();
+    };
+
+    const sortedAllInvoices = useMemo(() => {
+        const arr = [...allInvoicesList];
+        const getT = (inv) => {
+            const d = inv.createdAt || inv.invoiceDate;
+            const t = d ? new Date(d).getTime() : 0;
+            return Number.isFinite(t) ? t : 0;
+        };
+        arr.sort((a, b) => {
+            const ta = getT(a);
+            const tb = getT(b);
+            return allInvoicesDateSort === "newest" ? tb - ta : ta - tb;
+        });
+        return arr;
+    }, [allInvoicesList, allInvoicesDateSort]);
+
+    useEffect(() => {
+        if (!allInvoicesModalOpen) return;
+        const onKey = (e) => {
+            if (e.key === "Escape") setAllInvoicesModalOpen(false);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [allInvoicesModalOpen]);
 
     useEffect(() => {
         let cancelled = false;
@@ -592,12 +635,21 @@ const PosDashboard = () => {
                         Scan a barcode (SKU) or tap a product. Take payment, then print the receipt.
                     </p>
                 </div>
-                <Link
-                    to="/dashboard"
-                    className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
-                >
-                    Open Invoice Suite
-                </Link>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center shrink-0">
+                    <button
+                        type="button"
+                        onClick={openAllInvoicesModal}
+                        className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                    >
+                        All orders & invoices
+                    </button>
+                    <Link
+                        to="/dashboard"
+                        className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 text-center"
+                    >
+                        Open Invoice Suite
+                    </Link>
+                </div>
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -828,28 +880,22 @@ const PosDashboard = () => {
 
                     <div className="border-t border-gray-200 pt-2 space-y-1.5">
                         <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Payment method</p>
-                        <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
-                            {PAYMENT_METHODS.map((m) => {
-                                const Icon = m.Icon;
-                                const selected = paymentMethod === m.id;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        type="button"
-                                        onClick={() => setPaymentMethod(m.id)}
-                                        title={m.label}
-                                        aria-label={m.label}
-                                        aria-pressed={selected}
-                                        className={`rounded-lg p-2.5 border transition-colors ${
-                                            selected
-                                                ? "bg-blue-950 text-white border-blue-950"
-                                                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        <Icon className="h-5 w-5" aria-hidden />
-                                    </button>
-                                );
-                            })}
+                        <div className="flex flex-wrap gap-1">
+                            {PAYMENT_METHODS.map((m) => (
+                                <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => setPaymentMethod(m.id)}
+                                    aria-pressed={paymentMethod === m.id}
+                                    className={`rounded-md px-2 py-1.5 text-[11px] font-medium border transition-colors ${
+                                        paymentMethod === m.id
+                                            ? "bg-blue-950 text-white border-blue-950"
+                                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                    }`}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -969,6 +1015,135 @@ const PosDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {allInvoicesModalOpen ? (
+                <div
+                    className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="pos-all-invoices-title"
+                >
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-black/50"
+                        aria-label="Close dialog"
+                        onClick={() => setAllInvoicesModalOpen(false)}
+                    />
+                    <div
+                        className="relative flex max-h-[min(92vh,720px)] w-full max-w-4xl flex-col rounded-t-xl border border-gray-200 bg-white shadow-xl sm:rounded-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 px-4 py-3 sm:px-5">
+                            <div>
+                                <h2 id="pos-all-invoices-title" className="text-lg font-semibold text-gray-900">
+                                    All orders & invoices
+                                </h2>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    Team invoices and orders. Sort by date below.
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <label className="flex items-center gap-2 text-xs text-gray-600">
+                                    <span className="font-medium whitespace-nowrap">Sort by date</span>
+                                    <select
+                                        value={allInvoicesDateSort}
+                                        onChange={(e) => setAllInvoicesDateSort(e.target.value)}
+                                        className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900"
+                                    >
+                                        <option value="newest">Newest first</option>
+                                        <option value="oldest">Oldest first</option>
+                                    </select>
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setAllInvoicesModalOpen(false)}
+                                    className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                                    aria-label="Close"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4">
+                            {loadingAllInvoices ? (
+                                <div className="flex items-center justify-center gap-2 py-12 text-sm text-gray-500">
+                                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                                    Loading…
+                                </div>
+                            ) : sortedAllInvoices.length === 0 ? (
+                                <p className="py-12 text-center text-sm text-gray-500">No invoices yet.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs min-w-[640px]">
+                                        <thead>
+                                            <tr className="text-left text-gray-500 border-b border-gray-200">
+                                                <th className="py-2 pr-2 font-medium">Date</th>
+                                                <th className="py-2 pr-2 font-medium">Number</th>
+                                                <th className="py-2 pr-2 font-medium">Type</th>
+                                                <th className="py-2 pr-2 font-medium">Customer</th>
+                                                <th className="py-2 pr-2 font-medium text-right">Total</th>
+                                                <th className="py-2 pr-2 font-medium">Status</th>
+                                                <th className="py-2 pl-2 font-medium text-right w-[1%]">View</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {sortedAllInvoices.map((inv) => {
+                                                const id = inv._id;
+                                                const d = inv.createdAt || inv.invoiceDate;
+                                                const when = d
+                                                    ? new Date(d).toLocaleString(undefined, {
+                                                          dateStyle: "short",
+                                                          timeStyle: "short",
+                                                      })
+                                                    : "—";
+                                                const typ = String(inv.type || "invoice");
+                                                const pos = inv.posSale === true;
+                                                return (
+                                                    <tr key={String(id)} className="border-b border-gray-100 last:border-0">
+                                                        <td className="py-2 pr-2 text-gray-700 whitespace-nowrap">
+                                                            {when}
+                                                        </td>
+                                                        <td className="py-2 pr-2 font-mono text-gray-900">
+                                                            {inv.invoiceNumber || "—"}
+                                                        </td>
+                                                        <td className="py-2 pr-2 capitalize text-gray-700">
+                                                            {typ}
+                                                            {pos ? (
+                                                                <span className="ml-1 text-[10px] font-semibold text-blue-800">
+                                                                    · POS
+                                                                </span>
+                                                            ) : null}
+                                                        </td>
+                                                        <td className="py-2 pr-2 text-gray-700 max-w-[10rem] truncate">
+                                                            {inv.billTo?.clientName || "—"}
+                                                        </td>
+                                                        <td className="py-2 pr-2 text-right tabular-nums">
+                                                            {formatCurrency(inv.grandTotal ?? 0, userCurrency)}
+                                                        </td>
+                                                        <td className="py-2 pr-2 text-gray-700">{inv.status || "—"}</td>
+                                                        <td className="py-2 pl-2 text-right">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setAllInvoicesModalOpen(false);
+                                                                    navigate(`/invoices/${id}`);
+                                                                }}
+                                                                className="text-xs font-medium text-blue-900 hover:underline"
+                                                            >
+                                                                Open
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 };
