@@ -11,12 +11,12 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
-/** Values align vertically: fixed label column so every value starts on the same line. */
+/** Values align vertically: fixed label column. Spacing matches the tax summary column (space-y-1.5, text 10/11px). */
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="grid grid-cols-[9rem_minmax(0,1fr)] sm:grid-cols-[10.5rem_minmax(0,1fr)] gap-x-0.5 items-start text-[9px] sm:text-[10px] leading-tight">
-      <span className="font-medium whitespace-nowrap">{label}</span>
+    <div className="grid grid-cols-[9rem_minmax(0,1fr)] sm:grid-cols-[10.5rem_minmax(0,1fr)] gap-x-1 items-start text-[10px] sm:text-[11px] leading-snug">
+      <span className="font-medium whitespace-nowrap shrink-0">{label}</span>
       <span className="min-w-0 break-all text-left">{display}</span>
     </div>
   );
@@ -697,11 +697,11 @@ const InvoiceDetail = () => {
               invoice.graMrc ||
               invoice.graReceiptDateTime ||
               invoice.graLineItemCount != null) && (
-              <div className="text-black dark:text-black text-left min-w-0 max-w-full overflow-hidden">
+              <div className="text-black dark:text-black text-left min-w-0 max-w-full">
                 <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
                   EVAT RECEIPT INFORMATION
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
                   <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
                   <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
@@ -729,7 +729,7 @@ const InvoiceDetail = () => {
             )}
           </div>
           {/* Right column: Subtotal, tax details, and GRA QR */}
-          <div className="text-[10px] sm:text-[11px] space-y-1.5 leading-tight flex flex-col items-start text-left w-full max-w-md">
+          <div className="text-[10px] sm:text-[11px] space-y-1.5 leading-snug flex flex-col items-start text-left w-full max-w-md">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
               <p className="text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
