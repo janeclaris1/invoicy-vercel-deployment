@@ -15,7 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="grid grid-cols-[11rem_minmax(0,1fr)] sm:grid-cols-[12.5rem_minmax(0,1fr)] gap-x-2 items-start text-[9px] sm:text-[10px] leading-tight">
+    <div className="grid grid-cols-[9.5rem_minmax(0,1fr)] sm:grid-cols-[11rem_minmax(0,1fr)] gap-x-1 items-start text-[9px] sm:text-[10px] leading-tight">
       <span className="font-medium whitespace-nowrap">{label}</span>
       <span className="min-w-0 break-all text-left">{display}</span>
     </div>
@@ -735,35 +735,35 @@ const InvoiceDetail = () => {
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
               </p>
             )}
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center gap-2 w-fit max-w-full">
               <span>Subtotal</span>
               <span className="tabular-nums">{formatCurrency(invoice.subtotal, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center gap-2 w-fit max-w-full">
               <span>VAT</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalVat, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center gap-2 w-fit max-w-full">
               <span>NHIL</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalNhil, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center gap-2 w-fit max-w-full">
               <span>GETFUND</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalGetFund, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4 font-medium border-t border-gray-200 pt-2">
+            <div className="flex items-center gap-2 w-fit max-w-full font-medium border-t border-gray-200 pt-2">
               <span>Total Taxes</span>
               <span className="tabular-nums">{formatCurrency(totalTaxesAmount, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center gap-2 w-fit max-w-full">
               <span>Total Discount</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalDiscount, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4 font-semibold">
+            <div className="flex items-center gap-2 w-fit max-w-full font-semibold">
               <span>Grand Total</span>
               <span className="tabular-nums">{formatCurrency(invoice.grandTotal, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center gap-2 w-fit max-w-full flex-wrap">
               <span>Amount Paid</span>
               {isEditingPayment ? (
                 <div className="flex flex-col items-start gap-2 w-full max-w-md">
@@ -822,7 +822,7 @@ const InvoiceDetail = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4 font-semibold">
+            <div className="flex items-center gap-2 w-fit max-w-full flex-wrap font-semibold">
               <span>
                 {balanceDue > 0 
                   ? "Balance Due" 
