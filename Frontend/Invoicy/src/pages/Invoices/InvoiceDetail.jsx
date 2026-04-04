@@ -11,13 +11,13 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
-/** Single line per field, no wrap; long values truncate (full text in title). Small gap between label and value. */
+/** Values align vertically: fixed label column so every value starts on the same line. */
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="flex min-w-0 items-baseline gap-x-2 text-[9px] sm:text-[10px]">
-      <span className="font-medium shrink-0 whitespace-nowrap">{label}</span>
-      <span className="min-w-0 flex-1 truncate whitespace-nowrap" title={display}>
+    <div className="grid grid-cols-[11rem_minmax(0,1fr)] sm:grid-cols-[12.5rem_minmax(0,1fr)] gap-x-3 items-baseline text-[9px] sm:text-[10px]">
+      <span className="font-medium whitespace-nowrap">{label}</span>
+      <span className="min-w-0 truncate whitespace-nowrap" title={display}>
         {display}
       </span>
     </div>
@@ -297,7 +297,7 @@ const InvoiceDetail = () => {
     <>
       {/* Reference design invoice (Tailwind-only) */}
       <div className="hidden bg-[#F5F5F5] print:bg-white flex justify-center items-start min-h-screen py-10 print:min-h-0 print:py-0">
-        <div className="bg-white max-w-[680px] w-full mx-auto p-12 shadow-md print:shadow-none">
+        <div className="bg-white max-w-3xl w-full mx-auto p-12 shadow-md print:shadow-none">
           {/* Header */}
           <div className="text-center">
             <svg
@@ -511,7 +511,7 @@ const InvoiceDetail = () => {
 
       {/* Old UI (kept for functionality, hidden for visuals) */}
       <div className="bg-[#F5F5F5] flex justify-center items-start min-h-screen py-10 print:bg-white print:min-h-0 print:py-0">
-        <div className="bg-white max-w-[680px] w-full mx-auto p-6 sm:p-8 shadow-md space-y-6 print:shadow-none print:p-0 text-[12px] sm:text-[13px] leading-snug text-black dark:text-black">
+        <div className="bg-white max-w-3xl w-full mx-auto p-6 sm:p-9 shadow-md space-y-6 print:shadow-none print:p-0 text-[13px] sm:text-[14px] leading-snug text-black dark:text-black">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
             <h1 className="text-lg sm:text-xl font-semibold text-black dark:text-black">Invoice Details</h1>
@@ -559,7 +559,7 @@ const InvoiceDetail = () => {
         </div>
 
         <div className="invoice-print-container bg-transparent dark:bg-transparent border-0 p-0 print:border-0 print:shadow-none shadow-none text-black dark:text-black">
-        <div className="invoice-print-full text-[12px] sm:text-[13px] leading-snug">
+        <div className="invoice-print-full text-[13px] sm:text-[14px] leading-snug">
           {/* Logo centered at top */}
         {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
           <div className="invoice-logo-wrap flex justify-center mb-4">
