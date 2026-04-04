@@ -11,16 +11,33 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
-/** Single line, no wrap; long values truncate (full text in title). Small gap between label and value. */
-function EvatInfoRow({ label, value }) {
-  const display = value == null || value === "" ? "—" : String(value);
+/** All EVAT fields on one line (no wrap); overflow ellipsis. `title` has full multi-line text. */
+function EvatInlineReceiptLine({ invoice }) {
+  const parts = [];
+  const push = (label, raw) => {
+    const display = raw == null || raw === "" ? "—" : String(raw);
+    parts.push({ label, display });
+  };
+  push("SDC ID:", invoice.graSdcId);
+  push("RECEIPT NUMBER:", invoice.graReceiptNumber);
+  push("INTERNAL DATA:", invoice.graVerificationCode);
+  push("SIGNATURE:", invoice.graReceiptSignature);
+  push("MRC:", invoice.graMrc);
+  push(
+    "DATE & TIME:",
+    invoice.graReceiptDateTime
+      ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A")
+      : null
+  );
+  push("LINE‑ITEM COUNT:", invoice.graLineItemCount != null ? invoice.graLineItemCount : null);
+
+  const line = parts.map((p) => `${p.label} ${p.display}`).join(" · ");
+  const title = parts.map((p) => `${p.label} ${p.display}`).join("\n");
+
   return (
-    <div className="flex min-w-0 items-baseline gap-x-2 text-[9px] sm:text-[10px]">
-      <span className="font-medium shrink-0 whitespace-nowrap">{label}</span>
-      <span className="min-w-0 flex-1 truncate whitespace-nowrap" title={display}>
-        {display}
-      </span>
-    </div>
+    <p className="text-[9px] sm:text-[10px] min-w-0 truncate whitespace-nowrap" title={title}>
+      {line}
+    </p>
   );
 }
 
@@ -703,25 +720,7 @@ const InvoiceDetail = () => {
                 <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
                   EVAT RECEIPT INFORMATION
                 </div>
-                <div className="space-y-0.5">
-                  <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
-                  <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
-                  <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
-                  <EvatInfoRow label="SIGNATURE:" value={invoice.graReceiptSignature} />
-                  <EvatInfoRow label="MRC:" value={invoice.graMrc} />
-                  <EvatInfoRow
-                    label="DATE & TIME:"
-                    value={
-                      invoice.graReceiptDateTime
-                        ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A")
-                        : null
-                    }
-                  />
-                  <EvatInfoRow
-                    label="LINE‑ITEM COUNT:"
-                    value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
-                  />
-                </div>
+                <EvatInlineReceiptLine invoice={invoice} />
               </div>
             )}
             {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
@@ -842,8 +841,8 @@ const InvoiceDetail = () => {
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
             </div>
-            {/* GRA verification QR */}
-            <div className="mt-4 flex flex-col items-start">
+            {/* GRA verification QR — right-aligned in this column */}
+            <div className="mt-4 flex w-full flex-col items-end">
               {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
                 String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                   <img
