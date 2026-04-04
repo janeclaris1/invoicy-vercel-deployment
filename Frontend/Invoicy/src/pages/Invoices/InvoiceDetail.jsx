@@ -11,6 +11,19 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
+/** Single line, no wrap, no horizontal scroll; long values truncate with ellipsis (full text in title). */
+function EvatInfoRow({ label, value }) {
+  const display = value == null || value === "" ? "—" : String(value);
+  return (
+    <div className="flex min-w-0 gap-x-1 text-[9px] sm:text-[10px]">
+      <span className="font-medium shrink-0 whitespace-nowrap">{label}</span>
+      <span className="min-w-0 flex-1 truncate" title={display}>
+        {display}
+      </span>
+    </div>
+  );
+}
+
 const InvoiceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -679,32 +692,28 @@ const InvoiceDetail = () => {
               invoice.graMrc ||
               invoice.graReceiptDateTime ||
               invoice.graLineItemCount != null) && (
-              <div className="text-xs text-black dark:text-black text-left">
-                <div className="font-semibold mb-2">Evat verification details</div>
-                <div className="space-y-1 overflow-x-auto max-w-full">
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">SDC ID:</span> {invoice.graSdcId || "-"}
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">RECEIPT NUMBER:</span> {invoice.graReceiptNumber || "-"}
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">INTERNAL DATA:</span> {invoice.graVerificationCode || "-"}
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">SIGNATURE:</span> {invoice.graReceiptSignature || "-"}
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">MRC:</span> {invoice.graMrc || "-"}
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">DATE &amp; TIME:</span>{" "}
-                    {invoice.graReceiptDateTime ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A") : "-"}
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <span className="font-medium">LINE‑ITEM COUNT:</span>{" "}
-                    {invoice.graLineItemCount != null ? invoice.graLineItemCount : "-"}
-                  </div>
+              <div className="text-black dark:text-black text-left min-w-0 max-w-full overflow-hidden">
+                <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
+                  EVAT RECEIPT INFORMATION
+                </div>
+                <div className="space-y-0.5">
+                  <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
+                  <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
+                  <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
+                  <EvatInfoRow label="SIGNATURE:" value={invoice.graReceiptSignature} />
+                  <EvatInfoRow label="MRC:" value={invoice.graMrc} />
+                  <EvatInfoRow
+                    label="DATE & TIME:"
+                    value={
+                      invoice.graReceiptDateTime
+                        ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A")
+                        : null
+                    }
+                  />
+                  <EvatInfoRow
+                    label="LINE‑ITEM COUNT:"
+                    value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
+                  />
                 </div>
               </div>
             )}
