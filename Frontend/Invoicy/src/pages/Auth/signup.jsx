@@ -13,6 +13,7 @@ import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { COUNTRY_CURRENCIES } from "../../utils/countriesCurrencies";
+import { PASSWORD_MIN_LENGTH, isPasswordStrongEnough } from "../../utils/passwordPolicy";
 
 
 const SignUp = () => {
@@ -96,8 +97,8 @@ const SignUp = () => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         newFieldErrors.email = emailRegex.test(value) ? "" : "Please enter a valid email address";
       } else if (name === "password") {
-        if (value.length < 6) {
-          newFieldErrors.password = "Password must be at least 6 characters long";
+        if (value.length < PASSWORD_MIN_LENGTH) {
+          newFieldErrors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`;
         } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
           newFieldErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
         } else {
@@ -132,8 +133,8 @@ const SignUp = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       newFieldErrors.email = emailRegex.test(formData.email) ? "" : "Please enter a valid email address";
     } else if (name === "password") {
-      if (formData.password.length < 6) {
-        newFieldErrors.password = "Password must be at least 6 characters long";
+      if (formData.password.length < PASSWORD_MIN_LENGTH) {
+        newFieldErrors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`;
       } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
         newFieldErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
       } else {
@@ -152,7 +153,7 @@ const SignUp = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailValid = emailRegex.test(formData.email);
     const isCountryValid = !!formData.country && COUNTRY_CURRENCIES.some((c) => c.country === formData.country);
-    const isPasswordStrong = formData.password.length >= 6 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password);
+    const isPasswordStrong = isPasswordStrongEnough(formData.password);
     const isConfirmPasswordValid = formData.confirmPassword === formData.password && formData.confirmPassword.length > 0;
     return isNameValid && isEmailValid && isCountryValid && isPasswordStrong && isConfirmPasswordValid && formData.agreeToTerms === true;
   };
@@ -164,7 +165,7 @@ const SignUp = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const emailError = !emailRegex.test(formData.email) ? "Please enter a valid email address" : "";
     let passwordError = "";
-    if (formData.password.length < 6) passwordError = "Password must be at least 6 characters long";
+    if (formData.password.length < PASSWORD_MIN_LENGTH) passwordError = `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`;
     else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) passwordError = "Password must contain at least one uppercase letter, one lowercase letter, and one number";
     const confirmPasswordError = formData.confirmPassword !== formData.password ? "Passwords do not match" : "";
     
@@ -335,6 +336,7 @@ const SignUp = () => {
                   ? "border-red-300 focus:ring-red-500"
                   : "border-gray-300 focus:ring-blue-900"}`}
                 placeholder="Create a password"
+                minLength={PASSWORD_MIN_LENGTH}
               />
               <button
                 type="button"

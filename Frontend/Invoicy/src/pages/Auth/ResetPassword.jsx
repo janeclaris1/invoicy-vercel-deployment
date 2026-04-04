@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Loader2, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { API_PATHS } from "../../utils/apiPaths";
 import axiosInstance from "../../utils/axiosInstance";
+import { PASSWORD_MIN_LENGTH, isPasswordStrongEnough } from "../../utils/passwordPolicy";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const ResetPassword = () => {
@@ -25,8 +26,10 @@ const ResetPassword = () => {
     e.preventDefault();
     setError("");
     setMessage("");
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (!isPasswordStrongEnough(newPassword)) {
+      setError(
+        `Password must be at least ${PASSWORD_MIN_LENGTH} characters and include uppercase, lowercase, and a number`
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -69,9 +72,9 @@ const ResetPassword = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-transparent outline-none"
-                  placeholder="Min 6 characters"
+                  placeholder={`Min ${PASSWORD_MIN_LENGTH} chars, upper, lower, number`}
                   required
-                  minLength={6}
+                  minLength={PASSWORD_MIN_LENGTH}
                 />
                 <button
                   type="button"

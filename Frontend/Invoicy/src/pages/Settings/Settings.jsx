@@ -6,6 +6,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import PRICING_PLANS from "../../utils/data";
+import { PASSWORD_MIN_LENGTH, isPasswordStrongEnough } from "../../utils/passwordPolicy";
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -209,6 +210,12 @@ const Settings = () => {
       toast.error("Please select an employee");
       return;
     }
+    if (!isPasswordStrongEnough(userForm.password)) {
+      toast.error(
+        `Password must be at least ${PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, and a number`
+      );
+      return;
+    }
     try {
       await axiosInstance.post(API_PATHS.AUTH.TEAM, {
         employeeId: userForm.employeeId,
@@ -230,7 +237,13 @@ const Settings = () => {
     e.preventDefault();
     if (!editingMemberId) return;
     const payload = { role: userForm.role, responsibilities: userForm.responsibilities };
-    if (userForm.editPassword && userForm.editPassword.length >= 6) {
+    if (userForm.editPassword && userForm.editPassword.trim()) {
+      if (!isPasswordStrongEnough(userForm.editPassword)) {
+        toast.error(
+          `Password must be at least ${PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, and a number`
+        );
+        return;
+      }
       payload.password = userForm.editPassword;
     }
     try {
@@ -266,8 +279,10 @@ const Settings = () => {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
-    if (securityPassword.new.length < 6) {
-      toast.error("New password must be at least 6 characters");
+    if (!isPasswordStrongEnough(securityPassword.new)) {
+      toast.error(
+        `New password must be at least ${PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, and a number`
+      );
       return;
     }
     if (securityPassword.new !== securityPassword.confirm) {
@@ -882,11 +897,11 @@ const Settings = () => {
                         <input
                           type="password"
                           required
-                          minLength={6}
+                          minLength={PASSWORD_MIN_LENGTH}
                           value={userForm.password}
                           onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
                           className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400"
-                          placeholder="Set password for signing in (min 6 characters)"
+                          placeholder={`Set sign-in password (min ${PASSWORD_MIN_LENGTH} chars, upper, lower, number)`}
                         />
                       </div>
                       <div>
@@ -964,7 +979,7 @@ const Settings = () => {
                           value={userForm.editPassword}
                           onChange={(e) => setUserForm((prev) => ({ ...prev, editPassword: e.target.value }))}
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-black placeholder-gray-500"
-                          placeholder="Enter new password to reset (min 6 characters)"
+                          placeholder={`New password (min ${PASSWORD_MIN_LENGTH} chars, upper, lower, number)`}
                         />
                       </div>
                     </div>

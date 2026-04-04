@@ -50,6 +50,7 @@ const productionRoutes = require("./routes/productionRoutes");
 const supplyChainRoutes = require("./routes/supplyChainRoutes");
 const sectionNoteRoutes = require("./routes/sectionNoteRoutes");
 const { attachAudit } = require("./middlewares/auditMiddleware");
+const { jsonBodyParser, urlencodedBodyParser } = require("./middlewares/bodyParserByRoute");
 const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
 const app = express();
@@ -74,19 +75,27 @@ app.use(helmet({
 const isProduction = process.env.NODE_ENV === 'production';
 const prodOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean) : [];
 const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-// Vercel preview URLs: https://project-<hash>-<scope>.vercel.app (allow same app's production + previews)
+// Vercel preview URLs: opt-in when ALLOWED_ORIGINS is not set (set ALLOW_VERCEL_PREVIEW_ORIGINS=1)
 const isVercelPreviewOrigin = (origin) => typeof origin === 'string' && /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
+const allowVercelPreviewOrigins =
+  process.env.ALLOW_VERCEL_PREVIEW_ORIGINS === 'true' || process.env.ALLOW_VERCEL_PREVIEW_ORIGINS === '1';
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Postman, curl, same-origin
+    // No Origin: native apps, curl, Postman, same-origin navigation
+    if (!origin) return callback(null, true);
+    // Development: allow any browser origin (LAN, alternate ports); production uses allowlist below
     if (!isProduction) {
-      if (isLocalOrigin(origin)) return callback(null, true);
+      return callback(null, true);
     }
+    // Production: require explicit allowlist, or Vercel previews when explicitly enabled
     if (prodOrigins.indexOf(origin) !== -1) return callback(null, true);
-    if (isProduction && isVercelPreviewOrigin(origin)) return callback(null, true);
-    if (isProduction && prodOrigins.length === 0 && isLocalOrigin(origin)) return callback(null, true);
-    logger.warn(`CORS rejected origin: ${origin}. Add it to ALLOWED_ORIGINS on Render.`);
+    if (allowVercelPreviewOrigins && isVercelPreviewOrigin(origin)) return callback(null, true);
+    if (prodOrigins.length === 0) {
+      logger.warn(`CORS blocked: ALLOWED_ORIGINS is empty. Set ALLOWED_ORIGINS or ALLOW_VERCEL_PREVIEW_ORIGINS=1. Origin: ${origin}`);
+    } else {
+      logger.warn(`CORS rejected origin: ${origin}. Add it to ALLOWED_ORIGINS.`);
+    }
     const err = new Error('Not allowed by CORS');
     err.statusCode = 403;
     callback(err);
@@ -126,6 +135,21 @@ const connectDatabase = async () => {
 };
 connectDatabase();
 
+// Production secrets and CORS configuration
+if (isProduction) {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || String(jwtSecret).length < 32) {
+    logger.error("FATAL: JWT_SECRET must be set and at least 32 characters in production.");
+    process.exit(1);
+  }
+  if (prodOrigins.length === 0 && !allowVercelPreviewOrigins) {
+    logger.warn(
+      "ALLOWED_ORIGINS is empty — browser requests that send an Origin header will be rejected by CORS. " +
+        "Set ALLOWED_ORIGINS to your frontend URL(s), or ALLOW_VERCEL_PREVIEW_ORIGINS=1 for *.vercel.app previews."
+    );
+  }
+}
+
 // Log whether platform admin is configured (so you can verify .env is loaded)
 const _adminCount = (process.env.PLATFORM_ADMIN_EMAIL || '').split(',').filter((e) => e.trim()).length;
 if (_adminCount > 0) {
@@ -140,33 +164,44 @@ app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }),
   next();
 }, subscriptionWebhook);
 
-// Middleware to parse JSON (allow larger payloads e.g. base64 images)
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// JSON: 1mb default (DoS hardening); 10mb only for /api/items, /api/invoices, PUT /api/auth/me
+app.use(jsonBodyParser);
+app.use(urlencodedBodyParser);
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
 // Attach audit logger to req (req.auditLog({ action, resource, resourceId, changes }))
 app.use(attachAudit);
 
-// Health check endpoint
+// Health check endpoint (no internal details in production)
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
+  const payload = {
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-  });
+  };
+  if (!isProduction) {
+    payload.environment = process.env.NODE_ENV || 'development';
+  }
+  res.status(200).json(payload);
 });
 
-// OpenAPI / Swagger documentation (ERP API)
-try {
-  const { serveSwagger, setupSwagger } = require("./config/swagger");
-  app.use("/api-docs", serveSwagger, setupSwagger);
-  logger.info("Swagger UI available at /api-docs");
-} catch (e) {
-  const swaggerErr = e && (e.stack || e.message) ? (e.stack || e.message) : String(e);
-  logger.warn("Swagger not loaded: " + swaggerErr);
+// OpenAPI / Swagger — off in production unless SWAGGER_ENABLED=true (reduces API surface exposure)
+const swaggerEnabled =
+  !isProduction ||
+  process.env.SWAGGER_ENABLED === 'true' ||
+  process.env.SWAGGER_ENABLED === '1';
+if (swaggerEnabled) {
+  try {
+    const { serveSwagger, setupSwagger } = require("./config/swagger");
+    app.use("/api-docs", serveSwagger, setupSwagger);
+    logger.info("Swagger UI available at /api-docs");
+  } catch (e) {
+    const swaggerErr = e && (e.stack || e.message) ? (e.stack || e.message) : String(e);
+    logger.warn("Swagger not loaded: " + swaggerErr);
+  }
+} else {
+  logger.info("Swagger UI disabled in production (set SWAGGER_ENABLED=true to enable).");
 }
 
 // Define Routes Here

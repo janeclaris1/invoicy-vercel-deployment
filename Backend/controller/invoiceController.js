@@ -346,24 +346,23 @@ exports.getInvoiceById = async (req, res) => {
 
 // @desc Update invoice
 // @route PUT /api/invoices/:id
-// @access Private (owner/admin only)
+// @access Private (owner/admin, or staff for POS sales only)
 exports.updateInvoice = async (req, res) => {
     try {
-        const role = req.user?.role || 'owner';
-        if (!['owner', 'admin'].includes(role)) {
-            return res.status(403).json({ message: 'Only super admin and admin can edit invoices' });
-        }
-
-        // Check if invoice exists and user has access
         const invoice = await Invoice.findById(req.params.id);
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        
-        // Check if the invoice belongs to the logged-in user or a team member
+
         const teamMemberIds = await getTeamMemberIds(req.user._id);
         if (!teamMemberIds.some(id => id.toString() === invoice.user.toString())) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
+        }
+
+        const role = req.user?.role || 'owner';
+        const staffPosEdit = role === 'staff' && invoice.posSale === true;
+        if (!['owner', 'admin'].includes(role) && !staffPosEdit) {
+            return res.status(403).json({ message: 'Only super admin and admin can edit invoices' });
         }
 
         const {
@@ -378,6 +377,8 @@ exports.updateInvoice = async (req, res) => {
             status,
             amountPaid,
             paymentNote,
+            discountPercent: bodyDiscountPercent,
+            discountAmount: bodyDiscountAmount,
             companyLogo,
             companySignature,
             companyStamp,
@@ -471,7 +472,13 @@ exports.updateInvoice = async (req, res) => {
                 }
             });
             subtotal = updateRound(subtotal);
-            totalDiscount = Number(invoice.totalDiscount) || 0;
+            if (bodyDiscountAmount != null && Number(bodyDiscountAmount) > 0) {
+                totalDiscount = updateRound(Number(bodyDiscountAmount));
+            } else if (bodyDiscountPercent != null && Number(bodyDiscountPercent) > 0) {
+                totalDiscount = updateRound((subtotal * Number(bodyDiscountPercent)) / 100);
+            } else {
+                totalDiscount = Number(invoice.totalDiscount) || 0;
+            }
             const discountedSubtotal = subtotal - totalDiscount;
             nhil = updateRound(discountedSubtotal * NHIL_RATE);
             getFund = updateRound(discountedSubtotal * GETFUND_RATE);

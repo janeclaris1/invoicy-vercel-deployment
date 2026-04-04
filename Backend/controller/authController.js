@@ -13,6 +13,7 @@ const Salary = require('../models/Salary');
 const Payroll = require('../models/Payroll');
 const { getAmount, getCurrency } = require('../config/plans');
 const { UPLOAD_DIR: PROFILE_UPLOAD_DIR } = require('../middlewares/uploadProfilePicture');
+const { PASSWORD_MIN_LENGTH, isStrongEnough } = require('../utils/passwordPolicy');
 
 /** Returns stored filename only if that file exists under uploads/profiles (avoids 404s when disk was reset). */
 function getValidProfilePictureFilename(filename) {
@@ -82,8 +83,10 @@ exports.createPendingSignup = async (req, res, next) => {
             return res.status(400).json({ message: 'Valid plan (basic|pro) and interval (monthly|annual) are required' });
         }
         const passwordTrimmed = (password || '').trim();
-        if (passwordTrimmed.length < 6) {
-            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        if (!isStrongEnough(passwordTrimmed)) {
+            return res.status(400).json({
+                message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters and include uppercase, lowercase, and a number`,
+            });
         }
         const emailNorm = (email || '').trim().toLowerCase();
         const existing = await User.findOne({ email: emailNorm });
@@ -213,6 +216,11 @@ exports.createTeamMember = async (req, res) => {
         if (!employeeId || !password) {
             return res.status(400).json({ message: 'Employee and password are required. Create the employee in HR first, then add a user here.' });
         }
+        if (!isStrongEnough(String(password))) {
+            return res.status(400).json({
+                message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters and include uppercase, lowercase, and a number`,
+            });
+        }
         const employee = await Employee.findById(employeeId);
         if (!employee) {
             return res.status(404).json({ message: 'Employee not found' });
@@ -280,7 +288,15 @@ exports.updateTeamMember = async (req, res) => {
         const { role, responsibilities, password } = req.body;
         if (role) member.role = ['owner', 'admin', 'staff', 'viewer'].includes(role) ? role : member.role;
         if (Array.isArray(responsibilities)) member.responsibilities = responsibilities;
-        if (password && typeof password === 'string' && password.length >= 6 && member.createdBy?.toString() === req.user.id) {
+        if (password && typeof password === 'string') {
+            if (member.createdBy?.toString() !== req.user.id) {
+                return res.status(403).json({ message: 'Only the inviting account can set this member\'s password' });
+            }
+            if (!isStrongEnough(password)) {
+                return res.status(400).json({
+                    message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters and include uppercase, lowercase, and a number`,
+                });
+            }
             member.password = password;
         }
         await member.save();
@@ -359,8 +375,10 @@ exports.resetPassword = async (req, res) => {
         if (!token || !newPassword) {
             return res.status(400).json({ message: 'Token and new password are required' });
         }
-        if (newPassword.length < 6) {
-            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        if (!isStrongEnough(newPassword)) {
+            return res.status(400).json({
+                message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters and include uppercase, lowercase, and a number`,
+            });
         }
         const user = await User.findOne({
             resetPasswordToken: token,
@@ -606,8 +624,10 @@ exports.updateUserProfile = async (req, res) => {
                 }
             }
             if (req.body.currentPassword && req.body.newPassword) {
-                if (req.body.newPassword.length < 6) {
-                    return res.status(400).json({ message: 'New password must be at least 6 characters' });
+                if (!isStrongEnough(req.body.newPassword)) {
+                    return res.status(400).json({
+                        message: `New password must be at least ${PASSWORD_MIN_LENGTH} characters and include uppercase, lowercase, and a number`,
+                    });
                 }
                 const match = await user.matchPassword(req.body.currentPassword);
                 if (!match) {
@@ -708,6 +728,10 @@ exports.getProfilePicture = async (req, res) => {
         const { filename } = req.params;
         if (!filename || filename.includes('..') || path.isAbsolute(filename)) {
             return res.status(400).json({ message: 'Invalid filename' });
+        }
+        const stored = (req.user && req.user.profilePicture) || '';
+        if (!stored || stored !== filename) {
+            return res.status(403).json({ message: 'Not authorized to access this file' });
         }
         const filePath = path.join(PROFILE_UPLOAD_DIR, filename);
         if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {

@@ -1,11 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
 import { playNotificationSound } from "../../utils/notificationSound";
-import { Minus, Plus, Search, Trash2, Banknote, Package } from "lucide-react";
+import {
+    Minus,
+    Plus,
+    Search,
+    Trash2,
+    Banknote,
+    Package,
+    CreditCard,
+    Smartphone,
+    Building2,
+    MoreHorizontal,
+    Truck,
+    Eye,
+    Pencil,
+    Printer,
+    Save,
+    XCircle,
+    Loader2,
+    RefreshCw,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
 
@@ -24,12 +43,26 @@ function itemMatchesCategoryFilter(item, categoryFilter) {
 }
 
 const PAYMENT_METHODS = [
-    { id: "cash", label: "Cash" },
-    { id: "card", label: "Card" },
-    { id: "momo", label: "Mobile money" },
-    { id: "bank", label: "Bank transfer" },
-    { id: "other", label: "Other" },
+    { id: "cash", label: "Cash", Icon: Banknote },
+    { id: "card", label: "Card", Icon: CreditCard },
+    { id: "momo", label: "Mobile money", Icon: Smartphone },
+    { id: "bank", label: "Bank transfer", Icon: Building2 },
+    { id: "other", label: "Other", Icon: MoreHorizontal },
+    { id: "cod", label: "Cash on delivery", Icon: Truck },
 ];
+
+function paymentMethodIdFromInvoice(inv) {
+    const n = String(inv?.notes || "");
+    const m = n.match(/Payment:\s*(.+)/);
+    if (m) {
+        const label = m[1].trim();
+        const found = PAYMENT_METHODS.find((p) => p.label === label);
+        if (found) return found.id;
+    }
+    const unpaid = String(inv?.status || "").toLowerCase() === "unpaid";
+    if (unpaid && (Number(inv?.amountPaid) || 0) <= 0) return "cod";
+    return "cash";
+}
 
 function normalizePrice(raw) {
     if (typeof raw === "number" && Number.isFinite(raw)) return raw;
@@ -47,6 +80,13 @@ function parseDecimalInput(raw) {
 
 function toFloat2(raw) {
     return Math.round(parseDecimalInput(raw) * 100) / 100;
+}
+
+/** Backend accepts Mongo ObjectId strings; omit invalid placeholders from cart edits. */
+function itemIdForApi(itemId) {
+    const s = String(itemId ?? "");
+    if (/^[a-f\d]{24}$/i.test(s)) return s;
+    return null;
 }
 
 /** Data URL, absolute URL, or site-relative path → usable img src */
@@ -89,6 +129,7 @@ function PosProductImage({ raw, iconClass = "h-8 w-8" }) {
 
 const PosDashboard = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const userCurrency = user?.currency || "GHS";
     const scanRef = useRef(null);
     const vatScenario = user?.graVatScenario || "inclusive";
@@ -103,6 +144,10 @@ const PosDashboard = () => {
     const [submitting, setSubmitting] = useState(false);
     const [categories, setCategories] = useState([]);
     const [categoryFilter, setCategoryFilter] = useState("");
+    const [editingInvoiceId, setEditingInvoiceId] = useState(null);
+    const [posOrders, setPosOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+    const [loadingEditId, setLoadingEditId] = useState(null);
 
     const loadCatalog = useCallback(async () => {
         setLoading(true);
@@ -140,6 +185,29 @@ const PosDashboard = () => {
     useEffect(() => {
         loadCatalog();
     }, [loadCatalog]);
+
+    const loadPosOrders = useCallback(async () => {
+        setLoadingOrders(true);
+        try {
+            const res = await axiosInstance.get(`${API_PATHS.INVOICES.GET_ALL_INVOICES}?posSale=true`);
+            const list = Array.isArray(res.data) ? res.data : [];
+            setPosOrders(list);
+        } catch {
+            setPosOrders([]);
+        } finally {
+            setLoadingOrders(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadPosOrders();
+    }, [loadPosOrders]);
+
+    useEffect(() => {
+        const onInvoicesUpdated = () => loadPosOrders();
+        window.addEventListener("invoicesUpdated", onInvoicesUpdated);
+        return () => window.removeEventListener("invoicesUpdated", onInvoicesUpdated);
+    }, [loadPosOrders]);
 
     useEffect(() => {
         let cancelled = false;
@@ -330,6 +398,12 @@ const PosDashboard = () => {
         };
     }, [cart, discountPercent, discountAmount, vatScenario]);
 
+    const primaryActionTitle = useMemo(() => {
+        if (editingInvoiceId) return "Save changes to order and print receipt";
+        if (paymentMethod === "cod") return "Save cash on delivery order and print receipt";
+        return "Receive payment and print receipt";
+    }, [editingInvoiceId, paymentMethod]);
+
     const onScanKeyDown = (e) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
@@ -361,6 +435,47 @@ const PosDashboard = () => {
         setCart([]);
         setDiscountPercent("");
         setDiscountAmount("");
+        setEditingInvoiceId(null);
+    };
+
+    const beginEditOrder = async (orderId) => {
+        setLoadingEditId(orderId);
+        try {
+            const res = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(orderId));
+            const inv = res.data;
+            const lines = (inv.item || []).map((row, idx) => {
+                const rawId = row.itemId;
+                const iid = rawId ? String(rawId) : `line-${idx}`;
+                const inCat = rawId
+                    ? catalog.find((c) => String(c.id) === String(rawId))
+                    : null;
+                return {
+                    itemId: iid,
+                    name: row.description || "Item",
+                    unitPrice: Number(row.unitPrice) || 0,
+                    qty: Number(row.quantity) || 0,
+                    sku: inCat?.sku || "",
+                    image: typeof inCat?.image === "string" ? inCat.image : "",
+                };
+            });
+            setCart(lines);
+            const dp = inv.discountPercent;
+            const da = inv.discountAmount;
+            setDiscountPercent(dp != null && dp !== "" ? String(dp) : "");
+            setDiscountAmount(da != null && da !== "" ? String(da) : "");
+            setPaymentMethod(paymentMethodIdFromInvoice(inv));
+            setEditingInvoiceId(inv._id);
+            toast.success("Order loaded — adjust cart and save");
+        } catch (e) {
+            toast.error(e.response?.data?.message || "Could not load order");
+        } finally {
+            setLoadingEditId(null);
+        }
+    };
+
+    const printOrderQuick = (inv) => {
+        const ok = printPosReceiptWindow(inv, userCurrency, user);
+        if (!ok) toast.error("Pop-up blocked — allow pop-ups to print.");
     };
 
     const amountPaidValue = Math.max(0, grandTotal);
@@ -372,11 +487,12 @@ const PosDashboard = () => {
         }
         const methodLabel =
             PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label || paymentMethod;
+        const isCod = paymentMethod === "cod";
         const itemsForApi = cart.map((l) => ({
             description: l.name,
             quantity: l.qty,
             unitPrice: l.unitPrice,
-            itemId: l.itemId,
+            itemId: itemIdForApi(l.itemId),
         }));
         const today = new Date().toISOString().split("T")[0];
         const billFrom = {
@@ -386,24 +502,29 @@ const PosDashboard = () => {
             phone: user?.phone || "",
             tin: user?.tin || "",
         };
-        const payload = {
+        const billTo = {
+            clientName: "Walk-in (POS)",
+            email: "",
+            address: "",
+            phone: "",
+            tin: "",
+        };
+        const status = isCod ? "Unpaid" : "Fully Paid";
+        const paid = isCod ? 0 : amountPaidValue;
+        const balance = isCod ? grandTotal : 0;
+
+        const createPayload = {
             invoiceDate: today,
             dueDate: today,
             billFrom,
-            billTo: {
-                clientName: "Walk-in (POS)",
-                email: "",
-                address: "",
-                phone: "",
-                tin: "",
-            },
+            billTo,
             items: itemsForApi,
             notes: `POS sale · Payment: ${methodLabel}`,
             paymentTerms: methodLabel,
             type: "invoice",
-            status: "Fully Paid",
-            amountPaid: amountPaidValue,
-            balanceDue: 0,
+            status,
+            amountPaid: paid,
+            balanceDue: balance,
             discountPercent: toFloat2(discountPercent),
             discountAmount: toFloat2(discountAmount),
             companyLogo: user?.companyLogo || "",
@@ -412,17 +533,40 @@ const PosDashboard = () => {
             posSale: true,
         };
 
+        const updatePayload = {
+            billFrom,
+            billTo,
+            items: itemsForApi,
+            notes: `POS sale · Payment: ${methodLabel}`,
+            paymentTerms: methodLabel,
+            status,
+            amountPaid: paid,
+            discountPercent: toFloat2(discountPercent),
+            discountAmount: toFloat2(discountAmount),
+        };
+
+        const wasEditing = !!editingInvoiceId;
+
         setSubmitting(true);
         try {
-            const res = await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, payload);
-            const invoice = res.data?.invoice;
+            let invoice;
+            if (editingInvoiceId) {
+                const res = await axiosInstance.put(
+                    API_PATHS.INVOICES.UPDATE_INVOICE(editingInvoiceId),
+                    updatePayload
+                );
+                invoice = res.data;
+            } else {
+                const res = await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, createPayload);
+                invoice = res.data?.invoice;
+            }
             if (!invoice?._id) {
                 toast.error("Sale saved but invoice id missing. Check invoices list.");
                 return;
             }
             window.dispatchEvent(new CustomEvent("invoicesUpdated"));
             clearCart();
-            toast.success("Payment recorded");
+            toast.success(wasEditing ? "Order updated" : isCod ? "Order saved (COD)" : "Payment recorded");
             const printed = printPosReceiptWindow(invoice, userCurrency, user);
             if (!printed) {
                 toast.error("Pop-up blocked — allow pop-ups to print, or find this sale under Sales → POS.");
@@ -547,15 +691,24 @@ const PosDashboard = () => {
                 </div>
 
                 <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm lg:w-full flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-gray-900">Cart</h2>
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <h2 className="text-sm font-semibold text-gray-900">Cart</h2>
+                            {editingInvoiceId ? (
+                                <span className="text-[10px] font-medium uppercase tracking-wide text-amber-900 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 shrink-0">
+                                    Editing
+                                </span>
+                            ) : null}
+                        </div>
                         <button
                             type="button"
                             onClick={clearCart}
-                            disabled={!cart.length}
-                            className="text-[11px] font-medium text-red-700 disabled:opacity-40"
+                            disabled={!cart.length && !editingInvoiceId}
+                            title={editingInvoiceId ? "Cancel editing" : "Clear cart"}
+                            aria-label={editingInvoiceId ? "Cancel editing" : "Clear cart"}
+                            className="p-2 rounded-lg hover:bg-red-50 text-red-600 disabled:opacity-40 disabled:hover:bg-transparent"
                         >
-                            Clear
+                            {editingInvoiceId ? <XCircle className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                         </button>
                     </div>
                     {cart.length === 0 ? (
@@ -675,21 +828,28 @@ const PosDashboard = () => {
 
                     <div className="border-t border-gray-200 pt-2 space-y-1.5">
                         <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Payment method</p>
-                        <div className="flex flex-wrap gap-1">
-                            {PAYMENT_METHODS.map((m) => (
-                                <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => setPaymentMethod(m.id)}
-                                    className={`rounded-md px-2 py-1 text-[11px] font-medium border transition-colors ${
-                                        paymentMethod === m.id
-                                            ? "bg-blue-950 text-white border-blue-950"
-                                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
-                                    }`}
-                                >
-                                    {m.label}
-                                </button>
-                            ))}
+                        <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+                            {PAYMENT_METHODS.map((m) => {
+                                const Icon = m.Icon;
+                                const selected = paymentMethod === m.id;
+                                return (
+                                    <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => setPaymentMethod(m.id)}
+                                        title={m.label}
+                                        aria-label={m.label}
+                                        aria-pressed={selected}
+                                        className={`rounded-lg p-2.5 border transition-colors ${
+                                            selected
+                                                ? "bg-blue-950 text-white border-blue-950"
+                                                : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                        }`}
+                                    >
+                                        <Icon className="h-5 w-5" aria-hidden />
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -697,12 +857,117 @@ const PosDashboard = () => {
                         type="button"
                         onClick={receivePayment}
                         disabled={!cart.length || submitting}
-                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-950 text-white min-h-[48px] px-3 py-3 text-sm font-medium hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation active:scale-[0.99]"
+                        title={primaryActionTitle}
+                        aria-label={primaryActionTitle}
+                        className="w-full flex items-center justify-center rounded-lg bg-blue-950 text-white min-h-[48px] px-3 py-3 hover:bg-blue-900 disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation active:scale-[0.99]"
                     >
-                        <Banknote className="h-5 w-5 shrink-0" />
-                        <span className="truncate">{submitting ? "Saving…" : "Receive payment & print"}</span>
+                        {submitting ? (
+                            <Loader2 className="h-6 w-6 animate-spin shrink-0" aria-hidden />
+                        ) : editingInvoiceId ? (
+                            <Save className="h-6 w-6 shrink-0" aria-hidden />
+                        ) : paymentMethod === "cod" ? (
+                            <Truck className="h-6 w-6 shrink-0" aria-hidden />
+                        ) : (
+                            <Banknote className="h-6 w-6 shrink-0" aria-hidden />
+                        )}
                     </button>
                 </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                    <h2 className="text-sm font-semibold text-gray-900">Saved POS orders</h2>
+                    <button
+                        type="button"
+                        onClick={() => loadPosOrders()}
+                        disabled={loadingOrders}
+                        title="Refresh list"
+                        aria-label="Refresh list"
+                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        {loadingOrders ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-900" aria-hidden />
+                        ) : (
+                            <RefreshCw className="h-4 w-4 text-gray-600" aria-hidden />
+                        )}
+                    </button>
+                </div>
+                {loadingOrders && posOrders.length === 0 ? (
+                    <p className="text-sm text-gray-500">Loading orders…</p>
+                ) : posOrders.length === 0 ? (
+                    <p className="text-sm text-gray-500">No POS orders yet.</p>
+                ) : (
+                    <div className="overflow-x-auto -mx-1">
+                        <table className="w-full text-xs min-w-[520px]">
+                            <thead>
+                                <tr className="text-left text-gray-500 border-b border-gray-200">
+                                    <th className="py-2 pr-2 font-medium">Date</th>
+                                    <th className="py-2 pr-2 font-medium">Invoice</th>
+                                    <th className="py-2 pr-2 font-medium text-right">Total</th>
+                                    <th className="py-2 pr-2 font-medium">Status</th>
+                                    <th className="py-2 pl-2 font-medium text-right w-[1%]">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {posOrders.map((ord) => {
+                                    const id = ord._id;
+                                    const when = ord.createdAt
+                                        ? new Date(ord.createdAt).toLocaleString(undefined, {
+                                              dateStyle: "short",
+                                              timeStyle: "short",
+                                          })
+                                        : "—";
+                                    return (
+                                        <tr key={String(id)} className="border-b border-gray-100 last:border-0">
+                                            <td className="py-2 pr-2 text-gray-700 whitespace-nowrap">{when}</td>
+                                            <td className="py-2 pr-2 font-mono text-gray-900">{ord.invoiceNumber || "—"}</td>
+                                            <td className="py-2 pr-2 text-right tabular-nums">
+                                                {formatCurrency(ord.grandTotal ?? 0, userCurrency)}
+                                            </td>
+                                            <td className="py-2 pr-2 text-gray-700">{ord.status || "—"}</td>
+                                            <td className="py-2 pl-2">
+                                                <div className="flex justify-end gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => beginEditOrder(id)}
+                                                        disabled={loadingEditId === id}
+                                                        title="Edit order"
+                                                        aria-label="Edit order"
+                                                        className="p-2 rounded-lg border border-gray-200 hover:bg-blue-50 text-blue-900 disabled:opacity-50"
+                                                    >
+                                                        {loadingEditId === id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                                        ) : (
+                                                            <Pencil className="h-4 w-4" aria-hidden />
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(`/invoices/${id}`)}
+                                                        title="View invoice"
+                                                        aria-label="View invoice"
+                                                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-800"
+                                                    >
+                                                        <Eye className="h-4 w-4" aria-hidden />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => printOrderQuick(ord)}
+                                                        title="Print receipt"
+                                                        aria-label="Print receipt"
+                                                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-800"
+                                                    >
+                                                        <Printer className="h-4 w-4" aria-hidden />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

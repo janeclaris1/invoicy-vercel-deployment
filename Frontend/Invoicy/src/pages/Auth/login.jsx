@@ -54,7 +54,7 @@ const Login = () => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         newFieldErrors.email = emailRegex.test(value) ? "" : "Please enter a valid email address";
       } else if (name === "password") {
-        newFieldErrors.password = value.length >= 6 ? "" : "Password must be at least 6 characters long";
+        newFieldErrors.password = value.trim().length > 0 ? "" : "Password is required";
       }
       setFileErrors(newFieldErrors);
 
@@ -76,7 +76,7 @@ const Login = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       newFieldErrors.email = emailRegex.test(formData.email) ? "" : "Please enter a valid email address";
     } else if (name === "password") {
-      newFieldErrors.password = formData.password.length >= 6 ? "" : "Password must be at least 6 characters long";
+      newFieldErrors.password = formData.password.trim().length > 0 ? "" : "Password is required";
     }
     setFileErrors(newFieldErrors);
   };
@@ -84,7 +84,7 @@ const Login = () => {
   const isFormValid = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailValid = emailRegex.test(formData.email);
-    const isPasswordValid = formData.password.length >= 6;
+    const isPasswordValid = formData.password.trim().length > 0;
     return isEmailValid && isPasswordValid && formData.email && formData.password;
   };
 
@@ -92,7 +92,7 @@ const Login = () => {
     // Validate all fields before submitting 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const emailError = !emailRegex.test(formData.email) ? "Please enter a valid email address" : "";
-    const passwordError = formData.password.length < 6 ? "Password must be at least 6 characters long" : "";
+    const passwordError = formData.password.trim().length === 0 ? "Password is required" : "";
     
     if (emailError || passwordError) {
       setFileErrors({
