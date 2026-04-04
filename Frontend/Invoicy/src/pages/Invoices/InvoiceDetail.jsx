@@ -731,44 +731,44 @@ const InvoiceDetail = () => {
             )}
           </div>
           {/* Right column: Subtotal, tax details, and GRA QR */}
-          <div className="text-[10px] sm:text-[11px] space-y-1.5 leading-snug flex flex-col items-start text-left w-full max-w-md">
+          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full max-w-[14rem]">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
               <p className="text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
               </p>
             )}
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2">
               <span>Subtotal</span>
               <span className="tabular-nums">{formatCurrency(invoice.subtotal, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2">
               <span>VAT</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalVat, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2">
               <span>NHIL</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalNhil, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2">
               <span>GETFUND</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalGetFund, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4 font-medium border-t border-gray-200 pt-2">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2 font-medium border-t border-gray-200 pt-1">
               <span>Total Taxes</span>
               <span className="tabular-nums">{formatCurrency(totalTaxesAmount, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2">
               <span>Total Discount</span>
               <span className="tabular-nums">{formatCurrency(invoice.totalDiscount, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4 font-semibold">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2 font-semibold">
               <span>Grand Total</span>
               <span className="tabular-nums">{formatCurrency(invoice.grandTotal, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2">
               <span>Amount Paid</span>
               {isEditingPayment ? (
-                <div className="flex flex-col items-start gap-2 w-full max-w-md">
+                <div className="flex flex-col items-start gap-2 w-full max-w-[14rem]">
                   <div className="flex items-center gap-2 w-full">
                     <input
                       type="text"
@@ -824,7 +824,7 @@ const InvoiceDetail = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between w-full max-w-md gap-4 font-semibold">
+            <div className="flex items-center justify-between w-full max-w-[14rem] gap-2 font-semibold">
               <span>
                 {balanceDue > 0 
                   ? "Balance Due" 
