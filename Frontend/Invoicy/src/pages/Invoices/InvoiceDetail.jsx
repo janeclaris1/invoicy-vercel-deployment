@@ -730,8 +730,8 @@ const InvoiceDetail = () => {
               </a>
             )}
           </div>
-          {/* Right column: Subtotal, tax details, and GRA QR */}
-          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full max-w-[14rem]">
+          {/* Right column: Subtotal, tax details, and GRA QR — flush left in grid cell */}
+          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full max-w-[14rem] justify-self-start">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
               <p className="text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
@@ -842,8 +842,8 @@ const InvoiceDetail = () => {
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
             </div>
-            {/* GRA verification QR — right-aligned in this column */}
-            <div className="mt-4 flex w-full flex-col items-end">
+            {/* GRA verification QR — aligned with VAT block (left) */}
+            <div className="mt-4 flex w-full max-w-[14rem] flex-col items-start">
               {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
                 String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                   <img
