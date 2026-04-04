@@ -11,16 +11,13 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
-/** Values align vertically: fixed label column. One line per row; long values scroll horizontally. */
+/** Values align vertically: fixed label column. One line; no wrap/scroll — smaller type + truncate if still too long (full text in title). */
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="grid grid-cols-[9rem_minmax(0,1fr)] sm:grid-cols-[10.5rem_minmax(0,1fr)] gap-x-1 items-center text-[10px] sm:text-[11px] leading-snug min-w-0">
+    <div className="grid grid-cols-[8rem_minmax(0,1fr)] sm:grid-cols-[9.5rem_minmax(0,1fr)] gap-x-0.5 items-center min-w-0 text-[9px] sm:text-[10px] leading-none tracking-tight">
       <span className="font-medium whitespace-nowrap shrink-0">{label}</span>
-      <span
-        className="min-w-0 max-w-full whitespace-nowrap overflow-x-auto text-left [scrollbar-width:thin]"
-        title={display}
-      >
+      <span className="min-w-0 truncate text-left" title={display}>
         {display}
       </span>
     </div>
