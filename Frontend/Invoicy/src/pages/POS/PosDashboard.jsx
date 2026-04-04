@@ -85,6 +85,25 @@ function itemIdForApi(itemId) {
     return null;
 }
 
+/** Sort key: business invoice date first, then record dates, then ObjectId timestamp. */
+function getInvoiceSortTimeMs(inv) {
+    if (!inv || typeof inv !== "object") return 0;
+    const raw = inv.invoiceDate ?? inv.createdAt ?? inv.updatedAt;
+    if (raw != null && raw !== "") {
+        const t = new Date(raw).getTime();
+        if (Number.isFinite(t)) return t;
+    }
+    const id = inv._id;
+    if (id != null) {
+        const s = typeof id === "string" ? id : String(id);
+        if (/^[a-f\d]{24}$/i.test(s)) {
+            const ts = parseInt(s.slice(0, 8), 16) * 1000;
+            if (Number.isFinite(ts)) return ts;
+        }
+    }
+    return 0;
+}
+
 /** Data URL, absolute URL, or site-relative path → usable img src */
 function resolveItemImageSrc(raw) {
     if (raw == null) return null;
@@ -205,15 +224,15 @@ const PosDashboard = () => {
 
     const sortedAllInvoices = useMemo(() => {
         const arr = [...allInvoicesList];
-        const getT = (inv) => {
-            const d = inv.createdAt || inv.invoiceDate;
-            const t = d ? new Date(d).getTime() : 0;
-            return Number.isFinite(t) ? t : 0;
-        };
         arr.sort((a, b) => {
-            const ta = getT(a);
-            const tb = getT(b);
-            return allInvoicesDateSort === "newest" ? tb - ta : ta - tb;
+            const ta = getInvoiceSortTimeMs(a);
+            const tb = getInvoiceSortTimeMs(b);
+            if (ta !== tb) {
+                return allInvoicesDateSort === "newest" ? tb - ta : ta - tb;
+            }
+            const ida = String(a._id ?? "");
+            const idb = String(b._id ?? "");
+            return allInvoicesDateSort === "newest" ? idb.localeCompare(ida) : ida.localeCompare(idb);
         });
         return arr;
     }, [allInvoicesList, allInvoicesDateSort]);
@@ -966,17 +985,45 @@ const PosDashboard = () => {
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                                <label className="flex items-center gap-2 text-xs text-gray-600">
-                                    <span className="font-medium whitespace-nowrap">Sort by date</span>
-                                    <select
-                                        value={allInvoicesDateSort}
-                                        onChange={(e) => setAllInvoicesDateSort(e.target.value)}
-                                        className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900"
+                                <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+                                    Sort by date
+                                </span>
+                                <div
+                                    className="inline-flex rounded-lg border border-gray-300 bg-gray-50 p-0.5"
+                                    role="group"
+                                    aria-label="Sort invoices by date"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAllInvoicesDateSort("newest");
+                                        }}
+                                        aria-pressed={allInvoicesDateSort === "newest"}
+                                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                            allInvoicesDateSort === "newest"
+                                                ? "bg-white text-blue-950 shadow-sm ring-1 ring-gray-200"
+                                                : "text-gray-600 hover:text-gray-900"
+                                        }`}
                                     >
-                                        <option value="newest">Newest first</option>
-                                        <option value="oldest">Oldest first</option>
-                                    </select>
-                                </label>
+                                        Newest first
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAllInvoicesDateSort("oldest");
+                                        }}
+                                        aria-pressed={allInvoicesDateSort === "oldest"}
+                                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                            allInvoicesDateSort === "oldest"
+                                                ? "bg-white text-blue-950 shadow-sm ring-1 ring-gray-200"
+                                                : "text-gray-600 hover:text-gray-900"
+                                        }`}
+                                    >
+                                        Oldest first
+                                    </button>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={closeAllInvoicesModal}
