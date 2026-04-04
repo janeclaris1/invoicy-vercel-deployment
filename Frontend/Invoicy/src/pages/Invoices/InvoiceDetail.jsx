@@ -731,9 +731,9 @@ const InvoiceDetail = () => {
             )}
           </div>
           {/* Right column: Subtotal, tax details, and GRA QR */}
-          <div className="text-xs sm:text-[13px] space-y-2 flex flex-col items-start text-left w-full max-w-md">
+          <div className="text-[10px] sm:text-[11px] space-y-1.5 leading-tight flex flex-col items-start text-left w-full max-w-md">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
-              <p className="text-xs sm:text-[13px] text-gray-500 dark:text-gray-400 w-full text-left leading-snug">
+              <p className="text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
               </p>
             )}
@@ -779,7 +779,7 @@ const InvoiceDetail = () => {
                         let v = e.target.value.replace(",", ".");
                         if (v === "" || /^\d*\.?\d*$/.test(v)) setPaymentAmount(v);
                       }}
-                      className="min-w-[9rem] w-40 max-w-[12rem] flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
+                      className="min-w-[9rem] w-40 max-w-[12rem] flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-[11px] bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
                       placeholder="0.00"
                     />
                     <Button
@@ -805,7 +805,7 @@ const InvoiceDetail = () => {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="Add payment notes (optional)..."
-                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 resize-none"
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-[11px] bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 resize-none"
                     rows="2"
                   />
                 </div>
