@@ -11,13 +11,18 @@ import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
-/** Values align vertically: fixed label column. Spacing matches the tax summary column (space-y-1.5, text 10/11px). */
+/** Values align vertically: fixed label column. One line per row; long values scroll horizontally. */
 function EvatInfoRow({ label, value }) {
   const display = value == null || value === "" ? "—" : String(value);
   return (
-    <div className="grid grid-cols-[9rem_minmax(0,1fr)] sm:grid-cols-[10.5rem_minmax(0,1fr)] gap-x-1 items-start text-[10px] sm:text-[11px] leading-snug">
+    <div className="grid grid-cols-[9rem_minmax(0,1fr)] sm:grid-cols-[10.5rem_minmax(0,1fr)] gap-x-1 items-center text-[10px] sm:text-[11px] leading-snug min-w-0">
       <span className="font-medium whitespace-nowrap shrink-0">{label}</span>
-      <span className="min-w-0 break-all text-left">{display}</span>
+      <span
+        className="min-w-0 max-w-full whitespace-nowrap overflow-x-auto text-left [scrollbar-width:thin]"
+        title={display}
+      >
+        {display}
+      </span>
     </div>
   );
 }
