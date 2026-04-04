@@ -733,7 +733,7 @@ const InvoiceDetail = () => {
           {/* Right column: Subtotal, tax details, and GRA QR */}
           <div className="text-xs sm:text-[13px] space-y-2 flex flex-col items-start text-left w-full max-w-md">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 w-full text-left">
+              <p className="text-xs sm:text-[13px] text-gray-500 dark:text-gray-400 w-full text-left leading-snug">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
               </p>
             )}
