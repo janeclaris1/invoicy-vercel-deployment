@@ -511,11 +511,11 @@ const InvoiceDetail = () => {
 
       {/* Old UI (kept for functionality, hidden for visuals) */}
       <div className="bg-[#F5F5F5] flex justify-center items-start min-h-screen py-10 print:bg-white print:min-h-0 print:py-0">
-        <div className="bg-white max-w-[680px] w-full mx-auto p-12 shadow-md space-y-6 print:shadow-none print:p-0">
+        <div className="bg-white max-w-[680px] w-full mx-auto p-6 sm:p-8 shadow-md space-y-6 print:shadow-none print:p-0 text-[12px] sm:text-[13px] leading-snug text-black dark:text-black">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
-            <h1 className="text-2xl font-semibold text-black dark:text-black">Invoice Details</h1>
-            <p className="invoice-detail-subheading text-sm text-black dark:text-black flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-xl font-semibold text-black dark:text-black">Invoice Details</h1>
+            <p className="invoice-detail-subheading text-xs text-black dark:text-black flex items-center gap-2 flex-wrap">
               #{invoice.invoiceNumber}
               <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(invoice.type || "invoice") === "quotation" ? "bg-blue-100 text-blue-800 dark:bg-blue-100 dark:text-blue-800" : (invoice.type || "invoice") === "proforma" ? "bg-amber-100 text-amber-800 dark:bg-amber-100 dark:text-amber-800" : "bg-slate-100 text-slate-700 dark:bg-slate-100 dark:text-slate-700"}`}>
                 {(invoice.type || "invoice") === "quotation" ? "Quotation" : (invoice.type || "invoice") === "proforma" ? "Proforma" : "Invoice"}
@@ -559,7 +559,7 @@ const InvoiceDetail = () => {
         </div>
 
         <div className="invoice-print-container bg-transparent dark:bg-transparent border-0 p-0 print:border-0 print:shadow-none shadow-none text-black dark:text-black">
-        <div className="invoice-print-full">
+        <div className="invoice-print-full text-[12px] sm:text-[13px] leading-snug">
           {/* Logo centered at top */}
         {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
           <div className="invoice-logo-wrap flex justify-center mb-4">
@@ -573,15 +573,15 @@ const InvoiceDetail = () => {
 
         {/* Reference-style header inside the printable card */}
         <div className="text-center">
-          <div className="text-xl font-black tracking-widest text-center">
+          <div className="text-base sm:text-lg font-black tracking-widest text-center">
             {invoice.billFrom?.businessName || user?.businessName || "-"}
           </div>
-          <div className="text-xs text-gray-400 tracking-widest text-center">
+          <div className="text-[10px] sm:text-xs text-gray-400 tracking-widest text-center">
             {invoice.billFrom?.email || user?.email || "-"}
           </div>
-          <div className="mt-8 flex justify-center items-baseline">
-            <span className="text-6xl font-black">VAT </span>
-            <span className="text-6xl font-black italic font-serif">INVOICE</span>
+          <div className="mt-6 flex justify-center items-baseline">
+            <span className="text-3xl sm:text-4xl font-black">VAT </span>
+            <span className="text-3xl sm:text-4xl font-black italic font-serif">INVOICE</span>
           </div>
         </div>
 
@@ -600,75 +600,82 @@ const InvoiceDetail = () => {
                     BILL FROM
                   </div>
                 </td>
-                <td colSpan={2} className="px-1 py-2 text-right">
+                <td colSpan={2} className="px-1 py-2 text-left">
                   <div className="bg-[#4A9B8E] text-white text-[10px] font-bold uppercase px-3 py-1 inline-block">
                     BILL TO
                   </div>
                 </td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium">Customer Name:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words">{invoice.billTo?.clientName || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-right">Vendor:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-right">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
+                <td className="px-1 py-1.5 font-medium align-top">Customer Name:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.billTo?.clientName || "-"}</td>
+                <td className="px-1 py-1.5 font-medium text-left align-top">Vendor:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium">Customer TIN:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words">{invoice.billTo?.tin || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-right">Vendor TIN:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-right">{invoice.billFrom?.tin || user?.tin || "-"}</td>
+                <td className="px-1 py-1.5 font-medium align-top">Customer TIN:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.billTo?.tin || "-"}</td>
+                <td className="px-1 py-1.5 font-medium text-left align-top">Vendor TIN:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.tin || user?.tin || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium">Invoice No:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words">{invoice.invoiceNumber || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-right">Phone:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-right">{invoice.billFrom?.phone || user?.phone || "-"}</td>
+                <td className="px-1 py-1.5 font-medium align-top">Invoice No:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.invoiceNumber || "-"}</td>
+                <td className="px-1 py-1.5 font-medium text-left align-top">Phone:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.phone || user?.phone || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium">Invoice Date:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-right">Currency:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-right">{invoice.currency || userCurrency || "-"}</td>
+                <td className="px-1 py-1.5 font-medium align-top">Invoice Date:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
+                <td className="px-1 py-1.5 font-medium text-left align-top">Currency:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.currency || userCurrency || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium">Due Date:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-right">Served By:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-right">{user?.name || "-"}</td>
+                <td className="px-1 py-1.5 font-medium align-top">Due Date:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
+                <td className="px-1 py-1.5 font-medium text-left align-top">Served By:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{user?.name || "-"}</td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-medium">Address:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words">{invoice.billTo?.address || "-"}</td>
-                <td className="px-1 py-1.5 font-medium text-right">Address:</td>
-                <td className="px-1 py-1.5 whitespace-normal break-words text-right">{invoice.billFrom?.address || user?.address || "-"}</td>
+                <td className="px-1 py-1.5 font-medium align-top">Address:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words align-top">{invoice.billTo?.address || "-"}</td>
+                <td className="px-1 py-1.5 font-medium text-left align-top">Address:</td>
+                <td className="px-1 py-1.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.address || user?.address || "-"}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div className="mt-6 overflow-x-auto">
-          <table className="invoice-line-items-table w-full border-separate border-spacing-0">
+        <div className="mt-4 overflow-x-auto -mx-1 px-1">
+          <table className="invoice-line-items-table w-full min-w-[520px] table-fixed border-separate border-spacing-0 text-[11px] sm:text-[12px]">
+            <colgroup>
+              <col style={{ width: "2.25rem" }} />
+              <col />
+              <col style={{ width: "3rem" }} />
+              <col style={{ width: "5.75rem" }} />
+              <col style={{ width: "5.75rem" }} />
+            </colgroup>
             <thead className="bg-[#1A3263]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black border-b border-black">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black border-b border-black">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black border-b border-black">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-black border-b border-black">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-b border-black">Total</th>
+                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">#</th>
+                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">Description</th>
+                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">Qty</th>
+                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">Price</th>
+                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-b border-black">Total</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
               {lineItems.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-100 group transition-colors duration-150">
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.sn || index + 1}</td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
+                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.sn || index + 1}</td>
+                  <td className="px-2 py-2 align-top text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300 break-words min-w-0">
                     {item.description || item.itemDescription || "-"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.quantity || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
+                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.quantity ?? "-"}</td>
+                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
                     {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-black group-hover:text-black border-b border-gray-300">
+                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-b border-gray-300">
                     {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
                   </td>
                 </tr>
@@ -681,7 +688,7 @@ const InvoiceDetail = () => {
         <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-transparent dark:bg-transparent text-black dark:text-black rounded-xl p-0 dark:p-0">
           {/* Left column: Notes */}
           <div className="flex flex-col gap-4">
-            <div className="text-sm">
+            <div className="text-xs sm:text-[13px]">
               <div>Notes: {invoice.notes || "-"}</div>
               <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
             </div>
@@ -723,45 +730,45 @@ const InvoiceDetail = () => {
               </a>
             )}
           </div>
-          {/* Right column: Subtotal, tax details, and GRA QR (bottom right like GRA sample) */}
-          <div className="text-sm space-y-2 flex flex-col items-end">
+          {/* Right column: Subtotal, tax details, and GRA QR */}
+          <div className="text-xs sm:text-[13px] space-y-2 flex flex-col items-start text-left w-full max-w-md">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 w-full max-w-xs text-right">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
               </p>
             )}
-            <div className="flex items-center justify-between w-full max-w-xs gap-4">
+            <div className="flex items-center justify-between w-full max-w-md gap-4">
               <span>Subtotal</span>
-              <span>{formatCurrency(invoice.subtotal, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(invoice.subtotal, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4">
+            <div className="flex items-center justify-between w-full max-w-md gap-4">
               <span>VAT</span>
-              <span>{formatCurrency(invoice.totalVat, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalVat, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4">
+            <div className="flex items-center justify-between w-full max-w-md gap-4">
               <span>NHIL</span>
-              <span>{formatCurrency(invoice.totalNhil, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalNhil, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4">
+            <div className="flex items-center justify-between w-full max-w-md gap-4">
               <span>GETFUND</span>
-              <span>{formatCurrency(invoice.totalGetFund, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalGetFund, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4 font-medium border-t border-gray-200 pt-2">
+            <div className="flex items-center justify-between w-full max-w-md gap-4 font-medium border-t border-gray-200 pt-2">
               <span>Total Taxes</span>
-              <span>{formatCurrency(totalTaxesAmount, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(totalTaxesAmount, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4">
+            <div className="flex items-center justify-between w-full max-w-md gap-4">
               <span>Total Discount</span>
-              <span>{formatCurrency(invoice.totalDiscount, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(invoice.totalDiscount, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4 font-semibold">
+            <div className="flex items-center justify-between w-full max-w-md gap-4 font-semibold">
               <span>Grand Total</span>
-              <span>{formatCurrency(invoice.grandTotal, userCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(invoice.grandTotal, userCurrency)}</span>
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4">
+            <div className="flex items-center justify-between w-full max-w-md gap-4">
               <span>Amount Paid</span>
               {isEditingPayment ? (
-                <div className="flex flex-col items-end gap-2 w-full max-w-xs">
+                <div className="flex flex-col items-start gap-2 w-full max-w-md">
                   <div className="flex items-center gap-2 w-full">
                     <input
                       type="text"
@@ -804,7 +811,7 @@ const InvoiceDetail = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span>{formatCurrency(invoice.amountPaid || 0, userCurrency)}</span>
+                  <span className="tabular-nums">{formatCurrency(invoice.amountPaid || 0, userCurrency)}</span>
                   <Button
                     size="small"
                     variant="secondary"
@@ -817,7 +824,7 @@ const InvoiceDetail = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between w-full max-w-xs gap-4 font-semibold">
+            <div className="flex items-center justify-between w-full max-w-md gap-4 font-semibold">
               <span>
                 {balanceDue > 0 
                   ? "Balance Due" 
@@ -825,18 +832,18 @@ const InvoiceDetail = () => {
                   ? "Credit Balance (Refund Due)" 
                   : "Fully Paid"}
               </span>
-              <span className={
+              <span className={`tabular-nums ${
                 balanceDue > 0 
                   ? "text-red-600 dark:text-red-600" 
                   : balanceDue < 0 
                   ? "text-blue-600 dark:text-blue-600" 
                   : "text-emerald-600 dark:text-emerald-600"
-              }>
+              }`}>
                 {formatCurrency(Math.abs(balanceDue), userCurrency)}
               </span>
             </div>
-            {/* GRA verification QR – bottom right (like GRA sample invoice) */}
-            <div className="mt-4 flex flex-col items-end">
+            {/* GRA verification QR */}
+            <div className="mt-4 flex flex-col items-start">
               {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
                 String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                   <img
