@@ -47,7 +47,7 @@ function graQrImgTag(invoice) {
     } else {
         src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(s)}`;
     }
-    return `<div class="c gra-qr"><img src="${escapeHtml(src)}" alt="GRA QR" width="96" height="96" style="width:96px;height:96px;object-fit:contain;display:inline-block" /></div>`;
+    return `<div class="gra-qr"><img src="${escapeHtml(src)}" alt="E-VAT QR" width="96" height="96" style="width:96px;height:96px;object-fit:contain;display:inline-block" /></div>`;
 }
 
 function formatGraDate(d) {
@@ -83,8 +83,7 @@ function buildGraSectionHtml(invoice) {
 
     const sig = invoice.graReceiptSignature ? String(invoice.graReceiptSignature).trim() : "";
     if (sig) {
-        const short = sig.length > 72 ? `${sig.slice(0, 70)}…` : sig;
-        rows.push({ label: "Signature", value: short });
+        rows.push({ label: "Signature", value: sig });
     }
 
     const linesHtml = rows
@@ -96,8 +95,8 @@ function buildGraSectionHtml(invoice) {
 
     const qrHtml = graQrImgTag(invoice);
 
-    return `<div class="dash small gra-block">
-  <div class="bold c" style="margin-bottom:6px;letter-spacing:0.04em">GRA / E-VAT</div>
+    return `<div class="small gra-block">
+  <div class="bold gra-evat-title">Evat verification details</div>
   ${linesHtml}
   ${qrHtml}
 </div>`;
@@ -153,9 +152,11 @@ export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
   .dash { border-bottom: 1px dashed #666; padding-bottom: 8px; margin-bottom: 8px; margin-top: 8px; }
   .tot { display:flex; justify-content:space-between; font-size:10px; margin: 3px 0; }
   .tot.total { font-weight:700; border-top: 1px solid #555; padding-top: 6px; margin-top: 6px; }
-  .gra-block { word-break: break-word; }
-  .gra-row { margin: 4px 0; line-height: 1.3; }
+  .gra-block { text-align: left; margin-top: 8px; }
+  .gra-evat-title { text-align: left; margin-bottom: 6px; letter-spacing: 0.04em; font-size: 10px; }
+  .gra-row { margin: 4px 0; line-height: 1.3; white-space: nowrap; }
   .gra-val { font-weight: 400; }
+  .gra-qr { text-align: left; margin-top: 6px; }
   @media print {
     html, body { padding: 8px; width: 72mm; max-width: 72mm; }
   }

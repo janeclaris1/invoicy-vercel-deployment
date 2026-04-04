@@ -679,19 +679,32 @@ const InvoiceDetail = () => {
               invoice.graMrc ||
               invoice.graReceiptDateTime ||
               invoice.graLineItemCount != null) && (
-              <div className="text-xs text-black dark:text-black border border-slate-200 rounded-lg p-3 bg-white/60">
-                <div className="font-semibold mb-2">GRA E‑VAT Details</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                  <div><span className="font-medium">SDC ID:</span> {invoice.graSdcId || "-"}</div>
-                  <div><span className="font-medium">RECEIPT NUMBER:</span> {invoice.graReceiptNumber || "-"}</div>
-                  <div className="sm:col-span-2"><span className="font-medium">INTERNAL DATA:</span> {invoice.graVerificationCode || "-"}</div>
-                  <div className="sm:col-span-2 break-all"><span className="font-medium">SIGNATURE:</span> {invoice.graReceiptSignature || "-"}</div>
-                  <div><span className="font-medium">MRC:</span> {invoice.graMrc || "-"}</div>
-                  <div>
+              <div className="text-xs text-black dark:text-black text-left">
+                <div className="font-semibold mb-2">Evat verification details</div>
+                <div className="space-y-1 overflow-x-auto max-w-full">
+                  <div className="whitespace-nowrap">
+                    <span className="font-medium">SDC ID:</span> {invoice.graSdcId || "-"}
+                  </div>
+                  <div className="whitespace-nowrap">
+                    <span className="font-medium">RECEIPT NUMBER:</span> {invoice.graReceiptNumber || "-"}
+                  </div>
+                  <div className="whitespace-nowrap">
+                    <span className="font-medium">INTERNAL DATA:</span> {invoice.graVerificationCode || "-"}
+                  </div>
+                  <div className="whitespace-nowrap">
+                    <span className="font-medium">SIGNATURE:</span> {invoice.graReceiptSignature || "-"}
+                  </div>
+                  <div className="whitespace-nowrap">
+                    <span className="font-medium">MRC:</span> {invoice.graMrc || "-"}
+                  </div>
+                  <div className="whitespace-nowrap">
                     <span className="font-medium">DATE &amp; TIME:</span>{" "}
                     {invoice.graReceiptDateTime ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A") : "-"}
                   </div>
-                  <div><span className="font-medium">LINE‑ITEM COUNT:</span> {invoice.graLineItemCount != null ? invoice.graLineItemCount : "-"}</div>
+                  <div className="whitespace-nowrap">
+                    <span className="font-medium">LINE‑ITEM COUNT:</span>{" "}
+                    {invoice.graLineItemCount != null ? invoice.graLineItemCount : "-"}
+                  </div>
                 </div>
               </div>
             )}
