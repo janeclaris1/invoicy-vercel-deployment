@@ -684,10 +684,10 @@ const InvoiceDetail = () => {
           </table>
         </div>
 
-        {/* Column 1: VAT summary + QR (flush left) | Column 2: Notes + EVAT */}
+        {/* Column 1: EVAT details (left) | Column 2: payment details + QR (right) */}
         <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-transparent dark:bg-transparent text-black dark:text-black rounded-xl p-0 dark:p-0">
-          {/* Left column: Subtotal, tax details, and GRA QR — extreme left of card */}
-          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full min-w-0 max-w-[14rem] justify-self-start">
+          {/* Right column: Subtotal, tax details, and GRA QR */}
+          <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full min-w-0 max-w-[14rem] justify-self-start md:order-2 print:order-2 md:justify-self-end print:justify-self-end">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (
               <p className="text-gray-500 dark:text-gray-400 w-full text-left">
                 {invoice.vatScenario === "exclusive" ? "VAT exclusive" : "VAT inclusive"}
@@ -829,6 +829,13 @@ const InvoiceDetail = () => {
                 />
               )}
             </div>
+          </div>
+          {/* Left column: Notes + EVAT */}
+          <div className="flex flex-col gap-4 min-w-0 md:order-1 print:order-1">
+            <div className="text-xs sm:text-[13px]">
+              <div>Notes: {invoice.notes || "-"}</div>
+              <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
+            </div>
             {(invoice.graSdcId ||
               invoice.graReceiptNumber ||
               invoice.graVerificationCode ||
@@ -836,7 +843,7 @@ const InvoiceDetail = () => {
               invoice.graMrc ||
               invoice.graReceiptDateTime ||
               invoice.graLineItemCount != null) && (
-              <div className="mt-4 text-black dark:text-black text-left min-w-0 max-w-full">
+              <div className="text-black dark:text-black text-left min-w-0 max-w-full">
                 <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
                   EVAT RECEIPT INFORMATION
                 </div>
@@ -859,20 +866,13 @@ const InvoiceDetail = () => {
                     value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
                   />
                 </div>
-                {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
-                  <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs underline opacity-90 hover:opacity-100">
-                    Verify on GRA portal →
-                  </a>
-                )}
               </div>
             )}
-          </div>
-          {/* Right column: Notes + EVAT */}
-          <div className="flex flex-col gap-4 min-w-0">
-            <div className="text-xs sm:text-[13px]">
-              <div>Notes: {invoice.notes || "-"}</div>
-              <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
-            </div>
+            {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
+              <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
+                Verify on GRA portal →
+              </a>
+            )}
           </div>
         </div>
 
