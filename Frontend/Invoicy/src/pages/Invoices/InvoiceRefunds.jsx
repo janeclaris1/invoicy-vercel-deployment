@@ -47,12 +47,16 @@ const InvoiceRefunds = () => {
     const loadInvoice = async () => {
       if (!selectedInvoiceId) {
         setSelectedInvoice(null);
+        setRefundReference("");
         return;
       }
       setLoadingInvoiceDetails(true);
       try {
         const res = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(selectedInvoiceId));
-        setSelectedInvoice(res.data || null);
+        const inv = res.data || null;
+        setSelectedInvoice(inv);
+        const suggestedReference = String(inv?.graReceiptNumber || "").trim();
+        setRefundReference((prev) => (String(prev || "").trim() ? prev : suggestedReference));
       } catch (err) {
         setSelectedInvoice(null);
         toast.error(err?.response?.data?.message || "Failed to load selected invoice.");
@@ -89,6 +93,16 @@ const InvoiceRefunds = () => {
     }
     if (!selectedInvoice.invoiceNumber) {
       toast.error("Invoice number is required for refund submission.");
+      return;
+    }
+    const graReceiptReference = String(selectedInvoice.graReceiptNumber || "").trim();
+    if (!graReceiptReference) {
+      toast.error("This invoice has no GRA receipt reference. Submit the invoice to GRA first, then refund.");
+      return;
+    }
+    const effectiveReference = String(refundReference || graReceiptReference).trim();
+    if (!effectiveReference || effectiveReference !== graReceiptReference) {
+      toast.error("Reference must match the original GRA receipt number for this invoice.");
       return;
     }
     if (refundType === "PARTIAL" && refundFactor <= 0) {
@@ -150,7 +164,7 @@ const InvoiceRefunds = () => {
       discountType: "GENERAL",
       taxType: "STANDARD",
       discountAmount: round2(Number(selectedInvoice.totalDiscount || 0) * factor),
-      reference: String(refundReference || "").slice(0, 50),
+      reference: effectiveReference.slice(0, 50),
       groupReferenceId: "",
       purchaseOrderReference: "",
       items: payloadItems,
@@ -278,14 +292,17 @@ const InvoiceRefunds = () => {
                 </div>
               )}
               <div className="md:col-span-2">
-                <label className="mb-1 block text-xs font-medium text-gray-700">Reference (optional)</label>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Reference (required)</label>
                 <input
                   type="text"
                   value={refundReference}
                   onChange={(e) => setRefundReference(e.target.value)}
-                  placeholder="Reason or reference"
+                  placeholder="Auto-filled from GRA receipt number"
                   className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
                 />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Must match the original GRA receipt number for this invoice.
+                </p>
               </div>
             </div>
 
