@@ -9,6 +9,7 @@ import { formatCurrency } from "../../utils/helper";
 import Button from "../../components/ui/Button";
 
 const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
+const looksLikeObjectId = (v) => /^[a-f\d]{24}$/i.test(String(v || "").trim());
 
 const InvoiceRefunds = () => {
   const { user } = useAuth();
@@ -121,8 +122,13 @@ const InvoiceRefunds = () => {
         const qty = Number(item.quantity) || 0;
         const scaledQty = round2(qty * factor);
         const unitPrice = round2(Number(item.unitPrice ?? item.itemPrice ?? 0));
+        const rawCandidateCode = String(item.itemCode || item.sku || "").trim();
+        // GRA rejects Mongo IDs as itemCode (E812/E818). Use stable ITEM-N fallback like invoice submission.
+        const safeItemCode = rawCandidateCode && !looksLikeObjectId(rawCandidateCode)
+          ? rawCandidateCode
+          : `ITEM-${idx + 1}`;
         return {
-          itemCode: String(item.itemCode || item.catalogId || item.itemId || `ITEM-${idx + 1}`),
+          itemCode: safeItemCode,
           itemCategory: String(item.itemCategory || ""),
           expireDate: item.expireDate ? String(item.expireDate) : "",
           description: String(item.description || item.itemDescription || `Item ${idx + 1}`),
