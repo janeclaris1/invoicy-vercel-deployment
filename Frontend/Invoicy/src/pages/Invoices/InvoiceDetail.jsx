@@ -581,7 +581,7 @@ const InvoiceDetail = () => {
           </div>
           <div className="mt-6 flex justify-center items-baseline">
             <span className="text-3xl sm:text-4xl font-black">VAT </span>
-            <span className="text-3xl sm:text-4xl font-black italic font-serif">INVOICE</span>
+            <span className="text-3xl sm:text-4xl font-black italic font-serif">QICKBILL</span>
           </div>
         </div>
 
