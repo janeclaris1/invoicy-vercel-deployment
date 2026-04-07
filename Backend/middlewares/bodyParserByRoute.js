@@ -13,6 +13,7 @@ function useLargeBodyParser(req) {
     const p = (req.originalUrl || req.url || "").split("?")[0];
     if (/^\/api\/items(\/|$)/.test(p)) return true;
     if (/^\/api\/invoices(\/|$)/.test(p)) return true;
+    if (/^\/api\/ai(\/|$)/.test(p)) return true;
     if (/^\/api\/auth\/me$/.test(p)) return true;
     return false;
 }

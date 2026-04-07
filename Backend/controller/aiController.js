@@ -124,7 +124,7 @@ Extract the data and provide ONLY the JSON object. Do not add any explanation or
 };
 
 const parseInvoiceFromImage = async (req, res) => {
-    const { imageBase64, mimeType } = req.body || {};
+    const { imageBase64, mimeType, itemsList } = req.body || {};
 
     if (!imageBase64 || typeof imageBase64 !== 'string') {
         return res.status(400).json({ message: 'imageBase64 is required' });
@@ -132,9 +132,38 @@ const parseInvoiceFromImage = async (req, res) => {
 
     const normalizedMime = mimeType || 'image/png';
     const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '').trim();
+    const hasItemList = Array.isArray(itemsList) && itemsList.length > 0;
+    const validIds = hasItemList ? itemsList.map((i) => String(i.id || i._id || '')).filter(Boolean) : [];
 
     try {
-        const prompt = `
+        let prompt;
+        if (hasItemList) {
+            const itemsDesc = itemsList.map((i) => `- id: "${i.id || i._id}" name: "${i.name || ''}" price: ${i.price ?? 0}`).join('\n');
+            prompt = `
+You are an expert invoice data extraction AI. Analyze the provided image and extract invoice details.
+
+The user can ONLY bill products from this list. Do not invent products.
+AVAILABLE PRODUCTS (use only these):
+${itemsDesc}
+
+Rules:
+- For each line item in the image, pick the BEST MATCHING product from the list above by name (or description).
+- Return only the matched product "id" and quantity.
+- If an item in the image does not match any product in the list, OMIT it.
+- Output MUST be valid JSON only, no markdown or explanation.
+
+Output shape:
+{
+  "clientName": "string (from image)",
+  "clientEmail": "string or empty",
+  "address": "string or empty",
+  "items": [
+    { "itemId": "string (must be one of the ids from the list)", "quantity": number }
+  ]
+}
+`;
+        } else {
+            prompt = `
 You are an expert invoice data extraction AI. Analyze the provided invoice image and extract the relevant information to create an invoice.
 The output MUST be a valid JSON object in this shape:
 {
@@ -151,6 +180,7 @@ The output MUST be a valid JSON object in this shape:
 }
 Return ONLY the JSON object. Do not add any explanation or markdown formatting. If any fields are missing, output an empty string, empty array or null as appropriate.
 `;
+        }
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent([
@@ -181,6 +211,18 @@ Return ONLY the JSON object. Do not add any explanation or markdown formatting. 
                 message: "AI output did not match expected structure.",
                 ai_output: parsedData,
             });
+        }
+
+        if (hasItemList) {
+            parsedData.items = parsedData.items.filter(
+                (line) => line && validIds.includes(String(line.itemId))
+            );
+            if (parsedData.items.length === 0) {
+                return res.status(422).json({
+                    message: "No line items could be matched to your product list. Add products in Items first, or use a clearer image that contains those product names.",
+                    ai_output: parsedData
+                });
+            }
         }
 
         res.status(200).json(parsedData);
