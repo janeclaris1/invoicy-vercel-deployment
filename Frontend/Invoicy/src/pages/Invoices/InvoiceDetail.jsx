@@ -829,13 +829,6 @@ const InvoiceDetail = () => {
                 />
               )}
             </div>
-          </div>
-          {/* Right column: Notes + EVAT */}
-          <div className="flex flex-col gap-4 min-w-0">
-            <div className="text-xs sm:text-[13px]">
-              <div>Notes: {invoice.notes || "-"}</div>
-              <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
-            </div>
             {(invoice.graSdcId ||
               invoice.graReceiptNumber ||
               invoice.graVerificationCode ||
@@ -843,7 +836,7 @@ const InvoiceDetail = () => {
               invoice.graMrc ||
               invoice.graReceiptDateTime ||
               invoice.graLineItemCount != null) && (
-              <div className="text-black dark:text-black text-left min-w-0 max-w-full">
+              <div className="mt-4 text-black dark:text-black text-left min-w-0 max-w-full">
                 <div className="text-[11px] sm:text-xs font-semibold mb-1.5 underline underline-offset-2 decoration-black dark:decoration-black tracking-wide">
                   EVAT RECEIPT INFORMATION
                 </div>
@@ -866,13 +859,20 @@ const InvoiceDetail = () => {
                     value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
                   />
                 </div>
+                {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
+                  <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs underline opacity-90 hover:opacity-100">
+                    Verify on GRA portal →
+                  </a>
+                )}
               </div>
             )}
-            {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
-              <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
-                Verify on GRA portal →
-              </a>
-            )}
+          </div>
+          {/* Right column: Notes + EVAT */}
+          <div className="flex flex-col gap-4 min-w-0">
+            <div className="text-xs sm:text-[13px]">
+              <div>Notes: {invoice.notes || "-"}</div>
+              <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
+            </div>
           </div>
         </div>
 
