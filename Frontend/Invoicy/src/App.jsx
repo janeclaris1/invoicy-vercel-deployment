@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import AllInvoices from "./pages/Invoices/AllInvoices";
 import CreateInvoice from "./pages/Invoices/CreateInvoice";
 import InvoiceDetail from "./pages/Invoices/InvoiceDetail";
+import InvoiceRefunds from "./pages/Invoices/InvoiceRefunds";
 import ProfilePage from "./pages/Profile/profilepage";
 import Settings from "./pages/Settings/Settings";
 import Support from "./pages/Support/Support";
@@ -145,6 +146,7 @@ const App = () => {
             <Route path="clients" element={<Clients />} />
             <Route path="checkout" element={<Checkout />} />
             <Route path="invoices" element={<AllInvoices />} />
+            <Route path="invoices/refunds" element={<InvoiceRefunds />} />
             <Route path="quotations" element={<AllInvoices typeFilter="quotation" />} />
             <Route path="sales/pos" element={<PosSalesPage />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
