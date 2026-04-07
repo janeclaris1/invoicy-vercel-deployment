@@ -38,6 +38,10 @@ const InvoiceDetail = () => {
   const [saving, setSaving] = useState(false);
   const [convertLoading, setConvertLoading] = useState(false);
   const [graSubmitting, setGraSubmitting] = useState(false);
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundType, setRefundType] = useState("FULL");
+  const [partialRefundPercent, setPartialRefundPercent] = useState("50");
+  const [refundReference, setRefundReference] = useState("");
 
   const fetchInvoice = useCallback(async () => {
     if (!id) return;
@@ -116,6 +120,18 @@ const InvoiceDetail = () => {
       Number(invoice.totalGetFund || 0)
     );
   }, [invoice]);
+
+  const refundFactor = useMemo(() => {
+    if (refundType === "FULL") return 1;
+    const raw = parseFloat(String(partialRefundPercent || "").replace(",", "."));
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(100, raw)) / 100;
+  }, [refundType, partialRefundPercent]);
+
+  const refundPreviewAmount = useMemo(() => {
+    if (!invoice) return 0;
+    return Math.round((Number(invoice.grandTotal || 0) * refundFactor) * 100) / 100;
+  }, [invoice, refundFactor]);
 
   const handlePrintInvoice = () => {
     document.body.classList.remove("invoice-print-pos-receipt");
@@ -278,6 +294,100 @@ const InvoiceDetail = () => {
       toast.error(msg);
     } finally {
       setGraSubmitting(false);
+    }
+  };
+
+  const handleSubmitRefundToGRA = async () => {
+    if (!invoice || !id) return;
+    const invType = (invoice.type || "invoice").toLowerCase();
+    if (invType !== "invoice") {
+      toast.error("Refund is only available for tax invoices.");
+      return;
+    }
+    if (!invoice.invoiceNumber) {
+      toast.error("Invoice number is required for refund submission.");
+      return;
+    }
+    if (refundType === "PARTIAL" && refundFactor <= 0) {
+      toast.error("Enter a partial refund percentage greater than 0.");
+      return;
+    }
+
+    const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
+    const calculationType = String(invoice.vatScenario || user?.graVatScenario || "inclusive").toUpperCase() === "EXCLUSIVE"
+      ? "EXCLUSIVE"
+      : "INCLUSIVE";
+    const leviesTotal = Number(invoice.totalNhil || 0) + Number(invoice.totalGetFund || 0);
+    const factor = refundType === "FULL" ? 1 : refundFactor;
+
+    const payloadItems = (lineItems || [])
+      .map((item, idx) => {
+        const qty = Number(item.quantity) || 0;
+        const scaledQty = round2(qty * factor);
+        const unitPrice = round2(Number(item.unitPrice ?? item.itemPrice ?? 0));
+        return {
+          itemCode: String(item.itemCode || item.catalogId || item.itemId || `ITEM-${idx + 1}`),
+          itemCategory: String(item.itemCategory || ""),
+          expireDate: item.expireDate ? String(item.expireDate) : "",
+          description: String(item.description || item.itemDescription || `Item ${idx + 1}`),
+          quantity: scaledQty,
+          levyAmountA: round2(Number(item.levyAmountA || 0) * factor),
+          levyAmountB: round2(Number(item.levyAmountB || 0) * factor),
+          levyAmountC: round2(Number(item.levyAmountC || 0) * factor),
+          levyAmountD: round2(Number(item.levyAmountD || 0) * factor),
+          levyAmountE: round2(Number(item.levyAmountE || 0) * factor),
+          discountAmount: round2(Number(item.discountAmount || 0) * factor),
+          exciseAmount: round2(Number(item.exciseAmount || 0) * factor),
+          batchCode: String(item.batchCode || ""),
+          unitPrice,
+        };
+      })
+      .filter((i) => i.quantity > 0);
+
+    if (payloadItems.length === 0) {
+      toast.error("No refundable line items found.");
+      return;
+    }
+
+    const payload = {
+      currency: String(invoice.currency || userCurrency || "GHS"),
+      exchangeRate: Number(invoice.exchangeRate || 1),
+      invoiceNumber: String(invoice.invoiceNumber),
+      totalLevy: round2(leviesTotal * factor),
+      userName: String(user?.name || user?.fullName || user?.businessName || invoice.billFrom?.businessName || ""),
+      flag: "REFUND",
+      calculationType,
+      totalVat: round2(Number(invoice.totalVat || 0) * factor),
+      transactionDate: new Date().toISOString(),
+      totalAmount: round2(Number(invoice.grandTotal || 0) * factor),
+      totalExciseAmount: 0,
+      voucherAmount: 0,
+      businessPartnerName: String(invoice.billTo?.clientName || "Cash Customer"),
+      businessPartnerTin: String(invoice.billTo?.tin || "C0000000000"),
+      saleType: "NORMAL",
+      discountType: "GENERAL",
+      discountAmount: round2(Number(invoice.totalDiscount || 0) * factor),
+      reference: String(refundReference || "").slice(0, 50),
+      groupReferenceId: "",
+      purchaseOrderReference: "",
+      items: payloadItems,
+    };
+
+    setRefundSubmitting(true);
+    try {
+      await graApi.invoice(payload);
+      toast.success(`${refundType === "FULL" ? "Full" : "Partial"} refund submitted to GRA.`);
+    } catch (err) {
+      const res = err?.response?.data;
+      let msg =
+        res?.message ||
+        (err?.response?.status === 502 ? "GRA could not process the refund. Check payload and credentials." : null) ||
+        err?.message ||
+        "Failed to submit refund to GRA.";
+      if (res?.graStatus != null) msg += ` (GRA status: ${res.graStatus})`;
+      toast.error(msg);
+    } finally {
+      setRefundSubmitting(false);
     }
   };
 
@@ -1027,6 +1137,70 @@ const InvoiceDetail = () => {
         </div>
         </div>
         
+        {/* GRA Refund UI */}
+        <div className="mt-5 no-print rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-black">GRA Invoice Refund</div>
+              <p className="text-xs text-gray-600">
+                Submit a full or partial refund transaction to GRA for this invoice.
+              </p>
+            </div>
+            <div className="text-xs text-gray-700">
+              Refund preview: <span className="font-semibold">{formatCurrency(refundPreviewAmount, userCurrency)}</span>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-1">
+              <label className="mb-1 block text-xs font-medium text-gray-700">Refund Type</label>
+              <select
+                value={refundType}
+                onChange={(e) => setRefundType(e.target.value)}
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
+              >
+                <option value="FULL">Full Refund</option>
+                <option value="PARTIAL">Partial Refund</option>
+              </select>
+            </div>
+            {refundType === "PARTIAL" && (
+              <div className="md:col-span-1">
+                <label className="mb-1 block text-xs font-medium text-gray-700">Partial %</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={partialRefundPercent}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(",", ".");
+                    if (v === "" || /^\d*\.?\d*$/.test(v)) setPartialRefundPercent(v);
+                  }}
+                  placeholder="e.g. 25"
+                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
+                />
+              </div>
+            )}
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-gray-700">Reference (optional)</label>
+              <input
+                type="text"
+                value={refundReference}
+                onChange={(e) => setRefundReference(e.target.value)}
+                placeholder="Reason or reference"
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
+              />
+            </div>
+          </div>
+          <div className="mt-3">
+            <Button
+              onClick={handleSubmitRefundToGRA}
+              disabled={refundSubmitting}
+              className="flex items-center gap-2"
+            >
+              {refundSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+              Submit Refund to GRA
+            </Button>
+          </div>
+        </div>
+
         {/* Print button at bottom - slate fill, no border */}
         <div className="flex flex-col items-start no-print mt-6 gap-3 w-full">
           <div className="flex flex-wrap items-center justify-start gap-2 w-full">
