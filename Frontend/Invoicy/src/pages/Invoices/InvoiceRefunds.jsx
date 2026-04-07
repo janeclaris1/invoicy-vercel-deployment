@@ -127,11 +127,14 @@ const InvoiceRefunds = () => {
         const safeItemCode = rawCandidateCode && !looksLikeObjectId(rawCandidateCode)
           ? rawCandidateCode
           : `ITEM-${idx + 1}`;
+        // Keep description format aligned with submit-invoice flow (non-empty, max 100 chars).
+        const rawDescription = String(item.description || item.itemDescription || "").trim();
+        const safeDescription = rawDescription.slice(0, 100);
         return {
           itemCode: safeItemCode,
           itemCategory: String(item.itemCategory || ""),
           expireDate: item.expireDate ? String(item.expireDate) : "",
-          description: String(item.description || item.itemDescription || `Item ${idx + 1}`),
+          description: safeDescription,
           quantity: scaledQty,
           levyAmountA: round2(Number(item.levyAmountA || 0) * factor),
           levyAmountB: round2(Number(item.levyAmountB || 0) * factor),
@@ -144,7 +147,7 @@ const InvoiceRefunds = () => {
           unitPrice,
         };
       })
-      .filter((i) => i.quantity > 0);
+      .filter((i) => i.quantity > 0 && i.description);
 
     if (payloadItems.length === 0) {
       toast.error("No refundable line items found.");
