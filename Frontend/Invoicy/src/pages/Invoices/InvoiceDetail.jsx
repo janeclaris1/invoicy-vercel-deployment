@@ -511,7 +511,7 @@ const InvoiceDetail = () => {
 
       {/* Old UI (kept for functionality, hidden for visuals) */}
       <div className="bg-[#F5F5F5] flex justify-center items-start min-h-screen py-10 print:bg-white print:min-h-0 print:py-0">
-        <div className="bg-white max-w-3xl w-full mx-auto p-6 sm:p-9 shadow-md space-y-6 print:shadow-none print:p-0 text-[13px] sm:text-[14px] leading-snug text-black dark:text-black">
+        <div className="invoice-print-card bg-white max-w-3xl w-full mx-auto p-6 sm:p-9 shadow-md space-y-6 print:shadow-none print:p-0 text-[13px] sm:text-[14px] leading-snug text-black dark:text-black">
         <div className="flex items-center justify-between print:hidden">
           <div className="invoice-detail-page-header">
             <h1 className="text-lg sm:text-xl font-semibold text-black dark:text-black">Invoice Details</h1>

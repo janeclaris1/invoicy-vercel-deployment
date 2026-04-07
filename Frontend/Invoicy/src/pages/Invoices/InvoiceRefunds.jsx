@@ -26,6 +26,19 @@ const InvoiceRefunds = () => {
   const [refundReference, setRefundReference] = useState("");
   const [cancelReference, setCancelReference] = useState("");
   const [cancellationSubmitting, setCancellationSubmitting] = useState(false);
+  const [itemsCatalog, setItemsCatalog] = useState([]);
+
+  useEffect(() => {
+    const loadItemsCatalog = async () => {
+      try {
+        const res = await axiosInstance.get(API_PATHS.ITEMS.GET_ALL);
+        setItemsCatalog(Array.isArray(res.data) ? res.data : []);
+      } catch {
+        setItemsCatalog([]);
+      }
+    };
+    loadItemsCatalog();
+  }, []);
 
   useEffect(() => {
     const loadInvoices = async () => {
@@ -75,6 +88,17 @@ const InvoiceRefunds = () => {
     return [];
   }, [selectedInvoice]);
 
+  const skuByCatalogId = useMemo(() => {
+    const m = new Map();
+    for (const it of itemsCatalog) {
+      const id = it?._id || it?.id;
+      if (!id) continue;
+      const sku = String(it.sku || "").trim();
+      if (sku) m.set(String(id), sku);
+    }
+    return m;
+  }, [itemsCatalog]);
+
   const refundFactor = useMemo(() => {
     if (refundType === "FULL") return 1;
     const raw = parseFloat(String(partialRefundPercent || "").replace(",", "."));
@@ -122,11 +146,14 @@ const InvoiceRefunds = () => {
         const qty = Number(item.quantity) || 0;
         const scaledQty = round2(qty * factor);
         const unitPrice = round2(Number(item.unitPrice ?? item.itemPrice ?? 0));
-        const rawCandidateCode = String(item.itemCode || item.sku || "").trim();
-        // GRA rejects Mongo IDs as itemCode (E812/E818). Use stable ITEM-N fallback like invoice submission.
-        const safeItemCode = rawCandidateCode && !looksLikeObjectId(rawCandidateCode)
-          ? rawCandidateCode
-          : `ITEM-${idx + 1}`;
+        const catalogId = item.itemId || item.catalogId;
+        const skuFromCatalog = catalogId ? skuByCatalogId.get(String(catalogId)) : "";
+        // GRA itemCode for refunds must be the product SKU (from Items catalog when line only has itemId).
+        const sku = String(item.sku || skuFromCatalog || "").trim();
+        if (!sku || looksLikeObjectId(sku)) {
+          return { _invalidSku: true };
+        }
+        const safeItemCode = sku;
         // Keep description format aligned with submit-invoice flow (non-empty, max 100 chars).
         const rawDescription = String(item.description || item.itemDescription || "").trim();
         const safeDescription = rawDescription.slice(0, 100);
@@ -147,7 +174,16 @@ const InvoiceRefunds = () => {
           unitPrice,
         };
       })
-      .filter((i) => i.quantity > 0 && i.description);
+      .filter((i) => !i._invalidSku && i.quantity > 0 && i.description);
+
+    if (lineItems.some((ln) => {
+      const cid = ln.itemId || ln.catalogId;
+      const s = String(ln.sku || (cid ? skuByCatalogId.get(String(cid)) : "") || "").trim();
+      return !s || looksLikeObjectId(s);
+    })) {
+      toast.error("Every line needs a product SKU. Add SKU in Items for each catalog product on this invoice.");
+      return;
+    }
 
     if (payloadItems.length === 0) {
       toast.error("No refundable line items found.");

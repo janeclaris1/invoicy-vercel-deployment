@@ -198,6 +198,13 @@
       box-shadow: none !important;
     }
 
+    /* Remove any residual print card shadow/border line artifacts */
+    body.invoice-print-page .invoice-print-card {
+      box-shadow: none !important;
+      border: 0 !important;
+      outline: 0 !important;
+    }
+
     body.invoice-print-page .min-h-screen {
       min-height: 0 !important;
     }
