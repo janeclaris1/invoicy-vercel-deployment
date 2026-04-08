@@ -11,6 +11,7 @@ import Button from "../../components/ui/Button";
 const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
 const looksLikeObjectId = (v) => /^[a-f\d]{24}$/i.test(String(v || "").trim());
 const GRA_ITEM_CODE_REGEX = /^TXC\d{11}$/i; // e.g. TXC00389165855
+const REF_TXN_REGEX = /^PREF-\d{3}$/i; // e.g. PREF-034
 const makeTxnRef = (prefix = "PREF") => {
   const n = Math.floor(Math.random() * 1000);
   return `${prefix}-${String(n).padStart(3, "0")}`;
@@ -190,9 +191,10 @@ const InvoiceRefunds = () => {
       return;
     }
 
-    const effectiveReference = String(refundReference || makeTxnRef("PREF")).trim();
-    if (!effectiveReference) {
-      toast.error("Reference is required.");
+    const effectiveReference = String(refundReference || makeTxnRef("PREF")).trim().toUpperCase();
+    if (!effectiveReference || !REF_TXN_REGEX.test(effectiveReference)) {
+      setRefundReference(makeTxnRef("PREF"));
+      toast.error("Reference must be a transaction ID like PREF-034 (not SKU).");
       return;
     }
 
@@ -220,7 +222,7 @@ const InvoiceRefunds = () => {
       discountType: "GENERAL",
       taxType: "STANDARD",
       discountAmount: round2(Number(selectedInvoice.totalDiscount || 0) * factor),
-      reference: effectiveReference.slice(0, 50),
+      reference: effectiveReference,
       groupReferenceId: "",
       purchaseOrderReference: "",
       items: payloadItems,
