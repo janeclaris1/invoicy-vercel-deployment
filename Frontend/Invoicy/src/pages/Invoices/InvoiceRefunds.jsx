@@ -58,6 +58,17 @@ const InvoiceRefunds = () => {
     loadInvoices();
   }, []);
 
+  const skuByCatalogId = useMemo(() => {
+    const m = new Map();
+    for (const it of itemsCatalog) {
+      const id = it?._id || it?.id;
+      if (!id) continue;
+      const sku = String(it.sku || "").trim();
+      if (sku) m.set(String(id), sku);
+    }
+    return m;
+  }, [itemsCatalog]);
+
   useEffect(() => {
     const loadInvoice = async () => {
       if (!selectedInvoiceId) {
@@ -97,17 +108,6 @@ const InvoiceRefunds = () => {
     if (Array.isArray(selectedInvoice.items) && selectedInvoice.items.length > 0) return selectedInvoice.items;
     return [];
   }, [selectedInvoice]);
-
-  const skuByCatalogId = useMemo(() => {
-    const m = new Map();
-    for (const it of itemsCatalog) {
-      const id = it?._id || it?.id;
-      if (!id) continue;
-      const sku = String(it.sku || "").trim();
-      if (sku) m.set(String(id), sku);
-    }
-    return m;
-  }, [itemsCatalog]);
 
   const refundFactor = useMemo(() => {
     if (refundType === "FULL") return 1;
