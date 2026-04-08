@@ -396,6 +396,7 @@ exports.updateInvoice = async (req, res) => {
             graFlag,
             graLineItemCount,
             graStatus,
+            refundEvents,
         } = req.body;
 
         // Merge billFrom with company settings from user profile when updating
@@ -577,6 +578,7 @@ exports.updateInvoice = async (req, res) => {
         if (graFlag !== undefined) updatePayload.graFlag = graFlag || null;
         if (graLineItemCount !== undefined) updatePayload.graLineItemCount = graLineItemCount ?? null;
         if (graStatus !== undefined) updatePayload.graStatus = graStatus || null;
+        if (refundEvents !== undefined) updatePayload.refundEvents = Array.isArray(refundEvents) ? refundEvents : (invoice.refundEvents || []);
 
         const updateInvoice = await Invoice.findByIdAndUpdate(
             req.params.id,

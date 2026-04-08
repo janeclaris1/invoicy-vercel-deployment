@@ -11,6 +11,10 @@ import Button from "../../components/ui/Button";
 const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
 const looksLikeObjectId = (v) => /^[a-f\d]{24}$/i.test(String(v || "").trim());
 const GRA_ITEM_CODE_REGEX = /^TXC\d{11}$/i; // e.g. TXC00389165855
+const makeTxnRef = (prefix = "PREF") => {
+  const n = Math.floor(Math.random() * 1000);
+  return `${prefix}-${String(n).padStart(3, "0")}`;
+};
 
 const InvoiceRefunds = () => {
   const { user } = useAuth();
@@ -24,8 +28,9 @@ const InvoiceRefunds = () => {
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundType, setRefundType] = useState("FULL");
   const [partialRefundPercent, setPartialRefundPercent] = useState("50");
-  const [refundReference, setRefundReference] = useState("");
+  const [refundReference, setRefundReference] = useState(makeTxnRef("PREF"));
   const [cancelReference, setCancelReference] = useState("");
+  const [selectedRefundEventId, setSelectedRefundEventId] = useState("");
   const [cancellationSubmitting, setCancellationSubmitting] = useState(false);
   const [itemsCatalog, setItemsCatalog] = useState([]);
 
@@ -73,7 +78,7 @@ const InvoiceRefunds = () => {
     const loadInvoice = async () => {
       if (!selectedInvoiceId) {
         setSelectedInvoice(null);
-        setRefundReference("");
+        setRefundReference(makeTxnRef("PREF"));
         return;
       }
       setLoadingInvoiceDetails(true);
@@ -81,17 +86,10 @@ const InvoiceRefunds = () => {
         const res = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(selectedInvoiceId));
         const inv = res.data || null;
         setSelectedInvoice(inv);
-        const lines = Array.isArray(inv?.item) && inv.item.length > 0
-          ? inv.item
-          : (Array.isArray(inv?.items) ? inv.items : []);
-        const firstSku = lines
-          .map((ln) => {
-            const cid = ln.itemId || ln.catalogId;
-            return String(ln.sku || (cid ? skuByCatalogId.get(String(cid)) : "") || "").trim();
-          })
-          .find((s) => s && !looksLikeObjectId(s) && GRA_ITEM_CODE_REGEX.test(s));
-        const suggestedReference = String(firstSku || "").trim();
-        setRefundReference((prev) => (String(prev || "").trim() ? prev : suggestedReference));
+        setRefundReference(makeTxnRef("PREF"));
+        const refundEvents = Array.isArray(inv?.refundEvents) ? inv.refundEvents : [];
+        const firstOpen = refundEvents.find((e) => e && !e.cancelled);
+        setSelectedRefundEventId(firstOpen?.eventId || "");
       } catch (err) {
         setSelectedInvoice(null);
         toast.error(err?.response?.data?.message || "Failed to load selected invoice.");
@@ -120,6 +118,13 @@ const InvoiceRefunds = () => {
     if (!selectedInvoice) return 0;
     return round2(Number(selectedInvoice.grandTotal || 0) * refundFactor);
   }, [selectedInvoice, refundFactor]);
+
+  const refundEvents = useMemo(() => {
+    const events = Array.isArray(selectedInvoice?.refundEvents) ? selectedInvoice.refundEvents : [];
+    return events
+      .slice()
+      .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
+  }, [selectedInvoice]);
 
   const handleSubmitRefundToGRA = async () => {
     if (!selectedInvoice) {
@@ -185,9 +190,9 @@ const InvoiceRefunds = () => {
       return;
     }
 
-    const effectiveReference = String(refundReference || payloadItems[0]?.itemCode || "").trim();
-    if (!effectiveReference || !GRA_ITEM_CODE_REGEX.test(effectiveReference)) {
-      toast.error("Reference must be a valid SKU format like TXC00389165855.");
+    const effectiveReference = String(refundReference || makeTxnRef("PREF")).trim();
+    if (!effectiveReference) {
+      toast.error("Reference is required.");
       return;
     }
 
@@ -215,7 +220,7 @@ const InvoiceRefunds = () => {
       discountType: "GENERAL",
       taxType: "STANDARD",
       discountAmount: round2(Number(selectedInvoice.totalDiscount || 0) * factor),
-      reference: effectiveReference.toUpperCase().slice(0, 50),
+      reference: effectiveReference.slice(0, 50),
       groupReferenceId: "",
       purchaseOrderReference: "",
       items: payloadItems,
@@ -223,7 +228,33 @@ const InvoiceRefunds = () => {
 
     setRefundSubmitting(true);
     try {
-      await graApi.invoice(payload);
+      const graResult = await graApi.invoice(payload);
+      const responseNode = graResult?.response || graResult?.data || graResult || {};
+      const refundInvoiceNumber =
+        responseNode?.num ||
+        responseNode?.invoiceNumber ||
+        responseNode?.message?.num ||
+        "";
+      const newEvent = {
+        eventId: `RF-${Date.now()}`,
+        type: refundType === "FULL" ? "REFUND" : "PARTIAL_REFUND",
+        reference: effectiveReference.toUpperCase().slice(0, 50),
+        amount: round2(Number(selectedInvoice.grandTotal || 0) * factor),
+        status: "submitted",
+        refundInvoiceNumber: String(refundInvoiceNumber || ""),
+        request: payload,
+        response: graResult,
+        cancelled: false,
+        createdBy: user?._id || null,
+        createdAt: new Date().toISOString(),
+      };
+      const nextEvents = [...refundEvents, newEvent];
+      await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(selectedInvoice._id), {
+        refundEvents: nextEvents,
+      });
+      setSelectedInvoice((prev) => prev ? { ...prev, refundEvents: nextEvents } : prev);
+      setSelectedRefundEventId(newEvent.eventId);
+      setRefundReference(makeTxnRef("PREF"));
       toast.success(`${refundType === "FULL" ? "Full" : "Partial"} refund submitted to GRA.`);
     } catch (err) {
       const res = err?.response?.data;
@@ -248,23 +279,46 @@ const InvoiceRefunds = () => {
       toast.error("Invoice number is required for cancellation.");
       return;
     }
+    const selectedEvent = refundEvents.find((e) => e?.eventId === selectedRefundEventId && !e.cancelled);
+    if (!selectedEvent) {
+      toast.error("Select a submitted refund to cancel.");
+      return;
+    }
     if (!String(cancelReference || "").trim()) {
       toast.error("Cancellation reference is required.");
       return;
     }
 
     const payload = {
-      invoiceNumber: String(selectedInvoice.invoiceNumber),
+      invoiceNumber: String(selectedEvent.refundInvoiceNumber || selectedInvoice.invoiceNumber),
       reference: String(cancelReference).trim().slice(0, 50),
       userName: String(user?.name || user?.fullName || user?.businessName || selectedInvoice.billFrom?.businessName || ""),
       flag: "REFUND_CANCELATION",
       transactionDate: new Date().toISOString(),
-      totalAmount: round2(Number(selectedInvoice.grandTotal || 0)),
+      totalAmount: round2(Number(selectedEvent.amount || selectedInvoice.grandTotal || 0)),
     };
 
     setCancellationSubmitting(true);
     try {
-      await graApi.cancellation(payload);
+      const result = await graApi.cancellation(payload);
+      const nextEvents = refundEvents.map((ev) =>
+        ev?.eventId === selectedEvent.eventId
+          ? {
+              ...ev,
+              cancelled: true,
+              cancelledAt: new Date().toISOString(),
+              cancellationReference: String(cancelReference).trim().slice(0, 50),
+              cancellationResponse: result,
+            }
+          : ev
+      );
+      await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(selectedInvoice._id), {
+        refundEvents: nextEvents,
+      });
+      setSelectedInvoice((prev) => prev ? { ...prev, refundEvents: nextEvents } : prev);
+      const nextOpen = nextEvents.find((e) => e && !e.cancelled);
+      setSelectedRefundEventId(nextOpen?.eventId || "");
+      setCancelReference("");
       toast.success("Refund cancellation submitted to GRA.");
     } catch (err) {
       const res = err?.response?.data;
@@ -343,16 +397,16 @@ const InvoiceRefunds = () => {
                 </div>
               )}
               <div className="md:col-span-2">
-                <label className="mb-1 block text-xs font-medium text-gray-700">Reference (SKU, required)</label>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Reference (transaction ID, required)</label>
                 <input
                   type="text"
                   value={refundReference}
                   onChange={(e) => setRefundReference(e.target.value)}
-                  placeholder="Auto-filled from invoice SKU (e.g. TXC00389165855)"
+                  placeholder="Auto-generated refund transaction reference (e.g. PREF-034)"
                   className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
                 />
                 <p className="mt-1 text-[11px] text-gray-500">
-                  Must be a valid SKU format like TXC00389165855.
+                  Use a unique refund transaction identifier (for example PREF-034).
                 </p>
               </div>
             </div>
@@ -379,6 +433,23 @@ const InvoiceRefunds = () => {
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-3">
+            <label className="mb-1 block text-xs font-medium text-gray-700">Select Refund Event</label>
+            <select
+              value={selectedRefundEventId}
+              onChange={(e) => setSelectedRefundEventId(e.target.value)}
+              className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
+            >
+              <option value="">Choose submitted refund</option>
+              {refundEvents
+                .filter((ev) => ev && !ev.cancelled)
+                .map((ev) => (
+                  <option key={ev.eventId} value={ev.eventId}>
+                    {ev.eventId} - {ev.type} - {formatCurrency(ev.amount || 0, userCurrency)} - Ref {ev.reference}
+                  </option>
+                ))}
+            </select>
+          </div>
           <div className="md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-gray-700">Cancellation Reference</label>
             <input
@@ -400,6 +471,35 @@ const InvoiceRefunds = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+        <h2 className="text-base font-semibold text-gray-900">Refund History</h2>
+        {refundEvents.length === 0 ? (
+          <p className="text-sm text-slate-600">No refund events recorded for this invoice yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {refundEvents.map((ev) => (
+              <div key={ev.eventId} className="rounded-lg border border-gray-200 p-3 text-sm text-gray-800">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{ev.eventId}</span>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 text-xs">{ev.type}</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${ev.cancelled ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                    {ev.cancelled ? "Cancelled" : "Submitted"}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-slate-600">
+                  Amount: {formatCurrency(ev.amount || 0, userCurrency)} | Ref: {ev.reference} | Created: {ev.createdAt ? new Date(ev.createdAt).toLocaleString() : "-"}
+                </div>
+                {ev.cancellationReference ? (
+                  <div className="mt-1 text-xs text-slate-600">
+                    Cancellation Ref: {ev.cancellationReference}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

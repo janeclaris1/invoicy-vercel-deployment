@@ -14,6 +14,22 @@ const itemSchema = new mongoose.Schema({
     itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', default: null }
 });
 
+const refundEventSchema = new mongoose.Schema({
+    eventId: { type: String, required: true },
+    type: { type: String, enum: ['REFUND', 'PARTIAL_REFUND'], required: true },
+    reference: { type: String, required: true },
+    amount: { type: Number, required: true },
+    status: { type: String, default: 'submitted' },
+    refundInvoiceNumber: { type: String, default: '' },
+    request: { type: mongoose.Schema.Types.Mixed, default: {} },
+    response: { type: mongoose.Schema.Types.Mixed, default: {} },
+    cancelled: { type: Boolean, default: false },
+    cancelledAt: { type: Date, default: null },
+    cancellationReference: { type: String, default: '' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    createdAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const invoiceSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -114,6 +130,7 @@ const invoiceSchema = new mongoose.Schema({
     graFlag: { type: String },
     graLineItemCount: { type: Number },
     graStatus: { type: String },
+    refundEvents: { type: [refundEventSchema], default: [] },
     vatScenario: { type: String, enum: ['inclusive', 'exclusive'], default: 'inclusive' },
     /** Set when sale is created from the POS screen (for sales reports). */
     posSale: { type: Boolean, default: false },
