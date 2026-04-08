@@ -343,7 +343,7 @@ const InvoiceDetail = () => {
             </div>
 
           </div>
-
+          
           {/* Payment Info + Bill To */}
           <div className="mt-10 flex">
             <div className="w-1/2">

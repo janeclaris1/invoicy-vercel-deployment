@@ -10,7 +10,6 @@ import Button from "../../components/ui/Button";
 
 const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
 const looksLikeObjectId = (v) => /^[a-f\d]{24}$/i.test(String(v || "").trim());
-const GRA_ITEM_CODE_REGEX = /^TXC\d{11}$/i; // e.g. TXC00389165855
 const REF_TXN_REGEX = /^PREF-\d{3}$/i; // e.g. PREF-034
 const makeTxnRef = (prefix = "PREF") => {
   const n = Math.floor(Math.random() * 1000);
@@ -152,14 +151,8 @@ const InvoiceRefunds = () => {
         const qty = Number(item.quantity) || 0;
         const scaledQty = round2(qty * factor);
         const unitPrice = round2(Number(item.unitPrice ?? item.itemPrice ?? 0));
-        const catalogId = item.itemId || item.catalogId;
-        const skuFromCatalog = catalogId ? skuByCatalogId.get(String(catalogId)) : "";
-        // GRA itemCode for refunds must be the product SKU (from Items catalog when line only has itemId).
-        const sku = String(item.sku || skuFromCatalog || "").trim();
-        if (!sku || looksLikeObjectId(sku) || !GRA_ITEM_CODE_REGEX.test(sku)) {
-          return { _invalidSku: true };
-        }
-        const safeItemCode = sku.toUpperCase();
+        // Keep refund itemCode aligned with invoice submission path for this tenant.
+        const safeItemCode = `ITEM-${idx + 1}`;
         // Keep description format aligned with submit-invoice flow (non-empty, max 100 chars).
         const rawDescription = String(item.description || item.itemDescription || "").trim();
         const safeDescription = rawDescription.slice(0, 100);
@@ -180,16 +173,7 @@ const InvoiceRefunds = () => {
           unitPrice,
         };
       })
-      .filter((i) => !i._invalidSku && i.quantity > 0 && i.description);
-
-    if (lineItems.some((ln) => {
-      const cid = ln.itemId || ln.catalogId;
-      const s = String(ln.sku || (cid ? skuByCatalogId.get(String(cid)) : "") || "").trim();
-      return !s || looksLikeObjectId(s) || !GRA_ITEM_CODE_REGEX.test(s);
-    })) {
-      toast.error("Every line needs a valid SKU format like TXC00389165855. Update SKU in Items for each product on this invoice.");
-      return;
-    }
+      .filter((i) => i.quantity > 0 && i.description);
 
     const effectiveReference = String(refundReference || makeTxnRef("PREF")).trim().toUpperCase();
     if (!effectiveReference || !REF_TXN_REGEX.test(effectiveReference)) {
