@@ -10,6 +10,7 @@ import Button from "../../components/ui/Button";
 
 const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
 const looksLikeObjectId = (v) => /^[a-f\d]{24}$/i.test(String(v || "").trim());
+const GRA_ITEM_CODE_REGEX = /^TXC\d{11}$/i; // e.g. TXC00389165855
 
 const InvoiceRefunds = () => {
   const { user } = useAuth();
@@ -69,7 +70,16 @@ const InvoiceRefunds = () => {
         const res = await axiosInstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(selectedInvoiceId));
         const inv = res.data || null;
         setSelectedInvoice(inv);
-        const suggestedReference = String(inv?.graReceiptNumber || "").trim();
+        const lines = Array.isArray(inv?.item) && inv.item.length > 0
+          ? inv.item
+          : (Array.isArray(inv?.items) ? inv.items : []);
+        const firstSku = lines
+          .map((ln) => {
+            const cid = ln.itemId || ln.catalogId;
+            return String(ln.sku || (cid ? skuByCatalogId.get(String(cid)) : "") || "").trim();
+          })
+          .find((s) => s && !looksLikeObjectId(s) && GRA_ITEM_CODE_REGEX.test(s));
+        const suggestedReference = String(firstSku || "").trim();
         setRefundReference((prev) => (String(prev || "").trim() ? prev : suggestedReference));
       } catch (err) {
         setSelectedInvoice(null);
@@ -79,7 +89,7 @@ const InvoiceRefunds = () => {
       }
     };
     loadInvoice();
-  }, [selectedInvoiceId]);
+  }, [selectedInvoiceId, skuByCatalogId]);
 
   const lineItems = useMemo(() => {
     if (!selectedInvoice) return [];
@@ -120,16 +130,6 @@ const InvoiceRefunds = () => {
       toast.error("Invoice number is required for refund submission.");
       return;
     }
-    const graReceiptReference = String(selectedInvoice.graReceiptNumber || "").trim();
-    if (!graReceiptReference) {
-      toast.error("This invoice has no GRA receipt reference. Submit the invoice to GRA first, then refund.");
-      return;
-    }
-    const effectiveReference = String(refundReference || graReceiptReference).trim();
-    if (!effectiveReference || effectiveReference !== graReceiptReference) {
-      toast.error("Reference must match the original GRA receipt number for this invoice.");
-      return;
-    }
     if (refundType === "PARTIAL" && refundFactor <= 0) {
       toast.error("Enter a partial refund percentage greater than 0.");
       return;
@@ -150,10 +150,10 @@ const InvoiceRefunds = () => {
         const skuFromCatalog = catalogId ? skuByCatalogId.get(String(catalogId)) : "";
         // GRA itemCode for refunds must be the product SKU (from Items catalog when line only has itemId).
         const sku = String(item.sku || skuFromCatalog || "").trim();
-        if (!sku || looksLikeObjectId(sku)) {
+        if (!sku || looksLikeObjectId(sku) || !GRA_ITEM_CODE_REGEX.test(sku)) {
           return { _invalidSku: true };
         }
-        const safeItemCode = sku;
+        const safeItemCode = sku.toUpperCase();
         // Keep description format aligned with submit-invoice flow (non-empty, max 100 chars).
         const rawDescription = String(item.description || item.itemDescription || "").trim();
         const safeDescription = rawDescription.slice(0, 100);
@@ -179,9 +179,15 @@ const InvoiceRefunds = () => {
     if (lineItems.some((ln) => {
       const cid = ln.itemId || ln.catalogId;
       const s = String(ln.sku || (cid ? skuByCatalogId.get(String(cid)) : "") || "").trim();
-      return !s || looksLikeObjectId(s);
+      return !s || looksLikeObjectId(s) || !GRA_ITEM_CODE_REGEX.test(s);
     })) {
-      toast.error("Every line needs a product SKU. Add SKU in Items for each catalog product on this invoice.");
+      toast.error("Every line needs a valid SKU format like TXC00389165855. Update SKU in Items for each product on this invoice.");
+      return;
+    }
+
+    const effectiveReference = String(refundReference || payloadItems[0]?.itemCode || "").trim();
+    if (!effectiveReference || !GRA_ITEM_CODE_REGEX.test(effectiveReference)) {
+      toast.error("Reference must be a valid SKU format like TXC00389165855.");
       return;
     }
 
@@ -209,7 +215,7 @@ const InvoiceRefunds = () => {
       discountType: "GENERAL",
       taxType: "STANDARD",
       discountAmount: round2(Number(selectedInvoice.totalDiscount || 0) * factor),
-      reference: effectiveReference.slice(0, 50),
+      reference: effectiveReference.toUpperCase().slice(0, 50),
       groupReferenceId: "",
       purchaseOrderReference: "",
       items: payloadItems,
@@ -337,16 +343,16 @@ const InvoiceRefunds = () => {
                 </div>
               )}
               <div className="md:col-span-2">
-                <label className="mb-1 block text-xs font-medium text-gray-700">Reference (required)</label>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Reference (SKU, required)</label>
                 <input
                   type="text"
                   value={refundReference}
                   onChange={(e) => setRefundReference(e.target.value)}
-                  placeholder="Auto-filled from GRA receipt number"
+                  placeholder="Auto-filled from invoice SKU (e.g. TXC00389165855)"
                   className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-black"
                 />
                 <p className="mt-1 text-[11px] text-gray-500">
-                  Must match the original GRA receipt number for this invoice.
+                  Must be a valid SKU format like TXC00389165855.
                 </p>
               </div>
             </div>
