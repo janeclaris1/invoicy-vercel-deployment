@@ -27,7 +27,7 @@ const HR_PATH_TO_RESPONSIBILITY = {
   "/hr/compliance": "hr_compliance",
 };
 
-const ALWAYS_ALLOWED = ["/profile", "/support", "/hr/self-service"];
+const ALWAYS_ALLOWED = ["/profile", "/support", "/hr/self-service", "/customers"];
 
 const getRequiredResponsibility = (pathname) => {
   if (ALWAYS_ALLOWED.some((p) => pathname.startsWith(p))) return null;
