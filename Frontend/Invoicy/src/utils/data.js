@@ -206,7 +206,17 @@ export const NAVIGATION_MENU = [
             { id: "invoices/new", name: "Create Invoice", icon: null, responsibility: "invoices" },
         ],
     },
-    { id: "purchases", name: "Purchases", icon: ClipboardList, responsibility: "invoices" },
+    {
+        id: "purchases",
+        name: "Purchases",
+        icon: ClipboardList,
+        responsibility: "invoices",
+        children: [
+            { id: "purchases", name: "Purchase", icon: null, responsibility: "invoices" },
+            { id: "purchases/returns", name: "Purchase Return", icon: null, responsibility: "invoices" },
+            { id: "purchases/return-cancellations", name: "Purchase Return Cancellation", icon: null, responsibility: "invoices" },
+        ],
+    },
     {
         id: "sales",
         name: "Sales",
