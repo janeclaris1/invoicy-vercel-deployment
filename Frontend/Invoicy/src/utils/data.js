@@ -203,10 +203,10 @@ export const NAVIGATION_MENU = [
             { id: "invoices", name: "All Invoices", icon: null, responsibility: "invoices" },
             { id: "quotations", name: "Quotations", icon: null, responsibility: "invoices" },
             { id: "invoices/refunds", name: "Refunds", icon: null, responsibility: "invoices" },
-            { id: "invoices/purchases", name: "Purchases", icon: null, responsibility: "invoices" },
             { id: "invoices/new", name: "Create Invoice", icon: null, responsibility: "invoices" },
         ],
     },
+    { id: "purchases", name: "Purchases", icon: ClipboardList, responsibility: "invoices" },
     {
         id: "sales",
         name: "Sales",

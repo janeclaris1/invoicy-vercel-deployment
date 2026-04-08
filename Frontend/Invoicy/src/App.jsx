@@ -148,7 +148,8 @@ const App = () => {
             <Route path="checkout" element={<Checkout />} />
             <Route path="invoices" element={<AllInvoices />} />
             <Route path="invoices/refunds" element={<InvoiceRefunds />} />
-            <Route path="invoices/purchases" element={<InvoicePurchases />} />
+            <Route path="invoices/purchases" element={<Navigate to="/purchases" replace />} />
+            <Route path="purchases" element={<InvoicePurchases />} />
             <Route path="quotations" element={<AllInvoices typeFilter="quotation" />} />
             <Route path="sales/pos" element={<PosSalesPage />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
