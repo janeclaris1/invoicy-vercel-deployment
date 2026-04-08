@@ -321,6 +321,8 @@ export const canAccessNav = (item, user) => {
     if (!user) return false;
     // Subscribed clients: only platform admin (set via PLATFORM_ADMIN_EMAIL on backend)
     if (item.id === "clients") return !!user.isPlatformAdmin;
+    // Customers: always visible for authenticated users
+    if (item.id === "customers") return true;
     const role = user.role || "owner";
     const responsibilities = user.responsibilities || [];
     if (!user.createdBy) return true; // Original account owner
