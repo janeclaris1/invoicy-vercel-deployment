@@ -421,8 +421,11 @@ exports.submitInvoice = async (req, res) => {
         const itemsForGra = lineItems.map((line, idx) => {
             const unitPriceNum = roundTo(Number(line.unitPrice ?? line.itemPrice) || 0, 2);
             const qtyStr = String(line.quantity ?? 0);
+            const extended = roundTo(Number(qtyStr) * unitPriceNum, 2);
             const lineDisc = Number(line.discount) || 0;
-            const discountAmount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
+            const rawDiscount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
+            // Keep line discount within [0, line extended] so taxable base never goes negative.
+            const discountAmount = roundTo(Math.min(Math.max(rawDiscount, 0), extended), 2);
             const { levyA, levyB, lineVat } = computeGraLineLevyAndVat(
                 qtyStr,
                 String(unitPriceNum),
@@ -434,9 +437,8 @@ exports.submitInvoice = async (req, res) => {
             const levyD = roundTo((Number(line.cst) || 0) * levyDiscountFactor, 2);
             const levyE = roundTo((Number(line.tourism) || 0) * levyDiscountFactor, 2);
             const exciseAmount = roundTo((Number(line.exciseAmount) || 0) * levyDiscountFactor, 2);
-            const extended = roundTo(Number(qtyStr) * unitPriceNum, 2);
             if (calculationType === "EXCLUSIVE") {
-                const taxable = roundTo(extended - discountAmount, 2);
+                const taxable = Math.max(roundTo(extended - discountAmount, 2), 0);
                 sumExclusiveTaxableBase += taxable;
             }
             return {

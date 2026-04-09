@@ -78,7 +78,13 @@ const InvoicePurchases = () => {
     });
     const totalLevy = round2(itemRows.reduce((s, r) => s + r.levyAmountA + r.levyAmountB + r.levyAmountD + r.levyAmountE, 0));
     const totalAmount = round2(itemRows.reduce((s, r) => s + r.lineBase - r.discountAmount + r.exciseAmount, 0));
-    const totalVat = round2(itemRows.reduce((s, r) => s + (form.calculationType === "EXCLUSIVE" ? round2(r.lineBase * 0.15) : 0), 0));
+    const totalVat = round2(
+      itemRows.reduce((s, r) => {
+        if (form.calculationType !== "EXCLUSIVE") return s;
+        const taxableBase = Math.max(round2(r.lineBase - r.discountAmount), 0);
+        return s + round2(taxableBase * 0.15);
+      }, 0)
+    );
     return { totalLevy, totalAmount, totalVat };
   }, [form.items, form.calculationType]);
 
