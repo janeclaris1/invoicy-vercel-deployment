@@ -565,13 +565,50 @@ exports.submitInvoice = async (req, res) => {
                 label: "line_discount_header_sum",
                 body: { ...body, discountAmount: lineDiscountSumForGra },
             });
-            const zeroLineDiscountItems = itemsForGra.map((it) => ({ ...it, discountAmount: 0 }));
+            const zeroLineDiscountItems = itemsForGra.map((it) => {
+                const { levyA, levyB, lineVat } = computeGraLineLevyAndVat(
+                    String(it.quantity ?? 0),
+                    String(it.unitPrice ?? 0),
+                    0,
+                    calculationType,
+                    roundTo
+                );
+                return {
+                    ...it,
+                    discountAmount: 0,
+                    levyAmountA: levyA,
+                    levyAmountB: levyB,
+                    // Keep D/E as-is (they come from source invoice amounts, optionally scaled).
+                    // Recompute VAT to stay coherent with zero line discount attempt.
+                    _lineVat: lineVat,
+                };
+            });
+            const zeroLineTotalLevy = roundTo(
+                zeroLineDiscountItems.reduce(
+                    (s, it) =>
+                        s +
+                        Number(it.levyAmountA || 0) +
+                        Number(it.levyAmountB || 0) +
+                        Number(it.levyAmountC || 0) +
+                        Number(it.levyAmountD || 0) +
+                        Number(it.levyAmountE || 0),
+                    0
+                ),
+                2
+            );
+            const zeroLineTotalVat = roundTo(
+                zeroLineDiscountItems.reduce((s, it) => s + Number(it._lineVat || 0), 0),
+                2
+            );
+            const cleanedZeroLineItems = zeroLineDiscountItems.map(({ _lineVat, ...it }) => it);
             attemptBodies.push({
                 label: "header_discount_only",
                 body: {
                     ...body,
+                    totalLevy: zeroLineTotalLevy,
+                    totalVat: zeroLineTotalVat,
                     discountAmount: lineDiscountSumForGra,
-                    items: zeroLineDiscountItems,
+                    items: cleanedZeroLineItems,
                 },
             });
         }
