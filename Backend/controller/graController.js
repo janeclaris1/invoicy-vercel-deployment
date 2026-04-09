@@ -312,6 +312,7 @@ function computeGraLineLevyAndVat(quantityStr, unitPriceStr, discountAmount, cal
 exports.submitInvoice = async (req, res) => {
     let debugMeta = {};
     let debugSnapshot = null;
+    let debugAttempts = null;
     try {
         const { invoiceId } = req.body;
         const debugPayload = req.body?.debugPayload === true;
@@ -558,9 +559,50 @@ exports.submitInvoice = async (req, res) => {
                 levyDiscountFactor,
             });
         }
+        const attemptBodies = [{ label: "line_discount_header_zero", body }];
+        if (lineDiscountSumForGra > 0) {
+            attemptBodies.push({
+                label: "line_discount_header_sum",
+                body: { ...body, discountAmount: lineDiscountSumForGra },
+            });
+            const zeroLineDiscountItems = itemsForGra.map((it) => ({ ...it, discountAmount: 0 }));
+            attemptBodies.push({
+                label: "header_discount_only",
+                body: {
+                    ...body,
+                    discountAmount: lineDiscountSumForGra,
+                    items: zeroLineDiscountItems,
+                },
+            });
+        }
 
-        const data = await callGRA(user, invoicePath, "POST", body);
-        res.json(data);
+        debugAttempts = [];
+        let lastE707Err = null;
+        for (const attempt of attemptBodies) {
+            try {
+                const data = await callGRA(user, invoicePath, "POST", attempt.body);
+                return res.json(data);
+            } catch (err) {
+                debugAttempts.push({
+                    attempt: attempt.label,
+                    headerDiscountAmount: Number(attempt.body.discountAmount || 0),
+                    itemDiscountSum: roundTo(
+                        (attempt.body.items || []).reduce((s, it) => s + Number(it.discountAmount || 0), 0),
+                        2
+                    ),
+                    totalAmount: Number(attempt.body.totalAmount || 0),
+                    graCode: err?.graResponse?.code || null,
+                    graMessage: err?.graResponse?.message || err?.message || null,
+                });
+                if (err?.graResponse?.code === "E707") {
+                    lastE707Err = err;
+                    continue;
+                }
+                throw err;
+            }
+        }
+        if (lastE707Err) throw lastE707Err;
+        throw new Error("GRA submit failed after trying discount mappings.");
     } catch (err) {
         console.error("GRA submitInvoice error:", err.message, err.graStatus, err.graResponse);
         // Always return 502 for GRA upstream errors so the frontend does not treat it as auth failure (401 → redirect to login)
@@ -570,6 +612,7 @@ exports.submitInvoice = async (req, res) => {
             graResponse: err.graResponse,
             ...debugMeta,
             ...(err?.graResponse?.code === "E707" ? { debugSnapshot } : {}),
+            ...(err?.graResponse?.code === "E707" && Array.isArray(debugAttempts) ? { debugAttempts } : {}),
         });
     }
 };
