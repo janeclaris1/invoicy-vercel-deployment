@@ -319,6 +319,7 @@ function computeGraLineLevyAndVat(quantityStr, unitPriceStr, discountAmount, cal
 // @access  Private
 exports.submitInvoice = async (req, res) => {
     let debugMeta = {};
+    let debugSnapshot = null;
     try {
         const { invoiceId } = req.body;
         const debugPayload = req.body?.debugPayload === true;
@@ -489,21 +490,13 @@ exports.submitInvoice = async (req, res) => {
             2
         );
 
-        // E707: VSDC expects header coherence: totalAmount ≈ Σ(q×p) − discountAmount (+ excise). Σ line amounts must
-        // match (we pick discount split to minimize drift). Do not derive totalAmount from totalVat — that can disagree
-        // with line items and still return E707.
-        let totalAmountForGra;
-        let discountAmountForGra;
-        if (calculationType === "INCLUSIVE") {
-            // Make header values strictly line-derived to avoid E707 reconciliation failures.
-            const lineSumSupply = sumGraInclusiveLineSupplyAfterDiscount(itemsForGra, roundTo);
-            totalAmountForGra = roundTo(lineSumSupply + totalExciseAmount, 2);
-            discountAmountForGra = roundTo(sumExtendedItems - lineSumSupply, 2);
-        } else {
-            const lineSumExcl = roundTo(sumExclusiveTaxableBase + totalExciseAmount, 2);
-            totalAmountForGra = lineSumExcl;
-            discountAmountForGra = roundTo(sumExtendedItems - sumExclusiveTaxableBase, 2);
-        }
+        // E707: keep header strict with line math: totalAmount = Σ(q×p) − headerDiscount (+ excise)
+        // where headerDiscount equals Σ line discountAmount.
+        const discountAmountForGra = roundTo(
+            itemsForGra.reduce((s, it) => s + Number(it.discountAmount || 0), 0),
+            2
+        );
+        const totalAmountForGra = roundTo(sumExtendedItems - discountAmountForGra + totalExciseAmount, 2);
 
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
@@ -530,6 +523,17 @@ exports.submitInvoice = async (req, res) => {
             groupReferenceId: (invoice.groupReferenceId || "").slice(0, 50),
             purchaseOrderReference: (invoice.purchaseOrderReference || "").slice(0, 50),
             items: itemsForGra,
+        };
+        debugSnapshot = {
+            calculationType,
+            sumExtendedItems,
+            discountAmountForGra,
+            totalExciseAmount,
+            totalAmountForGra,
+            totalVatForGra,
+            totalLevy,
+            sumExclusiveTaxableBase: roundTo(sumExclusiveTaxableBase, 2),
+            lineSupplyAfterDiscount: sumGraInclusiveLineSupplyAfterDiscount(itemsForGra, roundTo),
         };
         // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
         const invoicePath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
@@ -571,6 +575,7 @@ exports.submitInvoice = async (req, res) => {
             graStatus: err.graStatus,
             graResponse: err.graResponse,
             ...debugMeta,
+            ...(err?.graResponse?.code === "E707" ? { debugSnapshot } : {}),
         });
     }
 };
