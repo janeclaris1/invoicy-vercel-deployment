@@ -176,17 +176,9 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
         };
     }
 
-    // INCLUSIVE: grandTotal = totalTaxInclusive − totalDiscount (flat off gross or %-of-net amount in GHS).
-    // Effective post-discount net for *report* fields: prefer net = subtotal − totalDiscount when it
-    // reconciles to grandTotal; else derive from grandTotal ÷ (1 + rate) (flat off gross).
+    // INCLUSIVE: discount is applied on gross amount first, then net/taxes are derived.
     grandTotal = round(totalTaxInclusive - totalDiscount);
-    const fromNet = round(subtotal - totalDiscount);
-    const fromGrossDerived = round(grandTotal / (1 + GRA_ALL_TAX_RATE));
-    const reconNet = round(fromNet * (1 + GRA_ALL_TAX_RATE));
-    const reconGross = round(fromGrossDerived * (1 + GRA_ALL_TAX_RATE));
-    const errNet = Math.abs(reconNet - grandTotal);
-    const errGross = Math.abs(reconGross - grandTotal);
-    discountedSubtotal = errNet <= errGross ? fromNet : fromGrossDerived;
+    discountedSubtotal = round(grandTotal / (1 + GRA_ALL_TAX_RATE));
 
     const totalNhil = round(discountedSubtotal * GRA_NHIL_RATE);
     const totalGetFund = round(discountedSubtotal * GRA_GETFUND_RATE);

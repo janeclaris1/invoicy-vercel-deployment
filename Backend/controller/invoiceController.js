@@ -129,9 +129,13 @@ exports.createInvoice = async (req, res) => {
         if (discountAmount && discountAmount > 0) {
             totalDiscount = round(Number(discountAmount));
         } else if (discountPercent && discountPercent > 0) {
-            totalDiscount = round((subtotal * discountPercent) / 100);
+            totalDiscount = round(
+                (vatScenario === 'exclusive' ? subtotal : totalTaxInclusive) * (Number(discountPercent) / 100)
+            );
         }
-        const discountedSubtotal = subtotal - totalDiscount;
+        const discountedSubtotal = vatScenario === 'exclusive'
+            ? round(subtotal - totalDiscount)
+            : round((totalTaxInclusive - totalDiscount) / (1 + ALL_TAX_RATE));
 
         const totalNhil = round(discountedSubtotal * NHIL_RATE);
         const totalGetFund = round(discountedSubtotal * GETFUND_RATE);
@@ -476,11 +480,15 @@ exports.updateInvoice = async (req, res) => {
             if (bodyDiscountAmount != null && Number(bodyDiscountAmount) > 0) {
                 totalDiscount = updateRound(Number(bodyDiscountAmount));
             } else if (bodyDiscountPercent != null && Number(bodyDiscountPercent) > 0) {
-                totalDiscount = updateRound((subtotal * Number(bodyDiscountPercent)) / 100);
+                totalDiscount = updateRound(
+                    (vatScenario === 'exclusive' ? subtotal : totalTaxInclusive) * (Number(bodyDiscountPercent) / 100)
+                );
             } else {
                 totalDiscount = Number(invoice.totalDiscount) || 0;
             }
-            const discountedSubtotal = subtotal - totalDiscount;
+            const discountedSubtotal = vatScenario === 'exclusive'
+                ? updateRound(subtotal - totalDiscount)
+                : updateRound((totalTaxInclusive - totalDiscount) / (1 + ALL_TAX_RATE));
             nhil = updateRound(discountedSubtotal * NHIL_RATE);
             getFund = updateRound(discountedSubtotal * GETFUND_RATE);
             vat = updateRound(discountedSubtotal * VAT_RATE);

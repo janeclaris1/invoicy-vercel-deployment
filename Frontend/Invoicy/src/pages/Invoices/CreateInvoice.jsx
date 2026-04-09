@@ -445,10 +445,18 @@ const CreateInvoice = () => {
     if (discountAmountNum > 0) {
       discount = discountAmountNum;
     } else if (discountPercentNum > 0) {
-      discount = (baseSubtotal * discountPercentNum) / 100;
+      // Inclusive mode: discount is applied on gross invoice amount first.
+      // Exclusive mode: discount applies on net subtotal.
+      discount =
+        vatScenario === "exclusive"
+          ? (baseSubtotal * discountPercentNum) / 100
+          : (totalTaxInclusive * discountPercentNum) / 100;
     }
 
-    const discountedSubtotal = baseSubtotal - discount;
+    const discountedSubtotal =
+      vatScenario === "exclusive"
+        ? baseSubtotal - discount
+        : (totalTaxInclusive - discount) / (1 + ALL_TAX_RATE);
 
     const vat = discountedSubtotal * VAT_RATE;
     const nhil = discountedSubtotal * NHIL_RATE;
