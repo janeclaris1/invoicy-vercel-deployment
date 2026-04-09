@@ -490,13 +490,14 @@ exports.submitInvoice = async (req, res) => {
             2
         );
 
-        // E707: keep header strict with line math: totalAmount = Σ(q×p) − headerDiscount (+ excise)
-        // where headerDiscount equals Σ line discountAmount.
-        const discountAmountForGra = roundTo(
+        // E707: use line-level discount math for totals and keep header discount at 0 to
+        // avoid double-discount interpretation by VSDC when items already carry discountAmount.
+        const lineDiscountSumForGra = roundTo(
             itemsForGra.reduce((s, it) => s + Number(it.discountAmount || 0), 0),
             2
         );
-        const totalAmountForGra = roundTo(sumExtendedItems - discountAmountForGra + totalExciseAmount, 2);
+        const discountAmountForGra = 0;
+        const totalAmountForGra = roundTo(sumExtendedItems - lineDiscountSumForGra + totalExciseAmount, 2);
 
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
 
@@ -527,6 +528,7 @@ exports.submitInvoice = async (req, res) => {
         debugSnapshot = {
             calculationType,
             sumExtendedItems,
+            lineDiscountSumForGra,
             discountAmountForGra,
             totalExciseAmount,
             totalAmountForGra,
