@@ -484,12 +484,6 @@ exports.submitInvoice = async (req, res) => {
         const headerExciseScaled = roundTo(headerExcise * levyDiscountFactor, 2);
         const totalExciseAmount = lineExciseSum > 0 ? lineExciseSum : headerExciseScaled;
 
-        // Header discount must match Σ line discountAmount (general allocation + line discounts), or VSDC ties totalAmount to Σ(q×p)−header and returns E707.
-        const discountAmountForGra = roundTo(
-            itemsForGra.reduce((s, it) => s + Number(it.discountAmount || 0), 0),
-            2
-        );
-
         const sumExtendedItems = roundTo(
             itemsForGra.reduce((s, it) => s + roundTo(Number(it.quantity) * Number(it.unitPrice), 2), 0),
             2
@@ -499,19 +493,16 @@ exports.submitInvoice = async (req, res) => {
         // match (we pick discount split to minimize drift). Do not derive totalAmount from totalVat — that can disagree
         // with line items and still return E707.
         let totalAmountForGra;
+        let discountAmountForGra;
         if (calculationType === "INCLUSIVE") {
-            const headerSupply = roundTo(sumExtendedItems - discountAmountForGra, 2);
+            // Make header values strictly line-derived to avoid E707 reconciliation failures.
             const lineSumSupply = sumGraInclusiveLineSupplyAfterDiscount(itemsForGra, roundTo);
-            let supplyCore = headerSupply;
-            if (Math.abs(lineSumSupply - headerSupply) > 0.05) {
-                supplyCore = lineSumSupply;
-            }
-            totalAmountForGra = roundTo(supplyCore + totalExciseAmount, 2);
+            totalAmountForGra = roundTo(lineSumSupply + totalExciseAmount, 2);
+            discountAmountForGra = roundTo(sumExtendedItems - lineSumSupply, 2);
         } else {
-            const aggregateExcl = roundTo(sumExtendedItems - discountAmountForGra + totalExciseAmount, 2);
             const lineSumExcl = roundTo(sumExclusiveTaxableBase + totalExciseAmount, 2);
-            totalAmountForGra =
-                Math.abs(aggregateExcl - lineSumExcl) > 0.05 ? lineSumExcl : aggregateExcl;
+            totalAmountForGra = lineSumExcl;
+            discountAmountForGra = roundTo(sumExtendedItems - sumExclusiveTaxableBase, 2);
         }
 
         const taxType = (invoice.taxType || "STANDARD").toString().slice(0, 20);
