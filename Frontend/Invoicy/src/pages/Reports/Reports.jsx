@@ -744,63 +744,52 @@ const Reports = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600">Total Taxable Sales</p>
-                  <p className="text-xl font-bold text-gray-900 mt-1">
-                    {formatCurrency(reportData.summary.taxableSales, userCurrency)}
-                  </p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600">Total Tax Collected (VAT + Levies)</p>
-                  <p className="text-xl font-bold text-gray-900 mt-1">
-                    {formatCurrency(reportData.summary.totalTax, userCurrency)}
-                  </p>
-                </div>
-              </div>
-
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Tax Breakdown</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">Standard Rate VAT (15%)</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(reportData.summary.totalVat, userCurrency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">NHIL (2.5%)</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(reportData.summary.totalNhil, userCurrency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">GETFUND (2.5%)</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(reportData.summary.totalGetFund, userCurrency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">Total Levies</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(reportData.summary.totalLevies, userCurrency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">Zero-Rated Sales</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(0, userCurrency)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">Exempt Sales</span>
-                    <span className="font-medium text-blue-900">{formatCurrency(0, userCurrency)}</span>
-                  </div>
+                <h4 className="font-semibold text-blue-900 mb-3">Tax Breakdown</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[480px] divide-y divide-blue-200">
+                    <thead>
+                      <tr className="text-left">
+                        <th className="py-2 pr-4 text-xs font-semibold uppercase tracking-wide text-blue-800">Metric</th>
+                        <th className="py-2 text-xs font-semibold uppercase tracking-wide text-blue-800">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-blue-100">
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">Total Taxable Sales</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.taxableSales, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">Total Tax Collected (VAT + Levies)</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalTax, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">Standard Rate VAT (15%)</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalVat, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">NHIL (2.5%)</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalNhil, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">GETFUND (2.5%)</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalGetFund, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">Total Levies</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalLevies, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">Zero-Rated Sales</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(0, userCurrency)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4 text-sm text-blue-700">Exempt Sales</td>
+                        <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(0, userCurrency)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-
-              <div className="mt-6">
-                <Button
-                  onClick={handleSubmitToGRA}
-                  disabled={submitting}
-                  className="px-2 py-2 rounded bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  <Building2 className="w-4 h-4 mr-2" />
-                  {submitting ? "Submitting to GRA..." : "Submit to GRA"}
-                </Button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Company Reference: {user?.graCompanyReference || "Not set (configure in Settings → Company)"}
-                </p>
               </div>
 
               {/* GRA Submission Result */}
@@ -905,20 +894,26 @@ const Reports = () => {
                   <p className="text-sm text-gray-600">Total order amount and order frequency per customer</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[620px] divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">#</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Customer</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Total Order Amount</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Orders (Frequency)</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Average Order Value</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-100">
                       {reportData.customers.map((customer, index) => (
-                        <tr key={`${customer.name}-${index}`} className="border-b border-gray-100">
+                        <tr key={`${customer.name}-${index}`}>
+                          <td className="py-3 px-4 text-sm text-gray-600">{index + 1}</td>
                           <td className="py-3 px-4 text-sm text-gray-900">{customer.name}</td>
                           <td className="py-3 px-4 text-sm text-gray-900">{formatCurrency(customer.revenue, userCurrency)}</td>
                           <td className="py-3 px-4 text-sm text-gray-900">{customer.invoices}</td>
+                          <td className="py-3 px-4 text-sm text-gray-900">
+                            {formatCurrency(customer.invoices > 0 ? customer.revenue / customer.invoices : 0, userCurrency)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -933,19 +928,39 @@ const Reports = () => {
         {reportType === "payment" && (
           <div>
             <p className="text-gray-700 dark:text-slate-300 mb-4">Payment tracking and collection report</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-emerald-50 dark:bg-slate-900 rounded-lg p-4 border border-emerald-200 dark:border-slate-700">
-                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">Total Paid</p>
-                <p className="text-2xl font-bold text-emerald-900 dark:text-white mt-1">{formatCurrency(reportData.summary.totalRevenue, userCurrency)}</p>
-              </div>
-              <div className="bg-red-50 dark:bg-slate-900 rounded-lg p-4 border border-red-200 dark:border-slate-700">
-                <p className="text-sm text-red-700 dark:text-red-300 font-medium">Total Unpaid</p>
-                <p className="text-2xl font-bold text-red-900 dark:text-white mt-1">{formatCurrency(reportData.summary.totalUnpaidAmount, userCurrency)}</p>
-              </div>
-              <div className="bg-blue-50 dark:bg-slate-900 rounded-lg p-4 border border-blue-200 dark:border-slate-700">
-                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Invoices</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-white mt-1">{reportData.summary.totalInvoices}</p>
-                <p className="text-xs text-blue-700 dark:text-blue-200 mt-1">{reportData.summary.paidInvoices} Paid, {reportData.summary.pendingInvoices} Unpaid</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-blue-900 mb-3">Payment Summary</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] divide-y divide-blue-200">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="py-2 pr-4 text-xs font-semibold uppercase tracking-wide text-blue-800">Metric</th>
+                      <th className="py-2 text-xs font-semibold uppercase tracking-wide text-blue-800">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-blue-100">
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Total Paid</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalRevenue, userCurrency)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Total Unpaid</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.totalUnpaidAmount, userCurrency)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Total Invoices</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{reportData.summary.totalInvoices}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Paid Invoices</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{reportData.summary.paidInvoices}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Unpaid Invoices</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{reportData.summary.pendingInvoices}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -961,7 +976,7 @@ const Reports = () => {
                   <p className="text-sm text-gray-600">Invoice payment details and status</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[680px] divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Invoice #</th>
@@ -971,9 +986,9 @@ const Reports = () => {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Due Date</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-100">
                       {filteredInvoices.map((invoice) => (
-                        <tr key={invoice._id} className="border-b border-gray-100">
+                        <tr key={invoice._id}>
                           <td className="py-3 px-4 text-sm text-gray-900">{invoice.invoiceNumber}</td>
                           <td className="py-3 px-4 text-sm text-gray-900">{getCustomerName(invoice)}</td>
                           <td className="py-3 px-4 text-sm text-gray-900">{formatCurrency(Number(invoice.grandTotal || 0), userCurrency)}</td>
