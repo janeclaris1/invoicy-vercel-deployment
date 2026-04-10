@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins, ImageIcon } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins, ImageIcon, Save, X } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -78,6 +78,9 @@ const Items = () => {
   const [items, setItems] = useState([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkPriceDrafts, setBulkPriceDrafts] = useState({});
   const [importMessage, setImportMessage] = useState(null);
   const [showInlineCategoryForm, setShowInlineCategoryForm] = useState(false);
   const [creatingCategory, setCreatingCategory] = useState(false);
@@ -363,7 +366,91 @@ const Items = () => {
       (item.category || "").toLowerCase().includes(term) ||
       (item.sku || "").toLowerCase().includes(term)
     );
-  }).sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" }));
+  }).sort((a, b) => {
+    const catA = String(a?.category || "").trim();
+    const catB = String(b?.category || "").trim();
+    const catAIsBend = catA.toLowerCase() === "bend";
+    const catBIsBend = catB.toLowerCase() === "bend";
+    if (catAIsBend !== catBIsBend) return catAIsBend ? -1 : 1;
+    const catCompare = catA.localeCompare(catB, undefined, { sensitivity: "base" });
+    if (catCompare !== 0) return catCompare;
+    return String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" });
+  });
+
+  const parsePriceInput = (value) => Number(String(value ?? "").replace(/[^0-9.]/g, "")) || 0;
+
+  const enterBulkEditMode = () => {
+    const drafts = {};
+    filteredItems.forEach((item) => {
+      const itemId = item.id || item._id;
+      if (!itemId) return;
+      drafts[String(itemId)] = String(parsePriceInput(item.price));
+    });
+    setBulkPriceDrafts(drafts);
+    setBulkEditMode(true);
+  };
+
+  const cancelBulkEditMode = () => {
+    setBulkEditMode(false);
+    setBulkPriceDrafts({});
+  };
+
+  const handleBulkSavePrices = async () => {
+    const changed = filteredItems.filter((item) => {
+      const itemId = String(item.id || item._id || "");
+      if (!itemId) return false;
+      const current = parsePriceInput(item.price);
+      const draft = parsePriceInput(bulkPriceDrafts[itemId]);
+      return Math.abs(current - draft) > 0.0001;
+    });
+    if (changed.length === 0) {
+      toast("No price changes to save.");
+      return;
+    }
+
+    setBulkSaving(true);
+    let successCount = 0;
+    try {
+      for (const item of changed) {
+        const itemId = item.id || item._id;
+        const itemIdKey = String(itemId);
+        const nextPrice = parsePriceInput(bulkPriceDrafts[itemIdKey]);
+        const payload = {
+          name: item.name || "",
+          description: item.description || "",
+          category: item.category || "",
+          categoryColor: item.categoryColor || "#3B82F6",
+          price: nextPrice,
+          unit: item.unit || "unit",
+          sku: item.sku || "",
+          image: item.image || "",
+          taxRate: item.taxRate || "",
+          trackStock: Boolean(item.trackStock),
+          quantityInStock: item.trackStock ? Number(item.quantityInStock) || 0 : 0,
+          reorderLevel: item.trackStock ? Number(item.reorderLevel) || 0 : 0,
+        };
+        await axiosInstance.put(API_PATHS.ITEMS.UPDATE(itemId), payload);
+        successCount += 1;
+      }
+
+      setItems((prev) =>
+        prev.map((item) => {
+          const itemId = String(item.id || item._id || "");
+          if (!itemId || !(itemId in bulkPriceDrafts)) return item;
+          const draftPrice = parsePriceInput(bulkPriceDrafts[itemId]);
+          const currentPrice = parsePriceInput(item.price);
+          if (Math.abs(draftPrice - currentPrice) <= 0.0001) return item;
+          return { ...item, price: formatCurrency(draftPrice, userCurrency) };
+        })
+      );
+      toast.success(`Updated ${successCount} item price${successCount > 1 ? "s" : ""}.`);
+      cancelBulkEditMode();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to bulk update item prices.");
+    } finally {
+      setBulkSaving(false);
+    }
+  };
 
   const productTemplateHeaders = [
     "name",
@@ -482,6 +569,37 @@ const Items = () => {
             <Plus className="w-5 h-5" />
             <span>Add Item</span>
           </button>
+          {!bulkEditMode ? (
+            <button
+              type="button"
+              onClick={enterBulkEditMode}
+              className="flex items-center space-x-2 px-4 py-3 border border-blue-200 text-blue-900 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <Coins className="w-5 h-5" />
+              <span>Bulk Edit Prices</span>
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleBulkSavePrices}
+                disabled={bulkSaving}
+                className="flex items-center space-x-2 px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-60"
+              >
+                <Save className="w-5 h-5" />
+                <span>{bulkSaving ? "Saving..." : "Save Price Changes"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={cancelBulkEditMode}
+                disabled={bulkSaving}
+                className="flex items-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+              >
+                <X className="w-5 h-5" />
+                <span>Cancel</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
       {importMessage && (
@@ -520,46 +638,65 @@ const Items = () => {
         ) : (
           <ul className="divide-y divide-gray-200">
             {filteredItems.map((item) => (
-              <li key={item.id} className="px-4 sm:px-6 py-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <li key={item.id} className="px-3 sm:px-4 py-2.5">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden shrink-0">
                       {item.image ? (
                         <img src={item.image} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <Package className="w-6 h-6 text-gray-700" />
+                        <Package className="w-5 h-5 text-gray-700" />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500 truncate">SKU: {item.sku || "-"}</p>
-                      <p className="text-xs text-gray-500 truncate">{item.description || "No description"}</p>
+                      <p className="font-medium text-sm text-gray-900 truncate">{item.name}</p>
+                      <p className="text-[11px] text-gray-500 truncate">SKU: {item.sku || "-"}</p>
+                      <p className="text-[11px] text-gray-500 truncate">{item.description || "No description"}</p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                  <div className="flex flex-wrap items-center gap-2 md:justify-end">
                     <span
-                      className="px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                      className="px-2 py-0.5 rounded-full text-[11px] font-medium text-white"
                       style={{ backgroundColor: item.categoryColor || "#3B82F6" }}
                     >
                       {item.category || "Uncategorized"}
                     </span>
-                    <span className="text-sm text-gray-600">{item.unit || "unit"}</span>
-                    <span className="text-sm font-semibold text-gray-900">{item.price}</span>
-                    <span className="text-xs text-blue-900 font-medium">{item.usageCount || 0} invoices</span>
+                    <span className="text-xs text-gray-600">{item.unit || "unit"}</span>
+                    {bulkEditMode ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-500">{userCurrency}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={bulkPriceDrafts[String(item.id || item._id || "")] ?? String(parsePriceInput(item.price))}
+                          onChange={(e) =>
+                            setBulkPriceDrafts((prev) => ({
+                              ...prev,
+                              [String(item.id || item._id || "")]: e.target.value,
+                            }))
+                          }
+                          className="w-24 h-8 px-2 border border-gray-300 rounded-md text-xs"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs font-semibold text-gray-900">{item.price}</span>
+                    )}
+                    <span className="text-[11px] text-blue-900 font-medium">{item.usageCount || 0} invoices</span>
                     <button
                       onClick={() => openEditItem(item)}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                       aria-label={`Edit ${item.name}`}
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteItem(item.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                       aria-label={`Delete ${item.name}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
