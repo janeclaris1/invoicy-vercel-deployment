@@ -880,7 +880,7 @@ const InvoiceDetail = () => {
                   <img
                     src={invoice.companyStamp || user?.companyStamp}
                     alt="Company stamp"
-                    className="h-16 object-contain bg-white p-1 mt-2"
+                    className="h-24 object-contain bg-white p-1 mt-2"
                   />
                 )}
               </div>
@@ -1017,7 +1017,7 @@ const InvoiceDetail = () => {
                 <img
                   src={invoice.companyStamp || user?.companyStamp}
                   alt="Company stamp"
-                  className="h-16 object-contain mx-auto bg-white p-1 mt-2"
+                  className="h-24 object-contain mx-auto bg-white p-1 mt-2"
                 />
               )}
             </div>
