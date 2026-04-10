@@ -1,11 +1,21 @@
 const Invoice = require("../models/invoice");
 const User = require("../models/User");
+const Employee = require("../models/Employee");
 const Item = require("../models/Item");
 const StockMovement = require("../models/StockMovement");
 
 const hasBranchScopedAccess = (user) => Boolean(user?.branch);
-const resolveEffectiveBranchId = (req) =>
-    hasBranchScopedAccess(req?.user) ? String(req.user.branch) : null;
+const resolveEffectiveBranchId = async (req) => {
+    if (hasBranchScopedAccess(req?.user)) return String(req.user.branch);
+    const userId = req?.user?._id;
+    if (!userId) return null;
+    try {
+        const employee = await Employee.findOne({ user: userId }).select('branch').lean();
+        return employee?.branch ? String(employee.branch) : null;
+    } catch (_) {
+        return null;
+    }
+};
 
 // @desc    Create a new invoice
 // @route   POST /api/invoices
@@ -176,6 +186,7 @@ exports.createInvoice = async (req, res) => {
                 tin: billFrom.tin || "",
             }
             : { businessName: "", email: "", address: "", phone: "", tin: "" };
+        const effectiveBranchId = await resolveEffectiveBranchId(req);
         let ownerCompany = null;
         if (effectiveBranchId) {
             const ownerId = userDoc?.createdBy || req.user?.createdBy || null;
@@ -334,7 +345,7 @@ exports.getInvoices = async (req, res) => {
             return res.json([]); // Return empty array if no team members found
         }
         
-        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const effectiveBranchId = await resolveEffectiveBranchId(req);
         const branchFilter = effectiveBranchId
             ? { branch: effectiveBranchId }
             : (req.query.branch && String(req.query.branch).trim() ? { branch: req.query.branch.trim() } : {});
@@ -380,7 +391,7 @@ exports.getInvoiceById = async (req, res) => {
         if (!teamMemberIds.some(id => id.toString() === invoiceUserId)) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
         }
-        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const effectiveBranchId = await resolveEffectiveBranchId(req);
         const invoiceBranchId = invoice.branch
             ? String(invoice.branch._id || invoice.branch)
             : null;
@@ -409,7 +420,7 @@ exports.updateInvoice = async (req, res) => {
         if (!teamMemberIds.some(id => id.toString() === invoice.user.toString())) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
         }
-        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const effectiveBranchId = await resolveEffectiveBranchId(req);
         const invoiceBranchId = invoice.branch ? String(invoice.branch) : null;
         if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
             return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
@@ -698,7 +709,7 @@ exports.deleteInvoice = async (req, res) => {
         if (!teamMemberIds.some(id => id.toString() === invoice.user.toString())) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
         }
-        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const effectiveBranchId = await resolveEffectiveBranchId(req);
         const invoiceBranchId = invoice.branch ? String(invoice.branch) : null;
         if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
             return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
@@ -731,7 +742,7 @@ exports.convertProformaToInvoice = async (req, res) => {
         if (!teamMemberIds.some(id => id.toString() === proforma.user.toString())) {
             return res.status(403).json({ message: 'Unauthorized access to this invoice' });
         }
-        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const effectiveBranchId = await resolveEffectiveBranchId(req);
         const proformaBranchId = proforma.branch ? String(proforma.branch) : null;
         if (effectiveBranchId && proformaBranchId !== effectiveBranchId) {
             return res.status(403).json({ message: 'Unauthorized access to this branch invoice' });
