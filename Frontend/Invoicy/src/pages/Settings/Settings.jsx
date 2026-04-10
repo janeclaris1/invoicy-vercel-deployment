@@ -570,7 +570,7 @@ const Settings = () => {
                     </label>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept=".img,.png,.jpg,.jpeg,.svg,image/*"
                       onChange={handleCompanySignatureChange}
                       className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                     />
@@ -969,7 +969,7 @@ const Settings = () => {
                             <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">Cashier Signature</label>
                             <input
                               type="file"
-                              accept="image/*"
+                              accept=".img,.png,.jpg,.jpeg,.svg,image/*"
                               onChange={handleCashierSignatureChange}
                               className="block w-full text-sm text-gray-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                             />
@@ -1066,7 +1066,7 @@ const Settings = () => {
                             <label className="block text-sm font-medium text-black mb-2">Cashier Signature</label>
                             <input
                               type="file"
-                              accept="image/*"
+                              accept=".img,.png,.jpg,.jpeg,.svg,image/*"
                               onChange={handleCashierSignatureChange}
                               className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                             />

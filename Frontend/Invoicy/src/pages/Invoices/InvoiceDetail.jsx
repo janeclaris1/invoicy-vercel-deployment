@@ -873,7 +873,7 @@ const InvoiceDetail = () => {
                 <img
                   src={invoice.companySignature || user?.companySignature}
                   alt="Company signature"
-                  className="h-10 object-contain"
+                  className="h-10 object-contain bg-white border border-gray-200 rounded p-1"
                 />
                 <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
               </div>
@@ -1003,7 +1003,7 @@ const InvoiceDetail = () => {
               <img
                 src={invoice.companySignature || user?.companySignature}
                 alt="Company signature"
-                className="h-10 object-contain mx-auto"
+                className="h-10 object-contain mx-auto bg-white border border-gray-200 rounded p-1"
               />
               <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
             </div>
