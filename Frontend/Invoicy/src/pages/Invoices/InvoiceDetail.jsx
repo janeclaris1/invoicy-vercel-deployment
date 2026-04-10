@@ -836,6 +836,16 @@ const InvoiceDetail = () => {
               <div>Notes: {invoice.notes || "-"}</div>
               <div>Payment Terms: {invoice.paymentTerms || "-"}</div>
             </div>
+            {(invoice.companySignature || user?.companySignature) && (
+              <div className="w-full max-w-[14rem] border-t border-gray-200 pt-2">
+                <img
+                  src={invoice.companySignature || user?.companySignature}
+                  alt="Company signature"
+                  className="h-10 object-contain"
+                />
+                <div className="text-[10px] mt-1">Authorized Signature</div>
+              </div>
+            )}
             {(invoice.graSdcId ||
               invoice.graReceiptNumber ||
               invoice.graVerificationCode ||
@@ -988,6 +998,16 @@ const InvoiceDetail = () => {
               <span className="tabular-nums">{formatCurrency(Math.abs(balanceDue), userCurrency)}</span>
             </div>
           </div>
+          {(invoice.companySignature || user?.companySignature) && (
+            <div className="mt-2 pt-2 border-t border-dashed border-gray-600 text-center">
+              <img
+                src={invoice.companySignature || user?.companySignature}
+                alt="Company signature"
+                className="h-10 object-contain mx-auto"
+              />
+              <div className="text-[10px] mt-1">Authorized Signature</div>
+            </div>
+          )}
           {(invoice.graReceiptNumber || invoice.graSdcId) && (
             <div className="mt-2 pt-2 border-t border-dashed border-gray-600 text-[10px] space-y-0.5">
               {invoice.graReceiptNumber && (
