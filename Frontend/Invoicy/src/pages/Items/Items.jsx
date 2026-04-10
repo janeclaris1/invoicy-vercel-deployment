@@ -363,7 +363,7 @@ const Items = () => {
       (item.category || "").toLowerCase().includes(term) ||
       (item.sku || "").toLowerCase().includes(term)
     );
-  });
+  }).sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" }));
 
   const productTemplateHeaders = [
     "name",
@@ -510,72 +510,63 @@ const Items = () => {
         </div>
       </div>
 
-      {/* Items Grid */}
+      {/* Items List */}
       {itemsLoading ? (
         <div className="text-center py-12 text-gray-500">Loading your catalog...</div>
       ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
-                  {item.image ? (
-                    <img src={item.image} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Package className="w-6 h-6 text-gray-700" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                  <p className="text-xs text-gray-500">SKU: {item.sku}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => openEditItem(item)}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteItem(item.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {filteredItems.length === 0 ? (
+          <div className="px-6 py-10 text-center text-gray-500">No items found.</div>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {filteredItems.map((item) => (
+              <li key={item.id} className="px-4 sm:px-6 py-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                      {item.image ? (
+                        <img src={item.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-6 h-6 text-gray-700" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500 truncate">SKU: {item.sku || "-"}</p>
+                      <p className="text-xs text-gray-500 truncate">{item.description || "No description"}</p>
+                    </div>
+                  </div>
 
-            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{item.description}</p>
-
-            <div className="flex items-center space-x-2 mb-4">
-              <div
-                className="px-3 py-1 rounded-full text-xs font-medium text-white"
-                style={{ backgroundColor: item.categoryColor }}
-              >
-                {item.category}
-              </div>
-              <span className="text-xs text-gray-500">{item.unit}</span>
-            </div>
-
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Price</p>
-                  <p className="text-xl font-bold text-gray-900">{item.price}</p>
+                  <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                    <span
+                      className="px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                      style={{ backgroundColor: item.categoryColor || "#3B82F6" }}
+                    >
+                      {item.category || "Uncategorized"}
+                    </span>
+                    <span className="text-sm text-gray-600">{item.unit || "unit"}</span>
+                    <span className="text-sm font-semibold text-gray-900">{item.price}</span>
+                    <span className="text-xs text-blue-900 font-medium">{item.usageCount || 0} invoices</span>
+                    <button
+                      onClick={() => openEditItem(item)}
+                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label={`Edit ${item.name}`}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      aria-label={`Delete ${item.name}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Used in</p>
-                  <p className="text-lg font-semibold text-blue-900">{item.usageCount} invoices</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       )}
 
