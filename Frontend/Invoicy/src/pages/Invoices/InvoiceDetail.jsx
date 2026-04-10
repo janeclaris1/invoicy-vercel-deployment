@@ -875,7 +875,7 @@ const InvoiceDetail = () => {
                   alt="Company signature"
                   className="h-10 object-contain"
                 />
-                <div className="text-[10px] mt-1">Authorized Signature</div>
+                <div className="text-[10px] mt-1">Sales Manager</div>
               </div>
             )}
             {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
