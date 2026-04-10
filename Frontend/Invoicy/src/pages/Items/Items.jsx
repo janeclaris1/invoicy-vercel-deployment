@@ -7,11 +7,14 @@ import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
 
 const MAX_ITEM_IMAGE_BYTES = 1.5 * 1024 * 1024;
+const DEFAULT_UNITS = ["unit", "hour", "day", "month", "year", "project", "piece", "kg", "lb"];
 
 const Items = () => {
   const { user } = useAuth();
   const userCurrency = user?.currency || 'GHS';
   const [showModal, setShowModal] = useState(false);
+  const [unitMode, setUnitMode] = useState("preset");
+  const [customUnitDraft, setCustomUnitDraft] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [editingItemId, setEditingItemId] = useState(null);
   const [formData, setFormData] = useState({
@@ -183,6 +186,8 @@ const Items = () => {
       reorderLevel: "",
       image: "",
     });
+    setUnitMode("preset");
+    setCustomUnitDraft("");
     setShowModal(true);
     setShowInlineCategoryForm(false);
     setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
@@ -190,13 +195,15 @@ const Items = () => {
   };
 
   const openEditItem = (item) => {
+    const initialUnit = item.unit || "unit";
+    const isCustomUnit = !DEFAULT_UNITS.includes(initialUnit);
     setEditingItemId(item.id || item._id);
     setFormData({
       name: item.name || "",
       description: item.description || "",
       category: item.category || "",
       price: String(item.price || "").replace(/[^0-9.]/g, ""),
-      unit: item.unit || "unit",
+      unit: initialUnit,
       sku: item.sku || "",
       taxRate: item.taxRate || "",
       trackStock: Boolean(item.trackStock),
@@ -204,6 +211,8 @@ const Items = () => {
       reorderLevel: item.reorderLevel != null ? String(item.reorderLevel) : "",
       image: typeof item.image === "string" ? item.image : "",
     });
+    setUnitMode(isCustomUnit ? "custom" : "preset");
+    setCustomUnitDraft(isCustomUnit ? initialUnit : "");
     setShowModal(true);
     setShowInlineCategoryForm(false);
     setInlineCategoryForm({ name: "", color: "#3B82F6", description: "" });
@@ -342,6 +351,8 @@ const Items = () => {
       }
     }
     setShowModal(false);
+    setUnitMode("preset");
+    setCustomUnitDraft("");
     setFormData({
       name: "",
       description: "",
@@ -709,8 +720,8 @@ const Items = () => {
 
       {/* Add Item Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-xl w-full max-h-[82vh] overflow-y-auto shadow-lg">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {editingItemId ? "Edit Item" : "Add New Item"}
@@ -887,21 +898,40 @@ const Items = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
                   <select
-                    name="unit"
-                    value={formData.unit}
-                    onChange={handleInputChange}
+                    value={unitMode === "custom" ? "__custom__" : formData.unit}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "__custom__") {
+                        setUnitMode("custom");
+                        if (!customUnitDraft) setCustomUnitDraft(formData.unit || "");
+                      } else {
+                        setUnitMode("preset");
+                        setFormData((prev) => ({ ...prev, unit: val }));
+                      }
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="unit">Unit</option>
-                    <option value="hour">Hour</option>
-                    <option value="day">Day</option>
-                    <option value="month">Month</option>
-                    <option value="year">Year</option>
-                    <option value="project">Project</option>
-                    <option value="piece">Piece</option>
-                    <option value="kg">Kilogram</option>
-                    <option value="lb">Pound</option>
+                    {DEFAULT_UNITS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                    <option value="__custom__">Create custom unit...</option>
                   </select>
+                  {unitMode === "custom" && (
+                    <input
+                      type="text"
+                      value={customUnitDraft}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setCustomUnitDraft(v);
+                        setFormData((prev) => ({ ...prev, unit: v.trim() || "unit" }));
+                      }}
+                      className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., carton, pack, meter"
+                      required
+                    />
+                  )}
                 </div>
 
                 <div>
