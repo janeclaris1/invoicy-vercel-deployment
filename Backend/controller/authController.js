@@ -212,7 +212,7 @@ exports.createTeamMember = async (req, res) => {
         if (!canManage) {
             return res.status(403).json({ message: 'Only owners and admins can create team members' });
         }
-        const { employeeId, password, role, responsibilities } = req.body;
+        const { employeeId, password, role, responsibilities, cashierName, cashierSignature } = req.body;
         if (!employeeId || !password) {
             return res.status(400).json({ message: 'Employee and password are required. Create the employee in HR first, then add a user here.' });
         }
@@ -246,12 +246,15 @@ exports.createTeamMember = async (req, res) => {
             return res.status(400).json({ message: 'A user with this email already exists' });
         }
         const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ') || email;
+        const allowedTeamRoles = ['owner', 'admin', 'staff', 'viewer', 'manager', 'cashier', 'accountant', 'hr', 'production_manager', 'procurement', 'supply_chain'];
         const user = await User.create({
             name,
             email,
             password,
-            role: ['owner', 'admin', 'staff', 'viewer'].includes(role) ? role : 'staff',
+            role: allowedTeamRoles.includes(role) ? role : 'staff',
             responsibilities: Array.isArray(responsibilities) ? responsibilities : [],
+            cashierName: typeof cashierName === 'string' ? cashierName.trim() : '',
+            cashierSignature: typeof cashierSignature === 'string' ? cashierSignature : '',
             createdBy: req.user.id,
         });
         employee.user = user._id;
@@ -263,6 +266,8 @@ exports.createTeamMember = async (req, res) => {
             email: user.email,
             role: user.role,
             responsibilities: user.responsibilities || [],
+            cashierName: user.cashierName || '',
+            cashierSignature: user.cashierSignature || '',
         });
     } catch (error) {
         console.error('Create team member error:', error);
@@ -285,9 +290,12 @@ exports.updateTeamMember = async (req, res) => {
         if (member.createdBy?.toString() !== req.user.id && member._id.toString() !== req.user.id) {
             return res.status(403).json({ message: 'You can only update users you created' });
         }
-        const { role, responsibilities, password } = req.body;
-        if (role) member.role = ['owner', 'admin', 'staff', 'viewer'].includes(role) ? role : member.role;
+        const { role, responsibilities, password, cashierName, cashierSignature } = req.body;
+        const allowedTeamRoles = ['owner', 'admin', 'staff', 'viewer', 'manager', 'cashier', 'accountant', 'hr', 'production_manager', 'procurement', 'supply_chain'];
+        if (role) member.role = allowedTeamRoles.includes(role) ? role : member.role;
         if (Array.isArray(responsibilities)) member.responsibilities = responsibilities;
+        if (cashierName !== undefined) member.cashierName = typeof cashierName === 'string' ? cashierName.trim() : '';
+        if (cashierSignature !== undefined) member.cashierSignature = typeof cashierSignature === 'string' ? cashierSignature : '';
         if (password && typeof password === 'string') {
             if (member.createdBy?.toString() !== req.user.id) {
                 return res.status(403).json({ message: 'Only the inviting account can set this member\'s password' });
@@ -306,6 +314,8 @@ exports.updateTeamMember = async (req, res) => {
             email: member.email,
             role: member.role,
             responsibilities: member.responsibilities || [],
+            cashierName: member.cashierName || '',
+            cashierSignature: member.cashierSignature || '',
         });
     } catch (error) {
         console.error('Update team member error:', error);
@@ -440,6 +450,8 @@ exports.loginUser = async (req, res, next) => {
                 companyLogo: user.companyLogo || '',
                 companySignature: user.companySignature || '',
                 companyStamp: user.companyStamp || '',
+                cashierName: user.cashierName || '',
+                cashierSignature: user.cashierSignature || '',
                 currency: user.currency || 'GHS',
                 role: user.role || 'owner',
                 responsibilities: user.responsibilities || [],
@@ -498,6 +510,8 @@ exports.getMe = async (req, res) => {
             companyLogo: user.companyLogo || '',
             companySignature: user.companySignature || '',
             companyStamp: user.companyStamp || '',
+            cashierName: user.cashierName || '',
+            cashierSignature: user.cashierSignature || '',
             profilePicture,
             currency: user.currency || 'GHS',
             role: user.role || 'owner',
@@ -541,6 +555,8 @@ exports.updateUserProfile = async (req, res) => {
             user.companyLogo = req.body.companyLogo !== undefined ? req.body.companyLogo : user.companyLogo;
             user.companySignature = req.body.companySignature !== undefined ? req.body.companySignature : user.companySignature;
             user.companyStamp = req.body.companyStamp !== undefined ? req.body.companyStamp : user.companyStamp;
+            if (req.body.cashierName !== undefined) user.cashierName = String(req.body.cashierName || '').trim();
+            if (req.body.cashierSignature !== undefined) user.cashierSignature = String(req.body.cashierSignature || '');
             if (req.body.profilePicture !== undefined) user.profilePicture = req.body.profilePicture;
             if (req.body.graCompanyReference !== undefined) user.graCompanyReference = String(req.body.graCompanyReference || '').trim();
             if (req.body.graSecurityKey !== undefined) user.graSecurityKey = String(req.body.graSecurityKey || '').trim();
@@ -652,6 +668,8 @@ exports.updateUserProfile = async (req, res) => {
                 companyLogo: updatedUser.companyLogo,
                 companySignature: updatedUser.companySignature,
                 companyStamp: updatedUser.companyStamp,
+                cashierName: updatedUser.cashierName || '',
+                cashierSignature: updatedUser.cashierSignature || '',
                 profilePicture: updatedUser.profilePicture || '',
                 currency: updatedUser.currency || 'GHS',
                 graCompanyReference: updatedUser.graCompanyReference || '',
@@ -702,6 +720,8 @@ exports.uploadProfilePicture = async (req, res) => {
             companyLogo: user.companyLogo || '',
             companySignature: user.companySignature || '',
             companyStamp: user.companyStamp || '',
+            cashierName: user.cashierName || '',
+            cashierSignature: user.cashierSignature || '',
             profilePicture: user.profilePicture || '',
             currency: user.currency || 'GHS',
             role: user.role || 'owner',

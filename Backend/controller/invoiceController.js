@@ -52,7 +52,7 @@ exports.createInvoice = async (req, res) => {
             return res.status(400).json({ message: "Invoice must contain at least one item" });
         }
 
-        const userDoc = await User.findById(user).select('graVatScenario').lean();
+        const userDoc = await User.findById(user).select('graVatScenario role companySignature cashierSignature cashierName name').lean();
         const vatScenario = (userDoc && userDoc.graVatScenario === 'exclusive') ? 'exclusive' : 'inclusive';
 
         const typeNorm = (invoiceType || '').toString().toLowerCase();
@@ -173,7 +173,13 @@ exports.createInvoice = async (req, res) => {
             }
             : { businessName: "", email: "", address: "", phone: "", tin: "" };
         const finalCompanyLogo = companyLogo || "";
-        const finalCompanySignature = companySignature || "";
+        const isCashierInvoice = (userDoc?.role || '').toLowerCase() === 'cashier';
+        const finalCompanySignature = isCashierInvoice
+            ? (userDoc?.cashierSignature || companySignature || userDoc?.companySignature || "")
+            : (companySignature || userDoc?.companySignature || "");
+        const finalSignatoryName = isCashierInvoice
+            ? (userDoc?.cashierName || userDoc?.name || "")
+            : "";
         const finalCompanyStamp = companyStamp || "";
 
         const invoice = new Invoice({
@@ -185,6 +191,7 @@ exports.createInvoice = async (req, res) => {
             billTo: normalizedBillTo,
             companyLogo: finalCompanyLogo,
             companySignature: finalCompanySignature,
+            signatoryName: finalSignatoryName,
             companyStamp: finalCompanyStamp,
             item: normalizedItems,
             notes,
@@ -674,6 +681,7 @@ exports.convertProformaToInvoice = async (req, res) => {
             billTo: proforma.billTo,
             companyLogo: proforma.companyLogo,
             companySignature: proforma.companySignature,
+            signatoryName: proforma.signatoryName || '',
             companyStamp: proforma.companyStamp,
             item: proforma.item,
             notes: proforma.notes,

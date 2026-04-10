@@ -68,6 +68,10 @@ const invoiceSchema = new mongoose.Schema({
     companySignature: {
         type: String,
     },
+    signatoryName: {
+        type: String,
+        default: '',
+    },
     companyStamp: {
         type: String,
     },

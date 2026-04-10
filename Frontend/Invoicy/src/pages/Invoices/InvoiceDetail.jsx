@@ -875,7 +875,7 @@ const InvoiceDetail = () => {
                   alt="Company signature"
                   className="h-10 object-contain"
                 />
-                <div className="text-[10px] mt-1">Authorized Signature</div>
+                <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
               </div>
             )}
             {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
@@ -1005,7 +1005,7 @@ const InvoiceDetail = () => {
                 alt="Company signature"
                 className="h-10 object-contain mx-auto"
               />
-              <div className="text-[10px] mt-1">Authorized Signature</div>
+              <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
             </div>
           )}
           {(invoice.graReceiptNumber || invoice.graSdcId) && (

@@ -26,9 +26,15 @@ const userSchema = new mongoose.Schema({
     companyLogo: { type: String, default: ''},
     companySignature: { type: String, default: ''},
     companyStamp: { type: String, default: ''},
+    cashierName: { type: String, default: ''},
+    cashierSignature: { type: String, default: ''},
     profilePicture: { type: String, default: '' },
     currency: { type: String, default: 'GHS', enum: ['GHS', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'ZAR', 'XOF', 'XAF'] },
-    role: { type: String, enum: ['owner', 'admin', 'staff', 'viewer'], default: 'owner' },
+    role: {
+        type: String,
+        enum: ['owner', 'admin', 'staff', 'viewer', 'manager', 'cashier', 'accountant', 'hr', 'production_manager', 'procurement', 'supply_chain'],
+        default: 'owner'
+    },
     roles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Role' }],
     responsibilities: [{ type: String }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

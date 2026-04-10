@@ -39,6 +39,8 @@ const Settings = () => {
     password: "",
     editPassword: "",
     role: "staff",
+    cashierName: "",
+    cashierSignature: "",
     responsibilities: [],
   });
   const [securityPassword, setSecurityPassword] = useState({ current: "", new: "", confirm: "" });
@@ -71,6 +73,18 @@ const Settings = () => {
   ];
 
   const RESPONSIBILITY_LABELS = Object.fromEntries(RESPONSIBILITIES.map((r) => [r.id, r.label]));
+  const TEAM_ROLE_OPTIONS = [
+    { value: "admin", label: "Admin" },
+    { value: "manager", label: "Manager" },
+    { value: "cashier", label: "Cashier" },
+    { value: "accountant", label: "Accountant" },
+    { value: "hr", label: "HR" },
+    { value: "production_manager", label: "Production Manager" },
+    { value: "procurement", label: "Procurement" },
+    { value: "supply_chain", label: "Supply Chain" },
+    { value: "staff", label: "Staff" },
+    { value: "viewer", label: "Viewer" },
+  ];
 
   useEffect(() => {
     setCompanyForm((prev) => ({
@@ -221,10 +235,12 @@ const Settings = () => {
         employeeId: userForm.employeeId,
         password: userForm.password,
         role: userForm.role,
+        cashierName: userForm.cashierName,
+        cashierSignature: userForm.cashierSignature,
         responsibilities: userForm.responsibilities,
       });
       toast.success("Employee added to team");
-      setUserForm({ employeeId: "", name: "", email: "", password: "", editPassword: "", role: "staff", responsibilities: [] });
+      setUserForm({ employeeId: "", name: "", email: "", password: "", editPassword: "", role: "staff", cashierName: "", cashierSignature: "", responsibilities: [] });
       setShowCreateUser(false);
       fetchTeamMembers();
       fetchEmployeesWithoutUser();
@@ -236,7 +252,12 @@ const Settings = () => {
   const handleUpdateUser = async (e) => {
     e.preventDefault();
     if (!editingMemberId) return;
-    const payload = { role: userForm.role, responsibilities: userForm.responsibilities };
+    const payload = {
+      role: userForm.role,
+      responsibilities: userForm.responsibilities,
+      cashierName: userForm.cashierName,
+      cashierSignature: userForm.cashierSignature,
+    };
     if (userForm.editPassword && userForm.editPassword.trim()) {
       if (!isPasswordStrongEnough(userForm.editPassword)) {
         toast.error(
@@ -250,7 +271,7 @@ const Settings = () => {
       await axiosInstance.put(API_PATHS.AUTH.TEAM_MEMBER(editingMemberId), payload);
       toast.success("User updated successfully");
       setEditingMemberId(null);
-      setUserForm({ name: "", email: "", password: "", editPassword: "", role: "staff", responsibilities: [] });
+      setUserForm({ name: "", email: "", password: "", editPassword: "", role: "staff", cashierName: "", cashierSignature: "", responsibilities: [] });
       fetchTeamMembers();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update user");
@@ -273,6 +294,8 @@ const Settings = () => {
       password: "",
       editPassword: "",
       role: member.role || "staff",
+      cashierName: member.cashierName || "",
+      cashierSignature: member.cashierSignature || "",
       responsibilities: member.responsibilities || [],
     });
   };
@@ -312,7 +335,7 @@ const Settings = () => {
       fetchTeamMembers();
       if (editingMemberId === member._id) {
         setEditingMemberId(null);
-        setUserForm({ name: "", email: "", password: "", editPassword: "", role: "staff", responsibilities: [] });
+        setUserForm({ name: "", email: "", password: "", editPassword: "", role: "staff", cashierName: "", cashierSignature: "", responsibilities: [] });
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to remove user");
@@ -378,6 +401,17 @@ const Settings = () => {
     try {
       const dataUrl = await compressImageAsDataUrl(file);
       setCompanyForm((prev) => ({ ...prev, companyStamp: dataUrl }));
+    } catch (err) {
+      toast.error("Could not process image. Try a smaller file.");
+    }
+  };
+
+  const handleCashierSignatureChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImageAsDataUrl(file);
+      setUserForm((prev) => ({ ...prev, cashierSignature: dataUrl }));
     } catch (err) {
       toast.error("Could not process image. Try a smaller file.");
     }
@@ -830,7 +864,7 @@ const Settings = () => {
                     onClick={() => {
                       setShowCreateUser(true);
                       setEditingMemberId(null);
-                      setUserForm({ employeeId: "", name: "", email: "", password: "", role: "staff", responsibilities: [] });
+                      setUserForm({ employeeId: "", name: "", email: "", password: "", role: "staff", cashierName: "", cashierSignature: "", responsibilities: [] });
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
                   >
@@ -911,12 +945,44 @@ const Settings = () => {
                           onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}
                           className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                         >
-                          <option value="admin">Admin</option>
-                          <option value="staff">Staff</option>
-                          <option value="viewer">Viewer</option>
+                          {TEAM_ROLE_OPTIONS.map((roleOption) => (
+                            <option key={roleOption.value} value={roleOption.value}>
+                              {roleOption.label}
+                            </option>
+                          ))}
                         </select>
-                        <p className="text-xs text-gray-500 dark:text-slate-300 mt-1">Admin can manage team. Staff has edit access. Viewer is read-only.</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-300 mt-1">Assign the appropriate role for each team member's function.</p>
                       </div>
+                      {userForm.role === "cashier" && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">Cashier Name</label>
+                            <input
+                              type="text"
+                              value={userForm.cashierName}
+                              onChange={(e) => setUserForm((prev) => ({ ...prev, cashierName: e.target.value }))}
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+                              placeholder="Name to display on invoices"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">Cashier Signature</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleCashierSignatureChange}
+                              className="block w-full text-sm text-gray-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                            />
+                            {userForm.cashierSignature && (
+                              <img
+                                src={userForm.cashierSignature}
+                                alt="Cashier signature preview"
+                                className="mt-2 h-12 w-auto object-contain border border-slate-200 rounded bg-white p-1"
+                              />
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">Responsibilities</label>
@@ -941,7 +1007,7 @@ const Settings = () => {
                       <button type="submit" className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
                         Add to team
                       </button>
-                      <button type="button" onClick={() => { setShowCreateUser(false); setUserForm((prev) => ({ ...prev, employeeId: "", name: "", email: "", password: "" })); }} className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-900 dark:text-slate-100">
+                      <button type="button" onClick={() => { setShowCreateUser(false); setUserForm((prev) => ({ ...prev, employeeId: "", name: "", email: "", password: "", cashierName: "", cashierSignature: "" })); }} className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-900 dark:text-slate-100">
                         Cancel
                       </button>
                     </div>
@@ -967,9 +1033,11 @@ const Settings = () => {
                           onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-black"
                         >
-                          <option value="admin">Admin</option>
-                          <option value="staff">Staff</option>
-                          <option value="viewer">Viewer</option>
+                          {TEAM_ROLE_OPTIONS.map((roleOption) => (
+                            <option key={roleOption.value} value={roleOption.value}>
+                              {roleOption.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="md:col-span-2">
@@ -982,6 +1050,36 @@ const Settings = () => {
                           placeholder={`New password (min ${PASSWORD_MIN_LENGTH} chars, upper, lower, number)`}
                         />
                       </div>
+                      {userForm.role === "cashier" && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-black mb-2">Cashier Name</label>
+                            <input
+                              type="text"
+                              value={userForm.cashierName}
+                              onChange={(e) => setUserForm((prev) => ({ ...prev, cashierName: e.target.value }))}
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-black"
+                              placeholder="Name to display on invoices"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-black mb-2">Cashier Signature</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleCashierSignatureChange}
+                              className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                            />
+                            {userForm.cashierSignature && (
+                              <img
+                                src={userForm.cashierSignature}
+                                alt="Cashier signature preview"
+                                className="mt-2 h-12 w-auto object-contain border border-slate-200 rounded bg-white p-1"
+                              />
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-black mb-2">Responsibilities</label>
@@ -1006,7 +1104,7 @@ const Settings = () => {
                       <button type="submit" className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
                         Save Changes
                       </button>
-                      <button type="button" onClick={() => { setEditingMemberId(null); setUserForm({ name: "", email: "", password: "", editPassword: "", role: "staff", responsibilities: [] }); }} className="px-4 py-2 border border-gray-300 dark:border-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-amber-100/50 text-black">
+                      <button type="button" onClick={() => { setEditingMemberId(null); setUserForm({ name: "", email: "", password: "", editPassword: "", role: "staff", cashierName: "", cashierSignature: "", responsibilities: [] }); }} className="px-4 py-2 border border-gray-300 dark:border-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-amber-100/50 text-black">
                         Cancel
                       </button>
                     </div>
