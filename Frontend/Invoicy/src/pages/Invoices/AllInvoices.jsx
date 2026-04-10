@@ -32,6 +32,7 @@ const AllInvoices = ({ typeFilter }) => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [statusChangeLoading, setStatusChangeLoading] = useState(null);
   const [convertLoading, setConvertLoading] = useState(null);
+  const [whatsAppLoading, setWhatsAppLoading] = useState(null);
   const [branches, setBranches] = useState([]);
   const [branchFilter, setBranchFilter] = useState("");
   const [searchParams] = useSearchParams();
@@ -141,22 +142,33 @@ const AllInvoices = ({ typeFilter }) => {
   };
 
   const handleSendWhatsApp = (invoice) => {
+    if (!invoice?._id) {
+      toast.error("Invoice not found.");
+      return;
+    }
     const rawPhone = String(invoice?.billTo?.phone || "").trim();
     const phone = rawPhone.replace(/[^\d+]/g, "");
     if (!phone) {
       toast.error("Customer phone number is missing.");
       return;
     }
-    const amountDue = Math.max(Number(invoice?.grandTotal || 0) - Number(invoice?.amountPaid || 0), 0);
-    const dueDateText = invoice?.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A";
-    const message = [
-      `Hello ${invoice?.billTo?.clientName || "Customer"},`,
-      `This is a reminder for invoice ${invoice?.invoiceNumber || ""}.`,
-      `Amount due: ${formatCurrency(amountDue, userCurrency)}.`,
-      `Due date: ${dueDateText}.`,
-      "Please contact us if you have any questions. Thank you.",
-    ].join(" ");
-    window.open(`https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    setWhatsAppLoading(invoice._id);
+    axiosinstance
+      .post(API_PATHS.AI.GENERATE_WHATSAPP_REMINDER, { invoiceId: invoice._id })
+      .then((response) => {
+        const message = String(response?.data?.messageText || "").trim();
+        if (!message) {
+          toast.error("Failed to generate WhatsApp message.");
+          return;
+        }
+        window.open(`https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+      })
+      .catch((error) => {
+        toast.error(error?.response?.data?.message || "Failed to generate WhatsApp message.");
+      })
+      .finally(() => {
+        setWhatsAppLoading(null);
+      });
   };
 
   const handleConvertToInvoice = async (invoice) => {
@@ -434,8 +446,13 @@ const AllInvoices = ({ typeFilter }) => {
                     className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-600"
                     onClick={() => handleSendWhatsApp(invoice)}
                     title="Send WhatsApp message"
+                    disabled={whatsAppLoading === invoice._id}
                   >
-                    <MessageCircle className="w-5 h-5" />
+                    {whatsAppLoading === invoice._id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <MessageCircle className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -549,8 +566,12 @@ const AllInvoices = ({ typeFilter }) => {
                       <Button size="small" variant="ghost" onClick={() => handleOpenReminderModal(invoice)} title="Send Email Reminder">
                         <Mail className="w-4 h-4 text-blue-500" />
                       </Button>
-                      <Button size="small" variant="ghost" onClick={() => handleSendWhatsApp(invoice)} title="Send WhatsApp message">
-                        <MessageCircle className="w-4 h-4 text-emerald-600" />
+                      <Button size="small" variant="ghost" onClick={() => handleSendWhatsApp(invoice)} title="Send WhatsApp message" disabled={whatsAppLoading === invoice._id}>
+                        {whatsAppLoading === invoice._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                        ) : (
+                          <MessageCircle className="w-4 h-4 text-emerald-600" />
+                        )}
                       </Button>
                     </div>
                   </td>

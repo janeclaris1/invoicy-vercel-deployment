@@ -168,6 +168,7 @@ export const API_PATHS = {
         PARSE_INVOICE_TEXT: "api/ai/parse-invoice",
         PARSE_INVOICE_IMAGE: "api/ai/parse-invoice-image",
         GENERATE_REMINDER: "api/ai/generate-reminder",
+        GENERATE_WHATSAPP_REMINDER: "api/ai/generate-whatsapp-reminder",
         GET_DASHBOARD_SUMMARY: "api/ai/dashboard-summary",
         GENERATE_POLICY: "api/ai/generate-policy",
         GENERATE_DOCUMENT: "api/ai/generate-document",

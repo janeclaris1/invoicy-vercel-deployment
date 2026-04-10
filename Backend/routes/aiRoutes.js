@@ -1,5 +1,5 @@
 const express = require('express');
-const { parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, getDashboardSummary, generatePolicy, generateDocument, getProjectDocumentQuestions, generateProjectDocument } = require('../controller/aiController');
+const { parseInvoiceFromText, parseInvoiceFromImage, generateReminderEmail, generateWhatsAppReminder, getDashboardSummary, generatePolicy, generateDocument, getProjectDocumentQuestions, generateProjectDocument } = require('../controller/aiController');
 const {protect } = require('../middlewares/authMiddleware.js');
 
 const router = express.Router();
@@ -11,6 +11,7 @@ router.post('/parse-invoice-image', protect, parseInvoiceFromImage);
 
 //Route to generate reminder email
 router.post('/generate-reminder', protect, generateReminderEmail);
+router.post('/generate-whatsapp-reminder', protect, generateWhatsAppReminder);
 
 //Route to get dashboard summary
 router.get('/dashboard-summary', protect, getDashboardSummary);
