@@ -873,14 +873,14 @@ const InvoiceDetail = () => {
                 <img
                   src={invoice.companySignature || user?.companySignature}
                   alt="Company signature"
-                  className="h-10 object-contain bg-white border border-gray-200 rounded p-1"
+                  className="h-14 object-contain bg-white p-1"
                 />
                 <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
                 {(invoice.companyStamp || user?.companyStamp) && (
                   <img
                     src={invoice.companyStamp || user?.companyStamp}
                     alt="Company stamp"
-                    className="h-12 object-contain bg-white border border-gray-200 rounded p-1 mt-2"
+                    className="h-16 object-contain bg-white p-1 mt-2"
                   />
                 )}
               </div>
@@ -1010,14 +1010,14 @@ const InvoiceDetail = () => {
               <img
                 src={invoice.companySignature || user?.companySignature}
                 alt="Company signature"
-                className="h-10 object-contain mx-auto bg-white border border-gray-200 rounded p-1"
+                className="h-14 object-contain mx-auto bg-white p-1"
               />
               <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
               {(invoice.companyStamp || user?.companyStamp) && (
                 <img
                   src={invoice.companyStamp || user?.companyStamp}
                   alt="Company stamp"
-                  className="h-12 object-contain mx-auto bg-white border border-gray-200 rounded p-1 mt-2"
+                  className="h-16 object-contain mx-auto bg-white p-1 mt-2"
                 />
               )}
             </div>
