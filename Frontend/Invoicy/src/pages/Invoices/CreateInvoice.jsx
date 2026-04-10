@@ -973,7 +973,13 @@ const CreateInvoice = () => {
                   { label: "Fully Paid", value: "Fully Paid" },
                 ]}
               />
-              <div className="text-sm">Payment Terms: {formData.paymentTerms || "-"}</div>
+              <InputField
+                label="Payment Terms"
+                name="paymentTerms"
+                value={formData.paymentTerms || ""}
+                onChange={(e) => handleInputChange(e)}
+                placeholder="e.g., Due on receipt, Net 15, Net 30"
+              />
               <TextareaField
                 label="Notes"
                 name="notes"

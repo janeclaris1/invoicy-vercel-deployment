@@ -725,7 +725,7 @@ const InvoiceDetail = () => {
               <span>Amount Paid</span>
               {isEditingPayment ? (
                 <div className="flex flex-col items-start gap-2 w-full max-w-[14rem]">
-                  <div className="flex items-center gap-2 w-full">
+                  <div className="flex flex-wrap items-center gap-2 w-full">
                     <input
                       type="text"
                       inputMode="decimal"
@@ -735,14 +735,14 @@ const InvoiceDetail = () => {
                         let v = e.target.value.replace(",", ".");
                         if (v === "" || /^\d*\.?\d*$/.test(v)) setPaymentAmount(v);
                       }}
-                      className="min-w-[9rem] w-40 max-w-[12rem] flex-shrink-0 px-2 py-1 border border-gray-300 rounded-lg text-[11px] bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
+                      className="min-w-[7rem] w-full sm:w-32 max-w-full flex-shrink px-2 py-1 border border-gray-300 rounded-lg text-[11px] bg-white dark:bg-white text-black dark:text-black placeholder-gray-500 dark:placeholder-gray-500 tabular-nums"
                       placeholder="0.00"
                     />
                     <Button
                       size="small"
                       onClick={handleSavePayment}
                       disabled={saving}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 h-7 px-2 text-[11px] whitespace-nowrap"
                     >
                       <Save className="w-3 h-3" />
                       {saving ? "Saving..." : "Save"}
@@ -751,7 +751,7 @@ const InvoiceDetail = () => {
                       size="small"
                       variant="ghost"
                       onClick={handleCancelEdit}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 h-7 px-2 text-[11px] whitespace-nowrap"
                     >
                       <X className="w-3 h-3" />
                       Cancel
@@ -809,23 +809,23 @@ const InvoiceDetail = () => {
                   />
                 ) : /^https?:\/\//i.test(String(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode || "")) ? (
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(invoice.graVerificationUrl || invoice.graQrCode || invoice.graVerificationCode)}`}
                     alt="GRA Verification QR Code"
-                    className="w-24 h-24 object-contain rounded-lg bg-white p-1"
+                    className="w-28 h-28 object-contain rounded-lg bg-white p-1"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-lg bg-white p-1 inline-flex items-center justify-center overflow-hidden">
+                  <div className="w-28 h-28 rounded-lg bg-white p-1 inline-flex items-center justify-center overflow-hidden">
                     <QRCode
                       value={String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode)}
-                      size={88}
+                      size={104}
                     />
                   </div>
                 )
               ) : (
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`GRA verification pending - Invoice ${invoice.invoiceNumber || ""}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`GRA verification pending - Invoice ${invoice.invoiceNumber || ""}`)}`}
                   alt="GRA verification QR (pending)"
-                  className="w-24 h-24 object-contain rounded-lg bg-white p-1 opacity-80"
+                  className="w-28 h-28 object-contain rounded-lg bg-white p-1 opacity-80"
                 />
               )}
             </div>
