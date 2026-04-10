@@ -482,32 +482,32 @@ const Dashboard = () => {
             <table className="w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Client</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Due Date</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Client</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Due Date</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
                 {recentInvoices.map((invoice) => (
                   <tr 
                     key={invoice._id} 
-                    className="hover:bg-teal-700 group transition-colors duration-150 cursor-pointer" 
+                    className="hover:bg-[#EEEEEE] group transition-colors duration-150 cursor-pointer"
                     onClick={() => navigate(`/invoices/${invoice._id}`)}
                   >
-                    <td className="px-6 py-4 white-space-nowrap">
-                      <div className="text-sm font-medium text-slate-900 group-hover:text-white">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="text-xs font-medium text-slate-900 group-hover:text-emerald-900">
                         {invoice.billTo?.clientName || 'N/A'}
                       </div>
-                      <div className="text-sm text-slate-500 group-hover:text-white">
+                      <div className="text-xs text-slate-500 group-hover:text-emerald-700">
                         #{invoice.invoiceNumber}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 group-hover:text-white">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-800 group-hover:text-emerald-900">
                       {formatCurrency(invoice.grandTotal, userCurrency)}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(() => {
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${(() => {
                         const status = (invoice.status || "").toLowerCase();
                         if (status === "paid" || status === "fully paid") return "bg-emerald-100 text-emerald-800 group-hover:bg-emerald-200 group-hover:text-emerald-900";
                         if (status === "partially paid" || status === "partial") return "bg-[#B8860B] text-white group-hover:bg-[#9a7209] group-hover:text-white";
@@ -516,7 +516,7 @@ const Dashboard = () => {
                         {invoice.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 group-hover:text-white">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-500 group-hover:text-emerald-700">
                       {moment(invoice.dueDate).format("MMM D, YYYY")}
                     </td>
                   </tr>
