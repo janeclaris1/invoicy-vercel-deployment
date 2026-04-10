@@ -107,16 +107,14 @@ const callGRAGet = async (user, path) => {
 };
 
 // GRA E-VAT — official VER 8.2: https://documenter.getpostman.com/view/29809098/2sBXVeGCzK#intro
-// LEVY_A = NHIL 2.5%, LEVY_B = GETFL 2.5%, LEVY_C = 0 (no longer collected), LEVY_D = CST 5%, LEVY_E = TOURISM 1%
+// LEVY_A = NHIL 2.5%, LEVY_B = GETFL 2.5%, LEVY_D = CST 5%, LEVY_E = TOURISM 1%
 // Per-line levies must match GRA’s derivation from quantity × unitPrice, calculationType, and line discountAmount (E818).
 const GRA_CASH_TIN = "C0000000000";
 
 const GRA_VAT_RATE = 0.15;
 const GRA_NHIL_RATE = 0.025;
 const GRA_GETFUND_RATE = 0.025;
-const GRA_COVID_RATE = 0;
-const GRA_LEVY_AB_RATE = GRA_NHIL_RATE + GRA_GETFUND_RATE;
-const GRA_ALL_TAX_FACTOR = (1 + GRA_LEVY_AB_RATE) * (1 + GRA_VAT_RATE);
+const GRA_ALL_TAX_RATE = GRA_VAT_RATE + GRA_NHIL_RATE + GRA_GETFUND_RATE;
 
 /**
  * Same tax math as invoiceController create/update (inclusive vs exclusive, invoice-level discount).
@@ -146,7 +144,7 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
             const unitPrice = Number(line.unitPrice ?? line.itemPrice) || 0;
             const taxIncl = round(quantity * unitPrice);
             totalTaxInclusive += taxIncl;
-            const base = taxIncl / GRA_ALL_TAX_FACTOR;
+            const base = taxIncl / (1 + GRA_ALL_TAX_RATE);
             perLineTaxableBase.push(base);
             subtotal += base;
         }
@@ -162,8 +160,7 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
         discountedSubtotal = round(subtotal - totalDiscount);
         const totalNhil = round(discountedSubtotal * GRA_NHIL_RATE);
         const totalGetFund = round(discountedSubtotal * GRA_GETFUND_RATE);
-        const totalCovid = round(discountedSubtotal * GRA_COVID_RATE);
-        const totalVat = round((discountedSubtotal + totalNhil + totalGetFund + totalCovid) * GRA_VAT_RATE);
+        const totalVat = round(discountedSubtotal * GRA_VAT_RATE);
         grandTotal = round(discountedSubtotal + totalVat + totalNhil + totalGetFund);
         return {
             subtotal,
@@ -181,12 +178,11 @@ function recalculateGhanaTaxForGra(invoice, lineItems) {
 
     // INCLUSIVE: discount is applied on gross amount first, then net/taxes are derived.
     grandTotal = round(totalTaxInclusive - totalDiscount);
-    discountedSubtotal = round(grandTotal / GRA_ALL_TAX_FACTOR);
+    discountedSubtotal = round(grandTotal / (1 + GRA_ALL_TAX_RATE));
 
     const totalNhil = round(discountedSubtotal * GRA_NHIL_RATE);
     const totalGetFund = round(discountedSubtotal * GRA_GETFUND_RATE);
-    const totalCovid = round(discountedSubtotal * GRA_COVID_RATE);
-    const totalVat = round((discountedSubtotal + totalNhil + totalGetFund + totalCovid) * GRA_VAT_RATE);
+    const totalVat = round(discountedSubtotal * GRA_VAT_RATE);
 
     return {
         subtotal,
@@ -283,9 +279,8 @@ function sumInclusiveTurnoverAfterDiscount(lineItems, generalPerLine, roundTo) {
 }
 
 /**
- * Per-line NHIL (A), GETFund (B), and VAT — GRA STANDARD layout.
- * Levy C is no longer collected (always 0).
- * VAT is computed on (taxable + levies A/B).
+ * Per-line NHIL (A), GETFund (B), and VAT — GRA STANDARD inclusive layout:
+ * tax-incl. line amount → round(net to 2dp) → apply 2.5% / 2.5% / 15% (e.g. 100.00 → 83.33 → 2.08 / 2.08 / 12.50).
  */
 function computeGraLineLevyAndVat(quantityStr, unitPriceStr, discountAmount, calculationType, roundTo) {
     const q = Number(quantityStr);
@@ -294,28 +289,21 @@ function computeGraLineLevyAndVat(quantityStr, unitPriceStr, discountAmount, cal
     const extended = roundTo(q * up, 2);
     if (calculationType === "EXCLUSIVE") {
         const taxable = roundTo(extended - disc, 2);
-        if (taxable < 0) return { levyA: 0, levyB: 0, levyC: 0, lineVat: 0 };
-        const levyA = roundTo(taxable * GRA_NHIL_RATE, 2);
-        const levyB = roundTo(taxable * GRA_GETFUND_RATE, 2);
-        const levyC = 0;
-        const vatBase = roundTo(taxable + levyA + levyB, 2);
+        if (taxable < 0) return { levyA: 0, levyB: 0, lineVat: 0 };
         return {
-            levyA,
-            levyB,
-            levyC,
-            lineVat: roundTo(vatBase * GRA_VAT_RATE, 2),
+            levyA: roundTo(taxable * GRA_NHIL_RATE, 2),
+            levyB: roundTo(taxable * GRA_GETFUND_RATE, 2),
+            lineVat: roundTo(taxable * GRA_VAT_RATE, 2),
         };
     }
     const taxIncl = roundTo(extended - disc, 2);
-    if (taxIncl <= 0) return { levyA: 0, levyB: 0, levyC: 0, lineVat: 0 };
-    const net = roundTo(taxIncl / GRA_ALL_TAX_FACTOR, 2);
+    if (taxIncl <= 0) return { levyA: 0, levyB: 0, lineVat: 0 };
+    const net = roundTo(taxIncl / (1 + GRA_ALL_TAX_RATE), 2);
     const levyA = roundTo(net * GRA_NHIL_RATE, 2);
     const levyB = roundTo(net * GRA_GETFUND_RATE, 2);
-    const levyC = 0;
-    // Residual VAT so net + levies(A/B) + VAT = tax-incl. line exactly.
+    // Residual VAT so net + NHIL + GETFund + VAT = tax-incl. line exactly (avoids E707 when GRA checks totals).
     const lineVat = roundTo(taxIncl - net - levyA - levyB, 2);
-    const fallbackVat = roundTo((net + levyA + levyB) * GRA_VAT_RATE, 2);
-    return { levyA, levyB, levyC, lineVat: lineVat < 0 ? fallbackVat : lineVat };
+    return { levyA, levyB, lineVat: lineVat < 0 ? roundTo(net * GRA_VAT_RATE, 2) : lineVat };
 }
 
 // @desc    Submit a single invoice to GRA (proxy using user's stored credentials)
@@ -432,7 +420,7 @@ exports.submitInvoice = async (req, res) => {
             const rawDiscount = roundTo((generalDiscountPerLine[idx] || 0) + lineDisc, 2);
             // Keep line discount within [0, line extended] so taxable base never goes negative.
             const discountAmount = roundTo(Math.min(Math.max(rawDiscount, 0), extended), 2);
-            const { levyA, levyB, levyC, lineVat } = computeGraLineLevyAndVat(
+            const { levyA, levyB, lineVat } = computeGraLineLevyAndVat(
                 qtyStr,
                 String(unitPriceNum),
                 discountAmount,
@@ -457,7 +445,6 @@ exports.submitInvoice = async (req, res) => {
                 quantity: qtyStr,
                 levyAmountA: levyA,
                 levyAmountB: levyB,
-                levyAmountC: levyC,
                 levyAmountD: levyD,
                 levyAmountE: levyE,
                 discountAmount,
@@ -473,7 +460,6 @@ exports.submitInvoice = async (req, res) => {
                     sum +
                     Number(item.levyAmountA) +
                     Number(item.levyAmountB) +
-                    Number(item.levyAmountC || 0) +
                     Number(item.levyAmountD) +
                     Number(item.levyAmountE)
                 );
@@ -580,7 +566,7 @@ exports.submitInvoice = async (req, res) => {
                 body: { ...body, discountAmount: lineDiscountSumForGra },
             });
             const zeroLineDiscountItems = itemsForGra.map((it) => {
-                const { levyA, levyB, levyC, lineVat } = computeGraLineLevyAndVat(
+                const { levyA, levyB, lineVat } = computeGraLineLevyAndVat(
                     String(it.quantity ?? 0),
                     String(it.unitPrice ?? 0),
                     0,
@@ -592,7 +578,6 @@ exports.submitInvoice = async (req, res) => {
                     discountAmount: 0,
                     levyAmountA: levyA,
                     levyAmountB: levyB,
-                    levyAmountC: levyC,
                     // Keep D/E as-is (they come from source invoice amounts, optionally scaled).
                     // Recompute VAT to stay coherent with zero line discount attempt.
                     _lineVat: lineVat,
