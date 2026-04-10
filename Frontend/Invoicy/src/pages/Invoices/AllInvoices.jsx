@@ -22,6 +22,7 @@ function invoiceStatusBadgeClass(status) {
 const AllInvoices = ({ typeFilter }) => {
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
+  const canFilterByBranch = !user?.branch;
   const isQuotationsView = typeFilter === "quotation";
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,11 +41,17 @@ const AllInvoices = ({ typeFilter }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!canFilterByBranch) return;
     const branchFromUrl = searchParams.get("branch");
     if (branchFromUrl) setBranchFilter(branchFromUrl);
-  }, [searchParams]);
+  }, [searchParams, canFilterByBranch]);
 
   useEffect(() => {
+    if (!canFilterByBranch) {
+      setBranches([]);
+      setBranchFilter("");
+      return;
+    }
     const load = async () => {
       try {
         const res = await axiosinstance.get(API_PATHS.BRANCHES.GET_ALL);
@@ -54,13 +61,13 @@ const AllInvoices = ({ typeFilter }) => {
       }
     };
     load();
-  }, []);
+  }, [canFilterByBranch]);
 
   const fetchInvoices = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const url = branchFilter
+      const url = canFilterByBranch && branchFilter
         ? `${API_PATHS.INVOICES.GET_ALL_INVOICES}?branch=${encodeURIComponent(branchFilter)}`
         : API_PATHS.INVOICES.GET_ALL_INVOICES;
       const response = await axiosinstance.get(url);
@@ -83,7 +90,7 @@ const AllInvoices = ({ typeFilter }) => {
     } finally {
       setLoading(false);
     }
-  }, [branchFilter]);
+  }, [branchFilter, canFilterByBranch]);
 
   useEffect(() => {
     fetchInvoices();
@@ -283,7 +290,7 @@ const AllInvoices = ({ typeFilter }) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {branches.length > 0 && (
+            {canFilterByBranch && branches.length > 0 && (
               <div className="flex-shrink-0">
                 <select
                   className="w-full sm:w-auto h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

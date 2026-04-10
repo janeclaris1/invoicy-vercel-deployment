@@ -22,6 +22,7 @@ const PosSalesPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const userCurrency = user?.currency || "GHS";
+    const canFilterByBranch = !user?.branch;
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -29,6 +30,11 @@ const PosSalesPage = () => {
     const [branchFilter, setBranchFilter] = useState("");
 
     useEffect(() => {
+        if (!canFilterByBranch) {
+            setBranches([]);
+            setBranchFilter("");
+            return;
+        }
         const load = async () => {
             try {
                 const res = await axiosInstance.get(API_PATHS.BRANCHES.GET_ALL);
@@ -38,14 +44,14 @@ const PosSalesPage = () => {
             }
         };
         load();
-    }, []);
+    }, [canFilterByBranch]);
 
     const fetchPosSales = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
             params.set("posSale", "true");
-            if (branchFilter) params.set("branch", branchFilter);
+            if (canFilterByBranch && branchFilter) params.set("branch", branchFilter);
             const url = `${API_PATHS.INVOICES.GET_ALL_INVOICES}?${params.toString()}`;
             const res = await axiosInstance.get(url);
             const list = Array.isArray(res.data) ? res.data : [];
@@ -62,7 +68,7 @@ const PosSalesPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [branchFilter]);
+    }, [branchFilter, canFilterByBranch]);
 
     useEffect(() => {
         fetchPosSales();
@@ -132,7 +138,7 @@ const PosSalesPage = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        {branches.length > 0 ? (
+                        {canFilterByBranch && branches.length > 0 ? (
                             <select
                                 className="w-full sm:w-auto h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 value={branchFilter}

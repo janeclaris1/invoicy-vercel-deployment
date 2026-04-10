@@ -256,6 +256,7 @@ exports.createTeamMember = async (req, res) => {
             cashierName: typeof cashierName === 'string' ? cashierName.trim() : '',
             cashierSignature: typeof cashierSignature === 'string' ? cashierSignature : '',
             createdBy: req.user.id,
+            branch: employee.branch || null,
         });
         employee.user = user._id;
         if (!employee.createdBy) employee.createdBy = req.user.id;
@@ -454,6 +455,7 @@ exports.loginUser = async (req, res, next) => {
                 cashierSignature: user.cashierSignature || '',
                 currency: user.currency || 'GHS',
                 role: user.role || 'owner',
+                branch: user.branch || null,
                 responsibilities: user.responsibilities || [],
                 createdBy: user.createdBy || null,
                 isPlatformAdmin: !!isPlatformAdmin,
@@ -515,6 +517,7 @@ exports.getMe = async (req, res) => {
             profilePicture,
             currency: user.currency || 'GHS',
             role: user.role || 'owner',
+            branch: user.branch || null,
             responsibilities: user.responsibilities || [],
             createdBy: user.createdBy || null,
             isPlatformAdmin: !!isPlatformAdmin,
@@ -672,6 +675,7 @@ exports.updateUserProfile = async (req, res) => {
                 cashierSignature: updatedUser.cashierSignature || '',
                 profilePicture: updatedUser.profilePicture || '',
                 currency: updatedUser.currency || 'GHS',
+                branch: updatedUser.branch || null,
                 graCompanyReference: updatedUser.graCompanyReference || '',
                 graCredentialsConfigured: !!(updatedUser.graCompanyReference && updatedUser.graSecurityKey),
                 graVatScenario: updatedUser.graVatScenario || 'inclusive',
@@ -725,6 +729,7 @@ exports.uploadProfilePicture = async (req, res) => {
             profilePicture: user.profilePicture || '',
             currency: user.currency || 'GHS',
             role: user.role || 'owner',
+            branch: user.branch || null,
             responsibilities: user.responsibilities || [],
             createdBy: user.createdBy || null,
             isPlatformAdmin: !!isPlatformAdmin,

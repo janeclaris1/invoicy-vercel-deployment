@@ -353,6 +353,7 @@ const InvoiceDetail = () => {
               <div className="text-sm text-gray-700 leading-7">
                 <div>Bank Transfer</div>
                 <div>{invoice.billFrom?.businessName || user?.businessName || "-"}</div>
+                {invoice.branch?.name ? <div>Branch: {invoice.branch.name}</div> : null}
                 <div>{invoice.billFrom?.phone || user?.phone || "-"}</div>
               </div>
             </div>
@@ -490,6 +491,9 @@ const InvoiceDetail = () => {
                   user?.businessName ||
                   "-"}
               </div>
+              {invoice.branch?.name ? (
+                <div className="text-xs text-center mt-0.5">Branch: {invoice.branch.name}</div>
+              ) : null}
             </div>
           </div>
 
@@ -576,6 +580,11 @@ const InvoiceDetail = () => {
           <div className="text-base sm:text-lg font-black tracking-widest text-center">
             {invoice.billFrom?.businessName || user?.businessName || "-"}
           </div>
+          {invoice.branch?.name ? (
+            <div className="text-[10px] sm:text-xs text-gray-500 tracking-wide text-center">
+              Branch: {invoice.branch.name}
+            </div>
+          ) : null}
           <div className="text-[10px] sm:text-xs text-gray-400 tracking-widest text-center">
             {invoice.billFrom?.email || user?.email || "-"}
           </div>
@@ -610,7 +619,10 @@ const InvoiceDetail = () => {
                 <td className="px-1 py-0.5 font-medium align-top">Customer Name:</td>
                 <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.clientName || "-"}</td>
                 <td className="px-1 py-0.5 font-medium text-left align-top">Vendor:</td>
-                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.businessName || user?.businessName || "-"}</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">
+                  {invoice.billFrom?.businessName || user?.businessName || "-"}
+                  {invoice.branch?.name ? <div>Branch: {invoice.branch.name}</div> : null}
+                </td>
               </tr>
               <tr>
                 <td className="px-1 py-0.5 font-medium align-top">Customer TIN:</td>
@@ -937,6 +949,9 @@ const InvoiceDetail = () => {
             <div className="font-bold text-sm">
               {invoice.billFrom?.businessName || user?.businessName || "-"}
             </div>
+            {invoice.branch?.name ? (
+              <div className="text-[10px] opacity-80">Branch: {invoice.branch.name}</div>
+            ) : null}
             <div className="text-[10px] opacity-80">
               {[invoice.billFrom?.phone || user?.phone, invoice.billFrom?.tin || user?.tin ? `TIN ${invoice.billFrom?.tin || user?.tin}` : null]
                 .filter(Boolean)

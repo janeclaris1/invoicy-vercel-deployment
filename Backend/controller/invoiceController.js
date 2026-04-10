@@ -3,6 +3,10 @@ const User = require("../models/User");
 const Item = require("../models/Item");
 const StockMovement = require("../models/StockMovement");
 
+const hasBranchScopedAccess = (user) => Boolean(user?.branch);
+const resolveEffectiveBranchId = (req) =>
+    hasBranchScopedAccess(req?.user) ? String(req.user.branch) : null;
+
 // @desc    Create a new invoice
 // @route   POST /api/invoices
 // @access  Private
@@ -52,7 +56,7 @@ exports.createInvoice = async (req, res) => {
             return res.status(400).json({ message: "Invoice must contain at least one item" });
         }
 
-        const userDoc = await User.findById(user).select('graVatScenario role companySignature cashierSignature cashierName name').lean();
+        const userDoc = await User.findById(user).select('graVatScenario role companySignature companyStamp companyLogo cashierSignature cashierName name businessName email address phone tin createdBy').lean();
         const vatScenario = (userDoc && userDoc.graVatScenario === 'exclusive') ? 'exclusive' : 'inclusive';
 
         const typeNorm = (invoiceType || '').toString().toLowerCase();
@@ -172,22 +176,46 @@ exports.createInvoice = async (req, res) => {
                 tin: billFrom.tin || "",
             }
             : { businessName: "", email: "", address: "", phone: "", tin: "" };
-        const finalCompanyLogo = companyLogo || "";
+        let ownerCompany = null;
+        if (effectiveBranchId) {
+            const ownerId = userDoc?.createdBy || req.user?.createdBy || null;
+            if (ownerId) {
+                ownerCompany = await User.findById(ownerId)
+                    .select('businessName email address phone tin companyLogo companySignature companyStamp')
+                    .lean();
+            }
+        }
+        const finalBillFrom = effectiveBranchId
+            ? {
+                businessName: ownerCompany?.businessName || userDoc?.businessName || mergedBillFrom.businessName || "",
+                email: ownerCompany?.email || userDoc?.email || mergedBillFrom.email || "",
+                address: ownerCompany?.address || userDoc?.address || mergedBillFrom.address || "",
+                phone: ownerCompany?.phone || userDoc?.phone || mergedBillFrom.phone || "",
+                tin: ownerCompany?.tin || userDoc?.tin || mergedBillFrom.tin || "",
+            }
+            : mergedBillFrom;
         const isCashierInvoice = (userDoc?.role || '').toLowerCase() === 'cashier';
-        const finalCompanySignature = isCashierInvoice
-            ? (userDoc?.cashierSignature || companySignature || userDoc?.companySignature || "")
-            : (companySignature || userDoc?.companySignature || "");
-        const finalSignatoryName = isCashierInvoice
-            ? (userDoc?.cashierName || userDoc?.name || "")
-            : "";
-        const finalCompanyStamp = companyStamp || "";
+        const finalCompanyLogo = effectiveBranchId
+            ? (ownerCompany?.companyLogo || userDoc?.companyLogo || companyLogo || "")
+            : (companyLogo || "");
+        const finalCompanySignature = effectiveBranchId
+            ? (ownerCompany?.companySignature || userDoc?.companySignature || companySignature || "")
+            : (isCashierInvoice
+                ? (userDoc?.cashierSignature || companySignature || userDoc?.companySignature || "")
+                : (companySignature || userDoc?.companySignature || ""));
+        const finalSignatoryName = effectiveBranchId
+            ? ""
+            : (isCashierInvoice ? (userDoc?.cashierName || userDoc?.name || "") : "");
+        const finalCompanyStamp = effectiveBranchId
+            ? (ownerCompany?.companyStamp || userDoc?.companyStamp || companyStamp || "")
+            : (companyStamp || "");
 
         const invoice = new Invoice({
             user,
             invoiceNumber,
             invoiceDate,
             dueDate,
-            billFrom: mergedBillFrom,
+            billFrom: finalBillFrom,
             billTo: normalizedBillTo,
             companyLogo: finalCompanyLogo,
             companySignature: finalCompanySignature,
@@ -212,7 +240,7 @@ exports.createInvoice = async (req, res) => {
             graVerificationUrl: graVerificationUrl || undefined,
             graVerificationCode: graVerificationCode || undefined,
             vatScenario,
-            branch: branchId || null,
+            branch: effectiveBranchId || branchId || null,
             posSale: isPosSaleFlag,
         });
 
@@ -306,7 +334,10 @@ exports.getInvoices = async (req, res) => {
             return res.json([]); // Return empty array if no team members found
         }
         
-        const branchFilter = req.query.branch && String(req.query.branch).trim() ? { branch: req.query.branch.trim() } : {};
+        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const branchFilter = effectiveBranchId
+            ? { branch: effectiveBranchId }
+            : (req.query.branch && String(req.query.branch).trim() ? { branch: req.query.branch.trim() } : {});
         const posSaleOnly = req.query.posSale === 'true' || req.query.posSale === '1';
 
         const query = { user: { $in: teamMemberIds }, ...branchFilter };
@@ -335,7 +366,9 @@ exports.getInvoices = async (req, res) => {
 // @access Private
 exports.getInvoiceById = async (req, res) => {
     try {
-        const invoice = await Invoice.findById(req.params.id).populate("user", "name email");
+        const invoice = await Invoice.findById(req.params.id)
+            .populate("user", "name email")
+            .populate("branch", "name");
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
@@ -346,6 +379,13 @@ exports.getInvoiceById = async (req, res) => {
         
         if (!teamMemberIds.some(id => id.toString() === invoiceUserId)) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
+        }
+        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const invoiceBranchId = invoice.branch
+            ? String(invoice.branch._id || invoice.branch)
+            : null;
+        if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
+            return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
         }
 
         res.json(invoice);
@@ -368,6 +408,11 @@ exports.updateInvoice = async (req, res) => {
         const teamMemberIds = await getTeamMemberIds(req.user._id);
         if (!teamMemberIds.some(id => id.toString() === invoice.user.toString())) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
+        }
+        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const invoiceBranchId = invoice.branch ? String(invoice.branch) : null;
+        if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
+            return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
         }
 
         const role = req.user?.role || 'owner';
@@ -419,6 +464,25 @@ exports.updateInvoice = async (req, res) => {
             phone: billFrom.phone || userProfile?.phone || invoice.billFrom?.phone || "",
             tin: billFrom.tin || userProfile?.tin || invoice.billFrom?.tin || ""
         } : invoice.billFrom;
+        const effectiveBranchId = resolveEffectiveBranchId(req);
+        let ownerCompany = null;
+        if (effectiveBranchId) {
+            const ownerId = req.user?.createdBy || userProfile?.createdBy || null;
+            if (ownerId) {
+                ownerCompany = await User.findById(ownerId)
+                    .select('businessName email address phone tin companyLogo companySignature companyStamp')
+                    .lean();
+            }
+        }
+        const finalBillFrom = effectiveBranchId
+            ? {
+                businessName: ownerCompany?.businessName || userProfile?.businessName || mergedBillFrom?.businessName || "",
+                email: ownerCompany?.email || userProfile?.email || mergedBillFrom?.email || "",
+                address: ownerCompany?.address || userProfile?.address || mergedBillFrom?.address || "",
+                phone: ownerCompany?.phone || userProfile?.phone || mergedBillFrom?.phone || "",
+                tin: ownerCompany?.tin || userProfile?.tin || mergedBillFrom?.tin || "",
+            }
+            : mergedBillFrom;
 
         // Use existing invoice totals if items aren't being updated
         let grandTotal = invoice.grandTotal;
@@ -560,7 +624,7 @@ exports.updateInvoice = async (req, res) => {
         if (invoiceNumber !== undefined) updatePayload.invoiceNumber = invoiceNumber;
         if (invoiceDate !== undefined) updatePayload.invoiceDate = invoiceDate;
         if (dueDate !== undefined) updatePayload.dueDate = dueDate;
-        if (billFrom !== undefined) updatePayload.billFrom = mergedBillFrom;
+        if (billFrom !== undefined || effectiveBranchId) updatePayload.billFrom = finalBillFrom;
         if (billTo !== undefined) updatePayload.billTo = billTo;
         if (recalculatedItem) {
             updatePayload.item = recalculatedItem;
@@ -568,9 +632,15 @@ exports.updateInvoice = async (req, res) => {
         } else if (items !== undefined) updatePayload.item = items;
         if (notes !== undefined) updatePayload.notes = notes;
         if (paymentTerms !== undefined) updatePayload.paymentTerms = paymentTerms;
-        if (companyLogo !== undefined) updatePayload.companyLogo = companyLogo;
-        if (companySignature !== undefined) updatePayload.companySignature = companySignature;
-        if (companyStamp !== undefined) updatePayload.companyStamp = companyStamp;
+        if (effectiveBranchId) {
+            updatePayload.companyLogo = ownerCompany?.companyLogo || userProfile?.companyLogo || invoice.companyLogo || "";
+            updatePayload.companySignature = ownerCompany?.companySignature || userProfile?.companySignature || invoice.companySignature || "";
+            updatePayload.companyStamp = ownerCompany?.companyStamp || userProfile?.companyStamp || invoice.companyStamp || "";
+        } else {
+            if (companyLogo !== undefined) updatePayload.companyLogo = companyLogo;
+            if (companySignature !== undefined) updatePayload.companySignature = companySignature;
+            if (companyStamp !== undefined) updatePayload.companyStamp = companyStamp;
+        }
         updatePayload.status = statusFromPayment;
         updatePayload.subtotal = subtotal;
         updatePayload.totalNhil = nhil;
@@ -629,6 +699,11 @@ exports.deleteInvoice = async (req, res) => {
         if (!teamMemberIds.some(id => id.toString() === invoice.user.toString())) {
             return res.status(401).json({ message: 'Unauthorized access to this invoice' });
         }
+        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const invoiceBranchId = invoice.branch ? String(invoice.branch) : null;
+        if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
+            return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
+        }
         
         await Invoice.findByIdAndDelete(req.params.id);
         
@@ -656,6 +731,11 @@ exports.convertProformaToInvoice = async (req, res) => {
         const teamMemberIds = await getTeamMemberIds(req.user._id);
         if (!teamMemberIds.some(id => id.toString() === proforma.user.toString())) {
             return res.status(403).json({ message: 'Unauthorized access to this invoice' });
+        }
+        const effectiveBranchId = resolveEffectiveBranchId(req);
+        const proformaBranchId = proforma.branch ? String(proforma.branch) : null;
+        if (effectiveBranchId && proformaBranchId !== effectiveBranchId) {
+            return res.status(403).json({ message: 'Unauthorized access to this branch invoice' });
         }
 
         const docType = (proforma.type || 'invoice').toLowerCase();
@@ -698,6 +778,8 @@ exports.convertProformaToInvoice = async (req, res) => {
             paymentHistory: proforma.paymentHistory || [],
             type: 'invoice',
             convertedFromProforma: proforma._id,
+            branch: proforma.branch || null,
+            posSale: proforma.posSale === true,
         });
 
         await newInvoice.save();
