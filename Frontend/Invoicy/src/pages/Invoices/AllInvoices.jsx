@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"; 
 import axiosinstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText } from "lucide-react";
+import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText, MessageCircle } from "lucide-react";
 import moment from "moment";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
@@ -114,17 +114,8 @@ const AllInvoices = ({ typeFilter }) => {
   const handleStatusChange = async (invoice) => {
     setStatusChangeLoading(invoice._id);
     try {
-      const currentStatus = invoice.status || "Unpaid";
-      const isPaid = currentStatus === "Paid" || currentStatus === "Fully Paid";
-      const newStatus = isPaid ? "Unpaid" : "Fully Paid";
-      
-      // Calculate payment amount based on desired status
-      let newAmountPaid = invoice.amountPaid || 0;
-      if (newStatus === "Fully Paid") {
-        newAmountPaid = invoice.grandTotal || 0;
-      } else if (newStatus === "Unpaid") {
-        newAmountPaid = 0;
-      }
+      const newStatus = "Fully Paid";
+      const newAmountPaid = invoice.grandTotal || 0;
 
       const response = await axiosinstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(invoice._id), {
         status: newStatus,
@@ -147,6 +138,25 @@ const AllInvoices = ({ typeFilter }) => {
   const handleOpenReminderModal = (invoice) => {
     setSelectedInvoice(invoice);
     setIsReminderModalOpen(true);
+  };
+
+  const handleSendWhatsApp = (invoice) => {
+    const rawPhone = String(invoice?.billTo?.phone || "").trim();
+    const phone = rawPhone.replace(/[^\d+]/g, "");
+    if (!phone) {
+      toast.error("Customer phone number is missing.");
+      return;
+    }
+    const amountDue = Math.max(Number(invoice?.grandTotal || 0) - Number(invoice?.amountPaid || 0), 0);
+    const dueDateText = invoice?.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A";
+    const message = [
+      `Hello ${invoice?.billTo?.clientName || "Customer"},`,
+      `This is a reminder for invoice ${invoice?.invoiceNumber || ""}.`,
+      `Amount due: ${formatCurrency(amountDue, userCurrency)}.`,
+      `Due date: ${dueDateText}.`,
+      "Please contact us if you have any questions. Thank you.",
+    ].join(" ");
+    window.open(`https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
   const handleConvertToInvoice = async (invoice) => {
@@ -377,21 +387,21 @@ const AllInvoices = ({ typeFilter }) => {
                   </Button>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="medium"
-                    variant="secondary"
-                    className="min-h-[44px] justify-center"
-                    onClick={() => handleStatusChange(invoice)}
-                    disabled={statusChangeLoading === invoice._id}
-                  >
-                    {statusChangeLoading === invoice._id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (invoice.status === "Paid" || invoice.status === "Fully Paid") ? (
-                      "Mark unpaid"
-                    ) : (
-                      "Mark paid"
-                    )}
-                  </Button>
+                  {(invoice.status !== "Paid" && invoice.status !== "Fully Paid") && (
+                    <Button
+                      size="medium"
+                      variant="secondary"
+                      className="min-h-[44px] justify-center"
+                      onClick={() => handleStatusChange(invoice)}
+                      disabled={statusChangeLoading === invoice._id}
+                    >
+                      {statusChangeLoading === invoice._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Mark paid"
+                      )}
+                    </Button>
+                  )}
                   <Button
                     size="medium"
                     variant="secondary"
@@ -418,6 +428,14 @@ const AllInvoices = ({ typeFilter }) => {
                     title="Delete"
                   >
                     <Trash2 className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-600"
+                    onClick={() => handleSendWhatsApp(invoice)}
+                    title="Send WhatsApp message"
+                  >
+                    <MessageCircle className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -507,20 +525,20 @@ const AllInvoices = ({ typeFilter }) => {
                             Convert
                           </Button>
                         )}
-                      <Button
-                        size="small"
-                        variant="secondary"
-                        onClick={() => handleStatusChange(invoice)}
-                        disabled={statusChangeLoading === invoice._id}
-                      >
-                        {statusChangeLoading === invoice._id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (invoice.status === "Paid" || invoice.status === "Fully Paid") ? (
-                          "Mark Unpaid"
-                        ) : (
-                          "Mark Paid"
-                        )}
-                      </Button>
+                      {(invoice.status !== "Paid" && invoice.status !== "Fully Paid") && (
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => handleStatusChange(invoice)}
+                          disabled={statusChangeLoading === invoice._id}
+                        >
+                          {statusChangeLoading === invoice._id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Mark Paid"
+                          )}
+                        </Button>
+                      )}
 
                       <Button size="small" variant="secondary" onClick={() => navigate(`/invoices/${invoice._id}`)}>
                         <Edit className="w-4 h-4" />
@@ -530,6 +548,9 @@ const AllInvoices = ({ typeFilter }) => {
                       </Button>
                       <Button size="small" variant="ghost" onClick={() => handleOpenReminderModal(invoice)} title="Send Email Reminder">
                         <Mail className="w-4 h-4 text-blue-500" />
+                      </Button>
+                      <Button size="small" variant="ghost" onClick={() => handleSendWhatsApp(invoice)} title="Send WhatsApp message">
+                        <MessageCircle className="w-4 h-4 text-emerald-600" />
                       </Button>
                     </div>
                   </td>
