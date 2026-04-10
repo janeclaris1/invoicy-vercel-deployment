@@ -1,6 +1,7 @@
 const Invoice = require("../models/invoice");
 const User = require("../models/User");
 const Employee = require("../models/Employee");
+const Branch = require("../models/Branch");
 const Item = require("../models/Item");
 const StockMovement = require("../models/StockMovement");
 
@@ -187,22 +188,27 @@ exports.createInvoice = async (req, res) => {
             }
             : { businessName: "", email: "", address: "", phone: "", tin: "" };
         const effectiveBranchId = await resolveEffectiveBranchId(req);
+        const ownerId = userDoc?.createdBy || user;
+        const targetBranchId = effectiveBranchId || (branchId ? String(branchId) : null);
+        let selectedBranch = null;
+        if (targetBranchId) {
+            selectedBranch = await Branch.findOne({ _id: targetBranchId, user: ownerId })
+                .select('name email address phone tin')
+                .lean();
+        }
         let ownerCompany = null;
         if (effectiveBranchId) {
-            const ownerId = userDoc?.createdBy || req.user?.createdBy || null;
-            if (ownerId) {
-                ownerCompany = await User.findById(ownerId)
-                    .select('businessName email address phone tin companyLogo companySignature companyStamp')
-                    .lean();
-            }
+            ownerCompany = await User.findById(ownerId)
+                .select('companyLogo companySignature companyStamp')
+                .lean();
         }
-        const finalBillFrom = effectiveBranchId
+        const finalBillFrom = selectedBranch
             ? {
-                businessName: ownerCompany?.businessName || userDoc?.businessName || mergedBillFrom.businessName || "",
-                email: ownerCompany?.email || userDoc?.email || mergedBillFrom.email || "",
-                address: ownerCompany?.address || userDoc?.address || mergedBillFrom.address || "",
-                phone: ownerCompany?.phone || userDoc?.phone || mergedBillFrom.phone || "",
-                tin: ownerCompany?.tin || userDoc?.tin || mergedBillFrom.tin || "",
+                businessName: selectedBranch.name || mergedBillFrom.businessName || "",
+                email: selectedBranch.email || mergedBillFrom.email || "",
+                address: selectedBranch.address || mergedBillFrom.address || "",
+                phone: selectedBranch.phone || mergedBillFrom.phone || "",
+                tin: selectedBranch.tin || mergedBillFrom.tin || "",
             }
             : mergedBillFrom;
         const isCashierInvoice = (userDoc?.role || '').toLowerCase() === 'cashier';
@@ -251,7 +257,7 @@ exports.createInvoice = async (req, res) => {
             graVerificationUrl: graVerificationUrl || undefined,
             graVerificationCode: graVerificationCode || undefined,
             vatScenario,
-            branch: effectiveBranchId || branchId || null,
+            branch: targetBranchId || null,
             posSale: isPosSaleFlag,
         });
 
@@ -475,24 +481,29 @@ exports.updateInvoice = async (req, res) => {
             phone: billFrom.phone || userProfile?.phone || invoice.billFrom?.phone || "",
             tin: billFrom.tin || userProfile?.tin || invoice.billFrom?.tin || ""
         } : invoice.billFrom;
-        let ownerCompany = null;
-        if (effectiveBranchId) {
-            const ownerId = req.user?.createdBy || userProfile?.createdBy || null;
-            if (ownerId) {
-                ownerCompany = await User.findById(ownerId)
-                    .select('businessName email address phone tin companyLogo companySignature companyStamp')
-                    .lean();
-            }
+        const ownerId = userProfile?.createdBy || userProfile?._id;
+        const targetBranchId = effectiveBranchId || (invoice.branch ? String(invoice.branch) : null);
+        let selectedBranch = null;
+        if (targetBranchId && ownerId) {
+            selectedBranch = await Branch.findOne({ _id: targetBranchId, user: ownerId })
+                .select('name email address phone tin')
+                .lean();
         }
-        const finalBillFrom = effectiveBranchId
+        const finalBillFrom = selectedBranch
             ? {
-                businessName: ownerCompany?.businessName || userProfile?.businessName || mergedBillFrom?.businessName || "",
-                email: ownerCompany?.email || userProfile?.email || mergedBillFrom?.email || "",
-                address: ownerCompany?.address || userProfile?.address || mergedBillFrom?.address || "",
-                phone: ownerCompany?.phone || userProfile?.phone || mergedBillFrom?.phone || "",
-                tin: ownerCompany?.tin || userProfile?.tin || mergedBillFrom?.tin || "",
+                businessName: selectedBranch.name || mergedBillFrom?.businessName || "",
+                email: selectedBranch.email || mergedBillFrom?.email || "",
+                address: selectedBranch.address || mergedBillFrom?.address || "",
+                phone: selectedBranch.phone || mergedBillFrom?.phone || "",
+                tin: selectedBranch.tin || mergedBillFrom?.tin || "",
             }
             : mergedBillFrom;
+        let ownerCompany = null;
+        if (effectiveBranchId && ownerId) {
+            ownerCompany = await User.findById(ownerId)
+                .select('companyLogo companySignature companyStamp')
+                .lean();
+        }
 
         // Use existing invoice totals if items aren't being updated
         let grandTotal = invoice.grandTotal;
