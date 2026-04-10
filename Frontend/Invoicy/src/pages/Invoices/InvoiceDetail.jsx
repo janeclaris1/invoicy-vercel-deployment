@@ -876,6 +876,13 @@ const InvoiceDetail = () => {
                   className="h-10 object-contain bg-white border border-gray-200 rounded p-1"
                 />
                 <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
+                {(invoice.companyStamp || user?.companyStamp) && (
+                  <img
+                    src={invoice.companyStamp || user?.companyStamp}
+                    alt="Company stamp"
+                    className="h-12 object-contain bg-white border border-gray-200 rounded p-1 mt-2"
+                  />
+                )}
               </div>
             )}
             {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
@@ -1006,6 +1013,13 @@ const InvoiceDetail = () => {
                 className="h-10 object-contain mx-auto bg-white border border-gray-200 rounded p-1"
               />
               <div className="text-[10px] mt-1">{invoice.signatoryName || "Authorized Signature"}</div>
+              {(invoice.companyStamp || user?.companyStamp) && (
+                <img
+                  src={invoice.companyStamp || user?.companyStamp}
+                  alt="Company stamp"
+                  className="h-12 object-contain mx-auto bg-white border border-gray-200 rounded p-1 mt-2"
+                />
+              )}
             </div>
           )}
           {(invoice.graReceiptNumber || invoice.graSdcId) && (
