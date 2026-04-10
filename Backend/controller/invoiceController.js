@@ -464,7 +464,6 @@ exports.updateInvoice = async (req, res) => {
             phone: billFrom.phone || userProfile?.phone || invoice.billFrom?.phone || "",
             tin: billFrom.tin || userProfile?.tin || invoice.billFrom?.tin || ""
         } : invoice.billFrom;
-        const effectiveBranchId = resolveEffectiveBranchId(req);
         let ownerCompany = null;
         if (effectiveBranchId) {
             const ownerId = req.user?.createdBy || userProfile?.createdBy || null;
