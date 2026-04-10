@@ -481,6 +481,12 @@ const CreateInvoice = () => {
   const balanceDelta = grandTotal - amountPaidValue;
   const balanceDueValue = Math.max(balanceDelta, 0);
   const overpaidValue = Math.max(amountPaidValue - grandTotal, 0);
+  const derivedPaymentStatus =
+    amountPaidValue <= 0
+      ? "Unpaid"
+      : amountPaidValue + 0.005 < grandTotal
+        ? "Partially Paid"
+        : "Fully Paid";
 
   const graQrValue =
     formData.graQrCode ||
@@ -511,6 +517,7 @@ const CreateInvoice = () => {
         discountPercent: toFloat2(formData.discountPercent),
         discountAmount: toFloat2(formData.discountAmount),
         amountPaid: amountPaidValue,
+        status: derivedPaymentStatus,
         balanceDue: balanceDueValue,
         branch: billFromBranch || null,
       };
@@ -962,16 +969,11 @@ const CreateInvoice = () => {
                   ? `Customer Balance: ${formatCurrency(overpaidValue, userCurrency)}`
                   : `Balance Due: ${formatCurrency(balanceDueValue, userCurrency)}`}
               </div>
-              <SelectField
+              <InputField
                 label="Payment Status"
                 name="status"
-                value={formData.status || "Unpaid"}
-                onChange={(e) => handleInputChange(e)}
-                options={[
-                  { label: "Unpaid", value: "Unpaid" },
-                  { label: "Partially Paid", value: "Partially Paid" },
-                  { label: "Fully Paid", value: "Fully Paid" },
-                ]}
+                value={derivedPaymentStatus}
+                readOnly
               />
               <InputField
                 label="Payment Terms"
