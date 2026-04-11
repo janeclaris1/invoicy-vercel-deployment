@@ -143,12 +143,16 @@ const InvoiceDetail = () => {
     };
   }, [invoice, user]);
 
+  const isPosSale =
+    invoice?.posSale === true || /^POS sale ·/i.test(String(invoice?.notes || ""));
+
   const handlePrintInvoice = () => {
     document.body.classList.remove("invoice-print-pos-receipt");
     window.print();
   };
 
   const handlePrintPosReceipt = () => {
+    if (!isPosSale) return;
     document.body.classList.add("invoice-print-pos-receipt");
     requestAnimationFrame(() => {
       window.print();
@@ -955,6 +959,7 @@ const InvoiceDetail = () => {
 
         </div>
 
+        {isPosSale ? (
         <div
           className="pos-receipt-print hidden text-black text-[11px] leading-snug"
           aria-hidden="true"
@@ -974,9 +979,6 @@ const InvoiceDetail = () => {
               {" · "}
               {invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY h:mm A") : "—"}
             </div>
-          </div>
-          <div className="mb-2 text-[10px]">
-            <span className="font-medium">Customer:</span> {invoice.billTo?.clientName || "—"}
           </div>
           <div className="space-y-1.5 border-b border-dashed border-gray-600 pb-2 mb-2">
             {lineItems.map((item, index) => (
@@ -1031,6 +1033,38 @@ const InvoiceDetail = () => {
               <span className="tabular-nums">{formatCurrency(Math.abs(balanceDue), userCurrency)}</span>
             </div>
           </div>
+          {(invoice.graSdcId ||
+            invoice.graReceiptNumber ||
+            invoice.graVerificationCode ||
+            invoice.graReceiptSignature ||
+            invoice.graMrc ||
+            invoice.graReceiptDateTime ||
+            invoice.graLineItemCount != null) && (
+            <div className="mt-2 pt-2 border-t border-dashed border-gray-600 text-left min-w-0">
+              <div className="text-[9px] font-semibold mb-1.5 underline underline-offset-2 tracking-wide text-center">
+                EVAT RECEIPT INFORMATION
+              </div>
+              <div className="space-y-2 text-[9px] leading-tight">
+                <EvatInfoRow label="SDC ID:" value={invoice.graSdcId} />
+                <EvatInfoRow label="RECEIPT NUMBER:" value={invoice.graReceiptNumber} />
+                <EvatInfoRow label="INTERNAL DATA:" value={invoice.graVerificationCode} />
+                <EvatInfoRow label="SIGNATURE:" value={invoice.graReceiptSignature} />
+                <EvatInfoRow label="MRC:" value={invoice.graMrc} />
+                <EvatInfoRow
+                  label="DATE & TIME:"
+                  value={
+                    invoice.graReceiptDateTime
+                      ? moment(invoice.graReceiptDateTime).format("dddd, MMMM D, YYYY h:mm A")
+                      : null
+                  }
+                />
+                <EvatInfoRow
+                  label="LINE‑ITEM COUNT:"
+                  value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
+                />
+              </div>
+            </div>
+          )}
           {(invoice.companySignature || user?.companySignature) && (
             <div className="mt-2 pt-2 border-t border-dashed border-gray-600 text-center">
               <img
@@ -1045,20 +1079,6 @@ const InvoiceDetail = () => {
                   alt="Company stamp"
                   className="h-24 object-contain mx-auto bg-white p-1 mt-2"
                 />
-              )}
-            </div>
-          )}
-          {(invoice.graReceiptNumber || invoice.graSdcId) && (
-            <div className="mt-2 pt-2 border-t border-dashed border-gray-600 text-[10px] space-y-0.5">
-              {invoice.graReceiptNumber && (
-                <div>
-                  <span className="font-medium">GRA receipt:</span> {invoice.graReceiptNumber}
-                </div>
-              )}
-              {invoice.graSdcId && (
-                <div>
-                  <span className="font-medium">SDC ID:</span> {invoice.graSdcId}
-                </div>
               )}
             </div>
           )}
@@ -1085,6 +1105,7 @@ const InvoiceDetail = () => {
           </div>
           <div className="text-center text-[10px] mt-2 opacity-70">Thank you</div>
         </div>
+        ) : null}
         </div>
         
         {/* Print button at bottom - slate fill, no border */}
@@ -1097,6 +1118,7 @@ const InvoiceDetail = () => {
               <Printer className="w-4 h-4" />
               Print invoice
             </Button>
+            {isPosSale ? (
             <Button
               onClick={handlePrintPosReceipt}
               variant="secondary"
@@ -1105,6 +1127,7 @@ const InvoiceDetail = () => {
               <Receipt className="w-4 h-4" />
               Print POS receipt
             </Button>
+            ) : null}
           </div>
         </div>
         </div>
