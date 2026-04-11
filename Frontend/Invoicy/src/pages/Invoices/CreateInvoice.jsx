@@ -36,6 +36,9 @@ const CreateInvoice = () => {
   const location = useLocation();
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
+  /** Parent account (no branch on user) may choose branch; branch staff are locked to their branch */
+  const branchUserId = user?.branch ? String(user.branch) : "";
+  const canSelectBillFromBranch = !branchUserId;
   const existingInvoice = location.state?.invoice || null;
   const posCartLines =
     !existingInvoice && Array.isArray(location.state?.posCartLines) ? location.state.posCartLines : null;
@@ -176,7 +179,7 @@ const CreateInvoice = () => {
   }, []);
 
   useEffect(() => {
-    if (!existingInvoice) {
+    if (!existingInvoice && canSelectBillFromBranch) {
       setFormData((prev) => ({
         ...prev,
         billFrom: {
@@ -191,12 +194,12 @@ const CreateInvoice = () => {
         companyStamp: user?.companyStamp || "",
       }));
     }
-  }, [user, existingInvoice]);
+  }, [user, existingInvoice, canSelectBillFromBranch]);
 
   useEffect(() => {
     if (existingInvoice) return;
     if (billFromBranch && branches.length > 0) {
-      const branch = branches.find((b) => b._id === billFromBranch);
+      const branch = branches.find((b) => String(b._id) === String(billFromBranch));
       if (branch) {
         setFormData((prev) => ({
           ...prev,
@@ -209,7 +212,7 @@ const CreateInvoice = () => {
           },
         }));
       }
-    } else if (!billFromBranch && user) {
+    } else if (!billFromBranch && user && canSelectBillFromBranch) {
       setFormData((prev) => ({
         ...prev,
         billFrom: {
@@ -221,16 +224,29 @@ const CreateInvoice = () => {
         },
       }));
     }
-  }, [billFromBranch, branches, user, existingInvoice]);
+  }, [billFromBranch, branches, user, existingInvoice, canSelectBillFromBranch]);
+
+  /** Lock branch staff to their assigned branch (no dropdown) */
+  useEffect(() => {
+    if (existingInvoice || !branchUserId) return;
+    setBillFromBranch(branchUserId);
+  }, [branchUserId, existingInvoice]);
 
   useEffect(() => {
+    if (!canSelectBillFromBranch || existingInvoice) return;
     if (!existingInvoice && branches.length > 0 && !billFromBranch) {
       const defaultBranch = branches.find((b) => b.isDefault);
       if (defaultBranch) {
         setBillFromBranch(defaultBranch._id);
       }
     }
-  }, [branches, existingInvoice]);
+  }, [branches, existingInvoice, billFromBranch, canSelectBillFromBranch]);
+
+  useEffect(() => {
+    if (!existingInvoice?.branch) return;
+    const id = existingInvoice.branch._id || existingInvoice.branch;
+    if (id) setBillFromBranch(String(id));
+  }, [existingInvoice]);
 
   useEffect(() => {
     const aiData = location.state?.aiData;
@@ -519,7 +535,7 @@ const CreateInvoice = () => {
         amountPaid: amountPaidValue,
         status: derivedPaymentStatus,
         balanceDue: balanceDueValue,
-        branch: billFromBranch || null,
+        branch: billFromBranch || branchUserId || null,
       };
       if (existingInvoice?._id) {
         await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(existingInvoice._id), payload);
@@ -641,7 +657,7 @@ const CreateInvoice = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
           <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 space-y-2">
             <h3 className="text-lg font-semibold text-black mb-1">Bill From</h3>
-            {branches.length > 0 && (
+            {canSelectBillFromBranch && branches.length > 0 && (
               <SelectField
                 label="Branch"
                 name="billFromBranch"
@@ -656,11 +672,25 @@ const CreateInvoice = () => {
                 ]}
               />
             )}
+            {!canSelectBillFromBranch && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Branch</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {branches.find((b) => String(b._id) === String(branchUserId))?.name ||
+                    branchUserId ||
+                    "Your branch"}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Billing is fixed to this branch. Only the main account can choose a different branch.
+                </p>
+              </div>
+            )}
             <InputField
               label="Business Name"
               name="businessName"
               value={formData.billFrom.businessName}
               onChange={(e) => handleInputChange(e, "billFrom")}
+              readOnly={!!branchUserId}
               required
             />
             <InputField
@@ -668,6 +698,7 @@ const CreateInvoice = () => {
               name="email"
               value={formData.billFrom.email}
               onChange={(e) => handleInputChange(e, "billFrom")}
+              readOnly={!!branchUserId}
               required
             />
             <InputField
@@ -675,6 +706,7 @@ const CreateInvoice = () => {
               name="address"
               value={formData.billFrom.address}
               onChange={(e) => handleInputChange(e, "billFrom")}
+              readOnly={!!branchUserId}
               required
             />
             <InputField
@@ -689,6 +721,7 @@ const CreateInvoice = () => {
               name="phone"
               value={formData.billFrom.phone}
               onChange={(e) => handleInputChange(e, "billFrom")}
+              readOnly={!!branchUserId}
               required
             />
           </div>
