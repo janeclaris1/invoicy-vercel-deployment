@@ -186,6 +186,12 @@
       visibility: visible !important;
     }
 
+    /* Override container * visibility so links/actions marked no-print stay hidden on printed invoice */
+    body.invoice-print-page .invoice-print-container .no-print {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
     body.invoice-print-page .invoice-print-container {
       position: absolute;
       left: 0;

@@ -916,7 +916,12 @@ const InvoiceDetail = () => {
               </div>
             )}
             {invoice.graVerificationUrl && /^https?:\/\//i.test(invoice.graVerificationUrl) && (
-              <a href={invoice.graVerificationUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline opacity-90 hover:opacity-100">
+              <a
+                href={invoice.graVerificationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="no-print text-xs underline opacity-90 hover:opacity-100"
+              >
                 Verify on GRA portal →
               </a>
             )}
