@@ -117,6 +117,32 @@ const InvoiceDetail = () => {
     );
   }, [invoice]);
 
+  /** Branch invoices: show only stored bill-from (branch) — no parent company profile fallbacks */
+  const displayBillFrom = useMemo(() => {
+    if (!invoice) {
+      return { businessName: "—", email: "—", address: "—", phone: "—", tin: "—" };
+    }
+    const bf = invoice.billFrom || {};
+    const hasBranch = Boolean(invoice.branch);
+    if (hasBranch) {
+      const br = typeof invoice.branch === "object" && invoice.branch !== null ? invoice.branch : null;
+      return {
+        businessName: bf.businessName || br?.name || "—",
+        email: bf.email || "—",
+        address: bf.address || "—",
+        phone: bf.phone || "—",
+        tin: bf.tin || "—",
+      };
+    }
+    return {
+      businessName: bf.businessName || user?.businessName || "—",
+      email: bf.email || user?.email || "—",
+      address: bf.address || user?.address || "—",
+      phone: bf.phone || user?.phone || "—",
+      tin: bf.tin || user?.tin || "—",
+    };
+  }, [invoice, user]);
+
   const handlePrintInvoice = () => {
     document.body.classList.remove("invoice-print-pos-receipt");
     window.print();
@@ -352,9 +378,8 @@ const InvoiceDetail = () => {
               </div>
               <div className="text-sm text-gray-700 leading-7">
                 <div>Bank Transfer</div>
-                <div>{invoice.billFrom?.businessName || user?.businessName || "-"}</div>
-                {invoice.branch?.name ? <div>Branch: {invoice.branch.name}</div> : null}
-                <div>{invoice.billFrom?.phone || user?.phone || "-"}</div>
+                <div>{displayBillFrom.businessName}</div>
+                <div>{displayBillFrom.phone}</div>
               </div>
             </div>
 
@@ -487,13 +512,8 @@ const InvoiceDetail = () => {
 
               <div className="border-t border-gray-400 mt-2 w-40" />
               <div className="text-sm text-center mt-2">
-                {invoice.billFrom?.businessName ||
-                  user?.businessName ||
-                  "-"}
+                {displayBillFrom.businessName}
               </div>
-              {invoice.branch?.name ? (
-                <div className="text-xs text-center mt-0.5">Branch: {invoice.branch.name}</div>
-              ) : null}
             </div>
           </div>
 
@@ -506,8 +526,8 @@ const InvoiceDetail = () => {
               <div>
                 <span className="font-bold text-gray-800">More Info:</span>
               </div>
-              <div>{user?.phone || invoice.billFrom?.phone || "-"}</div>
-              <div>{user?.email || invoice.billFrom?.email || "-"}</div>
+              <div>{displayBillFrom.phone}</div>
+              <div>{displayBillFrom.email}</div>
             </div>
           </div>
         </div>
@@ -578,15 +598,10 @@ const InvoiceDetail = () => {
         {/* Reference-style header inside the printable card */}
         <div className="text-center">
           <div className="text-base sm:text-lg font-black tracking-widest text-center">
-            {invoice.billFrom?.businessName || user?.businessName || "-"}
+            {displayBillFrom.businessName}
           </div>
-          {invoice.branch?.name ? (
-            <div className="text-[10px] sm:text-xs text-gray-500 tracking-wide text-center">
-              Branch: {invoice.branch.name}
-            </div>
-          ) : null}
           <div className="text-[10px] sm:text-xs text-gray-400 tracking-widest text-center">
-            {invoice.billFrom?.email || user?.email || "-"}
+            {displayBillFrom.email}
           </div>
           <div className="mt-6 flex justify-center items-baseline">
             <span className="text-3xl sm:text-4xl font-black">VAT </span>
@@ -620,21 +635,20 @@ const InvoiceDetail = () => {
                 <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.clientName || "-"}</td>
                 <td className="px-1 py-0.5 font-medium text-left align-top">Vendor:</td>
                 <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">
-                  {invoice.billFrom?.businessName || user?.businessName || "-"}
-                  {invoice.branch?.name ? <div>Branch: {invoice.branch.name}</div> : null}
+                  {displayBillFrom.businessName}
                 </td>
               </tr>
               <tr>
                 <td className="px-1 py-0.5 font-medium align-top">Customer TIN:</td>
                 <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.tin || "-"}</td>
                 <td className="px-1 py-0.5 font-medium text-left align-top">Vendor TIN:</td>
-                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.tin || user?.tin || "-"}</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{displayBillFrom.tin}</td>
               </tr>
               <tr>
                 <td className="px-1 py-0.5 font-medium align-top">Invoice No:</td>
                 <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.invoiceNumber || "-"}</td>
                 <td className="px-1 py-0.5 font-medium text-left align-top">Phone:</td>
-                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.phone || user?.phone || "-"}</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{displayBillFrom.phone}</td>
               </tr>
               <tr>
                 <td className="px-1 py-0.5 font-medium align-top">Invoice Date:</td>
@@ -652,7 +666,7 @@ const InvoiceDetail = () => {
                 <td className="px-1 py-0.5 font-medium align-top">Address:</td>
                 <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.address || "-"}</td>
                 <td className="px-1 py-0.5 font-medium text-left align-top">Address:</td>
-                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.billFrom?.address || user?.address || "-"}</td>
+                <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{displayBillFrom.address}</td>
               </tr>
             </tbody>
           </table>
@@ -947,13 +961,10 @@ const InvoiceDetail = () => {
         >
           <div className="text-center border-b border-dashed border-gray-600 pb-2 mb-2">
             <div className="font-bold text-sm">
-              {invoice.billFrom?.businessName || user?.businessName || "-"}
+              {displayBillFrom.businessName}
             </div>
-            {invoice.branch?.name ? (
-              <div className="text-[10px] opacity-80">Branch: {invoice.branch.name}</div>
-            ) : null}
             <div className="text-[10px] opacity-80">
-              {[invoice.billFrom?.phone || user?.phone, invoice.billFrom?.tin || user?.tin ? `TIN ${invoice.billFrom?.tin || user?.tin}` : null]
+              {[displayBillFrom.phone !== "—" ? displayBillFrom.phone : null, displayBillFrom.tin !== "—" ? `TIN ${displayBillFrom.tin}` : null]
                 .filter(Boolean)
                 .join(" · ") || "—"}
             </div>
