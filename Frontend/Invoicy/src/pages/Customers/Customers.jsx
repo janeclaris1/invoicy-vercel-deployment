@@ -37,11 +37,52 @@ const Customers = () => {
   const [invoices, setInvoices] = useState([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("customers");
-    if (saved) {
-      setCustomers(JSON.parse(saved));
-    }
-  }, []);
+    const loadCustomers = async () => {
+      try {
+        const res = await axiosInstance.get(API_PATHS.CRM.CUSTOMERS);
+        const serverCustomers = Array.isArray(res.data) ? res.data : [];
+        if (serverCustomers.length > 0) {
+          setCustomers(serverCustomers);
+          return;
+        }
+
+        // One-time migration path: move legacy localStorage customers into backend.
+        const saved = localStorage.getItem("customers");
+        const localCustomers = saved ? JSON.parse(saved) : [];
+        if (!Array.isArray(localCustomers) || localCustomers.length === 0) {
+          setCustomers([]);
+          return;
+        }
+
+        const migrated = [];
+        for (const customer of localCustomers) {
+          try {
+            const createRes = await axiosInstance.post(API_PATHS.CRM.CUSTOMERS, {
+              name: customer.name || "",
+              email: customer.email || "",
+              phone: customer.phone || "",
+              company: customer.company || "",
+              address: customer.address || "",
+              city: customer.city || "",
+              country: customer.country || "",
+              taxId: customer.taxId || "",
+              currency: customer.currency || userCurrency,
+            });
+            migrated.push(createRes.data);
+          } catch (_) {}
+        }
+        if (migrated.length > 0) {
+          localStorage.removeItem("customers");
+          setCustomers(migrated);
+          return;
+        }
+        setCustomers([]);
+      } catch (_) {
+        setCustomers([]);
+      }
+    };
+    loadCustomers();
+  }, [userCurrency]);
 
   useEffect(() => {
     const loadInvoices = async () => {
@@ -75,7 +116,7 @@ const Customers = () => {
   };
 
   const openEditCustomer = (customer) => {
-    setEditingCustomerId(customer.id);
+    setEditingCustomerId(customer._id || customer.id);
     setFormData({
       name: customer.name || "",
       email: customer.email || "",
@@ -90,49 +131,56 @@ const Customers = () => {
   };
 
   const handleDeleteCustomer = (customerId) => {
-    const updated = customers.filter((c) => c.id !== customerId);
-    setCustomers(updated);
-    localStorage.setItem("customers", JSON.stringify(updated));
+    const removeCustomer = async () => {
+      try {
+        await axiosInstance.delete(API_PATHS.CRM.CUSTOMER(customerId));
+        setCustomers((prev) => prev.filter((c) => String(c._id || c.id) !== String(customerId)));
+      } catch (_) {}
+    };
+    removeCustomer();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingCustomerId) {
-      const updated = customers.map((customer) =>
-        customer.id === editingCustomerId
-          ? {
-              ...customer,
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              company: formData.company,
-              address: formData.address,
-              city: formData.city,
-              country: formData.country,
-              taxId: formData.taxId,
-            }
-          : customer
-      );
-      setCustomers(updated);
-      localStorage.setItem("customers", JSON.stringify(updated));
+      try {
+        const res = await axiosInstance.put(API_PATHS.CRM.CUSTOMER(editingCustomerId), {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          address: formData.address,
+          city: formData.city,
+          country: formData.country,
+          taxId: formData.taxId,
+          currency: userCurrency,
+        });
+        const updatedCustomer = res.data;
+        setCustomers((prev) =>
+          prev.map((customer) =>
+            String(customer._id || customer.id) === String(editingCustomerId) ? updatedCustomer : customer
+          )
+        );
+      } catch (_) {
+        return;
+      }
     } else {
-      const newCustomer = {
-        id: Date.now(),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        company: formData.company,
-        address: formData.address,
-        city: formData.city,
-        country: formData.country,
-        taxId: formData.taxId,
-        totalInvoices: 0,
-        totalRevenue: formatCurrency(0, userCurrency),
-        currency: userCurrency,
-      };
-      const updated = [newCustomer, ...customers];
-      setCustomers(updated);
-      localStorage.setItem("customers", JSON.stringify(updated));
+      try {
+        const res = await axiosInstance.post(API_PATHS.CRM.CUSTOMERS, {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          address: formData.address,
+          city: formData.city,
+          country: formData.country,
+          taxId: formData.taxId,
+          currency: userCurrency,
+        });
+        setCustomers((prev) => [res.data, ...prev]);
+      } catch (_) {
+        return;
+      }
     }
     setShowModal(false);
     setFormData({
@@ -148,9 +196,9 @@ const Customers = () => {
   };
 
   const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.company.toLowerCase().includes(searchTerm.toLowerCase())
+    (customer.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (customer.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (customer.company || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const customerTotals = useMemo(() => {
@@ -174,7 +222,7 @@ const Customers = () => {
         );
       });
 
-      totals[String(customer.id)] = {
+      totals[String(customer._id || customer.id)] = {
         totalInvoices: matched.length,
         totalRevenue: matched.reduce((sum, inv) => sum + toNumber(inv.grandTotal), 0),
       };
@@ -216,7 +264,7 @@ const Customers = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCustomers.map((customer) => (
           <div
-            key={customer.id}
+            key={customer._id || customer.id}
             className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between mb-4">
@@ -237,7 +285,7 @@ const Customers = () => {
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDeleteCustomer(customer.id)}
+                  onClick={() => handleDeleteCustomer(customer._id || customer.id)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -264,14 +312,14 @@ const Customers = () => {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Total Invoices</span>
                 <span className="font-semibold text-gray-900">
-                  {customerTotals[String(customer.id)]?.totalInvoices ?? customer.totalInvoices ?? 0}
+                  {customerTotals[String(customer._id || customer.id)]?.totalInvoices ?? customer.totalInvoices ?? 0}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm mt-2">
                 <span className="text-gray-600">Total Revenue</span>
                 <span className="font-semibold text-green-600">
                   {formatCurrency(
-                    customerTotals[String(customer.id)]?.totalRevenue ??
+                    customerTotals[String(customer._id || customer.id)]?.totalRevenue ??
                       (typeof customer.totalRevenue === "number"
                         ? customer.totalRevenue
                         : typeof customer.totalRevenue === "string"
@@ -283,7 +331,7 @@ const Customers = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate(`/customers/${customer.id}`)}
+                onClick={() => navigate(`/customers/${customer._id || customer.id}`)}
                 className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800"
               >
                 View Account

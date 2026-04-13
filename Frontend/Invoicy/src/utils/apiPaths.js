@@ -66,6 +66,8 @@ export const API_PATHS = {
     CRM: {
         CONTACTS: "api/crm/contacts",
         CONTACT: (id) => `api/crm/contacts/${id}`,
+        CUSTOMERS: "api/crm/customers",
+        CUSTOMER: (id) => `api/crm/customers/${id}`,
         COMPANIES: "api/crm/companies",
         COMPANY: (id) => `api/crm/companies/${id}`,
         LEADS: "api/crm/leads",

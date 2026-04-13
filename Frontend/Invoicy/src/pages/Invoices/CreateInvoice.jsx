@@ -118,9 +118,20 @@ const CreateInvoice = () => {
   const [billFromBranch, setBillFromBranch] = useState("");
 
   useEffect(() => {
-    const loadCustomers = () => {
-      const saved = localStorage.getItem("customers");
-      setCustomers(saved ? JSON.parse(saved) : []);
+    const loadCustomers = async () => {
+      try {
+        const response = await axiosInstance.get(API_PATHS.CRM.CUSTOMERS);
+        const serverCustomers = Array.isArray(response.data) ? response.data : [];
+        if (serverCustomers.length > 0) {
+          setCustomers(serverCustomers);
+          return;
+        }
+        const saved = localStorage.getItem("customers");
+        setCustomers(saved ? JSON.parse(saved) : []);
+      } catch (_) {
+        const saved = localStorage.getItem("customers");
+        setCustomers(saved ? JSON.parse(saved) : []);
+      }
     };
     loadCustomers();
     window.addEventListener("customersUpdated", loadCustomers);
@@ -644,7 +655,7 @@ const CreateInvoice = () => {
               { label: "Select a customer or supplier", value: "" },
               ...customers.map((c) => ({
                 label: `Customer: ${c.name}`,
-                value: `customer:${c.id ?? c.name}`,
+                value: `customer:${c._id || c.id || c.name}`,
               })),
               ...suppliers.map((s) => ({
                 label: `Supplier: ${s.name || s.company || "(Unnamed)"}`,

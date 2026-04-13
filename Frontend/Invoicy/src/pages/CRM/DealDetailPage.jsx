@@ -4,7 +4,6 @@ import { ArrowLeft, Mail, Loader2, Plus, PhoneCall, Mail as MailIcon, Calendar, 
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
-import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 
 const ACTIVITY_ICONS = { email: MailIcon, call: PhoneCall, meeting: Calendar, note: FileText, task: CheckSquare };
@@ -115,17 +114,14 @@ const DealDetailPage = () => {
     return null;
   };
 
-  const handleConvertToCustomer = () => {
+  const handleConvertToCustomer = async () => {
     const person = getConvertiblePerson();
     if (!person) {
       toast.error("No contact or lead linked to this deal");
       return;
     }
     try {
-      const saved = localStorage.getItem("customers");
-      const existing = saved ? JSON.parse(saved) : [];
-      const newCustomer = {
-        id: Date.now(),
+      await axiosInstance.post(API_PATHS.CRM.CUSTOMERS, {
         name: person.name,
         email: person.email,
         phone: person.phone,
@@ -134,12 +130,8 @@ const DealDetailPage = () => {
         city: "",
         country: "",
         taxId: "",
-        totalInvoices: 0,
-        totalRevenue: formatCurrency(0, userCurrency),
         currency: userCurrency,
-      };
-      const updated = [newCustomer, ...existing];
-      localStorage.setItem("customers", JSON.stringify(updated));
+      });
       window.dispatchEvent(new Event("customersUpdated"));
       toast.success(`${person.name} added to Customers. You can select them when creating invoices.`);
     } catch (err) {

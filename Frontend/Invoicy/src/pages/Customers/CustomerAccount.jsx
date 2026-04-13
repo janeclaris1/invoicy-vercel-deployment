@@ -30,10 +30,15 @@ const CustomerAccount = () => {
   const [noteInput, setNoteInput] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("customers");
-    const parsed = saved ? JSON.parse(saved) : [];
-    const found = parsed.find((c) => String(c.id) === String(id));
-    setCustomer(found || null);
+    const loadCustomer = async () => {
+      try {
+        const res = await axiosInstance.get(API_PATHS.CRM.CUSTOMER(id));
+        setCustomer(res.data || null);
+      } catch (_) {
+        setCustomer(null);
+      }
+    };
+    if (id) loadCustomer();
   }, [id]);
 
   useEffect(() => {
