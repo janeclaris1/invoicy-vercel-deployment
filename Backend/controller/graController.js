@@ -821,6 +821,15 @@ exports.graInvoice = async (req, res) => {
         }
 
         const normalizedPayload = await normalizeGraBusinessPartner(user, incomingPayload);
+        if (Array.isArray(normalizedPayload.items)) {
+            normalizedPayload.items = normalizedPayload.items.map((item, idx) => {
+                const safeDescription = toGraSafeText(item?.description || "", 100);
+                return {
+                    ...item,
+                    description: safeDescription || `Item ${idx + 1}`,
+                };
+            });
+        }
         if (normalizedPayload.transactionDate) {
             const dt = new Date(normalizedPayload.transactionDate);
             if (!Number.isNaN(dt.getTime())) {
