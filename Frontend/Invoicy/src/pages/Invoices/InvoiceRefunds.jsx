@@ -188,20 +188,21 @@ const InvoiceRefunds = () => {
     }
 
     const payload = {
+      // Match GRA sample shape for stability in refund endpoint.
       currency: String(selectedInvoice.currency || userCurrency || "GHS"),
-      exchangeRate: Number(selectedInvoice.exchangeRate || 1),
+      exchangeRate: "1.0",
       invoiceNumber: String(selectedInvoice.invoiceNumber),
       totalLevy: round2(leviesTotal * factor),
       userName: String(user?.name || user?.fullName || user?.businessName || selectedInvoice.billFrom?.businessName || ""),
       flag: refundType === "FULL" ? "REFUND" : "PARTIAL_REFUND",
       calculationType,
       totalVat: round2(Number(selectedInvoice.totalVat || 0) * factor),
-      transactionDate: new Date().toISOString(),
+      transactionDate: new Date().toISOString().slice(0, 10),
       totalAmount: round2(Number(selectedInvoice.grandTotal || 0) * factor),
       totalExciseAmount: 0,
       voucherAmount: 0,
-      businessPartnerName: String(selectedInvoice.billTo?.clientName || "Cash Customer"),
-      businessPartnerTin: String(selectedInvoice.billTo?.tin || "C0000000000"),
+      businessPartnerTin: String(selectedInvoice.billTo?.tin || "C0000000000").trim() || "C0000000000",
+      businessPartnerName: "Cash Customer",
       saleType: "NORMAL",
       discountType: "GENERAL",
       taxType: "STANDARD",
@@ -211,6 +212,9 @@ const InvoiceRefunds = () => {
       purchaseOrderReference: "",
       items: payloadItems,
     };
+    if (payload.businessPartnerTin !== "C0000000000") {
+      payload.businessPartnerName = String(selectedInvoice.billTo?.clientName || "").trim() || "Customer";
+    }
 
     setRefundSubmitting(true);
     try {
