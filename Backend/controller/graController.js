@@ -127,7 +127,8 @@ function toGraSafeText(value, maxLen = 100) {
         .replace(/\u00BD/g, "1/2")
         .replace(/\u00BC/g, "1/4")
         .replace(/\u00BE/g, "3/4")
-        .replace(/[^\w\s.,\-\/()&+:'"]/g, " ")
+        // Keep only strict ASCII symbols commonly accepted by GRA text validators.
+        .replace(/[^A-Za-z0-9\s.,\-\/]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
     return cleaned.slice(0, maxLen);
@@ -452,12 +453,14 @@ exports.submitInvoice = async (req, res) => {
                 const taxable = Math.max(roundTo(extended - discountAmount, 2), 0);
                 sumExclusiveTaxableBase += taxable;
             }
+            const safeDescription = toGraSafeText(line.description || line.itemDescription || "", 100);
             return {
                 // Never send MongoDB ObjectIds — GRA returns E818 citing itemCode when levy validation fails.
                 itemCode: `ITEM-${idx + 1}`,
                 itemCategory: line.itemCategory || "",
                 expireDate: line.expireDate || "",
-                description: toGraSafeText(line.description || line.itemDescription || "", 100),
+                // Fallback guarantees non-empty valid text for strict E813 validators.
+                description: safeDescription || `Item ${idx + 1}`,
                 // v8.2 examples often send these as strings; GRA accepts numeric too, but we match the sample shape.
                 quantity: qtyStr,
                 levyAmountA: levyA,
