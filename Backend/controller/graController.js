@@ -135,6 +135,39 @@ function toGraSafeText(value, maxLen = 100) {
 }
 
 /**
+ * Normalize business partner fields for GRA:
+ * - cash TIN must use canonical cash-customer naming
+ * - non-cash TINs should map to the taxpayer name returned by GRA TinDetails
+ */
+const normalizeGraBusinessPartner = async (user, payload) => {
+    const out = { ...(payload || {}) };
+    const tin = String(out.businessPartnerTin || "").trim() || GRA_CASH_TIN;
+    out.businessPartnerTin = tin.slice(0, 15);
+
+    if (out.businessPartnerTin === GRA_CASH_TIN) {
+        out.businessPartnerName = "Cash Customer";
+        return out;
+    }
+
+    try {
+        const tinPath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/identification/tin/${encodeURIComponent(
+            out.businessPartnerTin
+        )}`;
+        const tinData = await callGRAGet(user, tinPath);
+        const resolvedName = String(tinData?.data?.name || tinData?.data?.businessName || "").trim();
+        if (resolvedName) {
+            out.businessPartnerName = toGraSafeText(resolvedName, 100);
+            return out;
+        }
+    } catch (_) {
+        // Fallback to provided name below.
+    }
+
+    out.businessPartnerName = toGraSafeText(out.businessPartnerName || "", 100);
+    return out;
+};
+
+/**
  * Same tax math as invoiceController create/update (inclusive vs exclusive, invoice-level discount).
  * GRA rejects mismatched headers (e.g. E708 "Invalid total vat.") if totalVat/totalLevy/items disagree.
  */
@@ -768,7 +801,17 @@ exports.graInvoice = async (req, res) => {
     try {
         const user = await getGraUserOrThrow(req.user._id);
         const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
-        const data = await callGRA(user, path, "POST", req.body || {});
+        const normalizedPayload = await normalizeGraBusinessPartner(user, req.body || {});
+        if (normalizedPayload.transactionDate) {
+            const dt = new Date(normalizedPayload.transactionDate);
+            if (!Number.isNaN(dt.getTime())) {
+                normalizedPayload.transactionDate = dt.toISOString().slice(0, 10);
+            }
+        }
+        if (typeof normalizedPayload.userName === "string") {
+            normalizedPayload.userName = toGraSafeText(normalizedPayload.userName, 100);
+        }
+        const data = await callGRA(user, path, "POST", normalizedPayload);
         res.json(data);
     } catch (err) {
         console.error("GRA graInvoice error:", err.message, err.graStatus, err.graResponse);
