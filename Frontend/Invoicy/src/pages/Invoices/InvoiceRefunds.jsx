@@ -11,6 +11,10 @@ import Button from "../../components/ui/Button";
 const round2 = (n) => Math.round((Number(n || 0)) * 100) / 100;
 const looksLikeObjectId = (v) => /^[a-f\d]{24}$/i.test(String(v || "").trim());
 const REF_TXN_REGEX = /^PREF-\d{3}$/i; // e.g. PREF-034
+const VAT_RATE = 0.15;
+const NHIL_RATE = 0.025;
+const GETFUND_RATE = 0.025;
+const ALL_TAX_RATE = VAT_RATE + NHIL_RATE + GETFUND_RATE;
 const makeTxnRef = (prefix = "PREF") => {
   const n = Math.floor(Math.random() * 1000);
   return `${prefix}-${String(n).padStart(3, "0")}`;
@@ -156,21 +160,42 @@ const InvoiceRefunds = () => {
         // Keep description format aligned with submit-invoice flow (non-empty, max 100 chars).
         const rawDescription = String(item.description || item.itemDescription || "").trim();
         const safeDescription = rawDescription.slice(0, 100);
+        const lineDiscount = round2(Number(item.discountAmount || item.discount || 0) * factor);
+        const lineExtended = round2(scaledQty * unitPrice);
+        const taxableOrInclusive = Math.max(round2(lineExtended - lineDiscount), 0);
+        let levyAmountA = 0;
+        let levyAmountB = 0;
+        let totalVatLine = 0;
+        if (calculationType === "EXCLUSIVE") {
+          levyAmountA = round2(taxableOrInclusive * NHIL_RATE);
+          levyAmountB = round2(taxableOrInclusive * GETFUND_RATE);
+          totalVatLine = round2(taxableOrInclusive * VAT_RATE);
+        } else {
+          const netBase = round2(taxableOrInclusive / (1 + ALL_TAX_RATE));
+          levyAmountA = round2(netBase * NHIL_RATE);
+          levyAmountB = round2(netBase * GETFUND_RATE);
+          totalVatLine = round2(taxableOrInclusive - netBase - levyAmountA - levyAmountB);
+          if (totalVatLine < 0) {
+            totalVatLine = round2(netBase * VAT_RATE);
+          }
+        }
+
         return {
           itemCode: safeItemCode,
           itemCategory: String(item.itemCategory || ""),
           expireDate: item.expireDate ? String(item.expireDate) : "",
           description: safeDescription,
           quantity: scaledQty,
-          levyAmountA: round2(Number(item.levyAmountA || 0) * factor),
-          levyAmountB: round2(Number(item.levyAmountB || 0) * factor),
+          levyAmountA,
+          levyAmountB,
           levyAmountC: round2(Number(item.levyAmountC || 0) * factor),
           levyAmountD: round2(Number(item.levyAmountD || 0) * factor),
           levyAmountE: round2(Number(item.levyAmountE || 0) * factor),
-          discountAmount: round2(Number(item.discountAmount || 0) * factor),
+          discountAmount: lineDiscount,
           exciseAmount: round2(Number(item.exciseAmount || 0) * factor),
           batchCode: String(item.batchCode || ""),
           unitPrice,
+          totalVatLine,
         };
       })
       .filter((i) => i.quantity > 0 && i.description);
@@ -192,14 +217,29 @@ const InvoiceRefunds = () => {
       currency: String(selectedInvoice.currency || userCurrency || "GHS"),
       exchangeRate: "1.0",
       invoiceNumber: String(selectedInvoice.invoiceNumber),
-      totalLevy: round2(leviesTotal * factor),
+      totalLevy: round2(
+        payloadItems.reduce(
+          (sum, item) =>
+            sum +
+            Number(item.levyAmountA || 0) +
+            Number(item.levyAmountB || 0) +
+            Number(item.levyAmountD || 0) +
+            Number(item.levyAmountE || 0),
+          0
+        )
+      ),
       userName: String(user?.name || user?.fullName || user?.businessName || selectedInvoice.billFrom?.businessName || ""),
       flag: refundType === "FULL" ? "REFUND" : "PARTIAL_REFUND",
       calculationType,
-      totalVat: round2(Number(selectedInvoice.totalVat || 0) * factor),
+      totalVat: round2(payloadItems.reduce((sum, item) => sum + Number(item.totalVatLine || 0), 0)),
       transactionDate: new Date().toISOString().slice(0, 10),
-      totalAmount: round2(Number(selectedInvoice.grandTotal || 0) * factor),
-      totalExciseAmount: 0,
+      totalAmount: round2(
+        payloadItems.reduce((sum, item) => {
+          const lineTotal = round2(Number(item.quantity || 0) * Number(item.unitPrice || 0));
+          return sum + lineTotal - Number(item.discountAmount || 0) + Number(item.exciseAmount || 0);
+        }, 0)
+      ),
+      totalExciseAmount: round2(payloadItems.reduce((sum, item) => sum + Number(item.exciseAmount || 0), 0)),
       voucherAmount: 0,
       businessPartnerTin: String(selectedInvoice.billTo?.tin || "C0000000000").trim() || "C0000000000",
       businessPartnerName: "Cash Customer",
@@ -210,7 +250,7 @@ const InvoiceRefunds = () => {
       reference: effectiveReference,
       groupReferenceId: "",
       purchaseOrderReference: "",
-      items: payloadItems,
+      items: payloadItems.map(({ totalVatLine, ...item }) => item),
     };
     if (payload.businessPartnerTin !== "C0000000000") {
       payload.businessPartnerName = String(selectedInvoice.billTo?.clientName || "").trim() || "Customer";
