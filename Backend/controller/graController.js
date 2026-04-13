@@ -145,7 +145,7 @@ const normalizeGraBusinessPartner = async (user, payload) => {
     out.businessPartnerTin = tin.slice(0, 15);
 
     if (out.businessPartnerTin === GRA_CASH_TIN) {
-        out.businessPartnerName = "Cash Customer";
+        out.businessPartnerName = toGraSafeText(out.businessPartnerName || "", 100) || "Cash Customer";
         return out;
     }
 
@@ -801,7 +801,26 @@ exports.graInvoice = async (req, res) => {
     try {
         const user = await getGraUserOrThrow(req.user._id);
         const path = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
-        const normalizedPayload = await normalizeGraBusinessPartner(user, req.body || {});
+        const incomingPayload = { ...(req.body || {}) };
+        const incomingFlag = String(incomingPayload.flag || "").toUpperCase();
+        const isRefundFlow = incomingFlag === "REFUND" || incomingFlag === "PARTIAL_REFUND";
+        if (isRefundFlow && incomingPayload.invoiceNumber) {
+            const teamMemberIds = await getTeamMemberIds(req.user._id);
+            const sourceInvoice = await Invoice.findOne({
+                invoiceNumber: String(incomingPayload.invoiceNumber).trim(),
+                user: { $in: teamMemberIds },
+            })
+                .select("billTo")
+                .lean();
+            if (sourceInvoice?.billTo) {
+                const srcTin = String(sourceInvoice.billTo.tin || "").trim();
+                const srcName = String(sourceInvoice.billTo.clientName || "").trim();
+                incomingPayload.businessPartnerTin = srcTin || incomingPayload.businessPartnerTin || GRA_CASH_TIN;
+                incomingPayload.businessPartnerName = srcName || incomingPayload.businessPartnerName || "Cash Customer";
+            }
+        }
+
+        const normalizedPayload = await normalizeGraBusinessPartner(user, incomingPayload);
         if (normalizedPayload.transactionDate) {
             const dt = new Date(normalizedPayload.transactionDate);
             if (!Number.isNaN(dt.getTime())) {
