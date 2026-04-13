@@ -117,6 +117,23 @@ const GRA_GETFUND_RATE = 0.025;
 const GRA_ALL_TAX_RATE = GRA_VAT_RATE + GRA_NHIL_RATE + GRA_GETFUND_RATE;
 
 /**
+ * GRA payload text sanitizer:
+ * - normalize Unicode width/forms (e.g. full-width punctuation) to ASCII-ish
+ * - keep only conservative characters accepted by GRA item description validators
+ */
+function toGraSafeText(value, maxLen = 100) {
+    const normalized = String(value || "").normalize("NFKC");
+    const cleaned = normalized
+        .replace(/\u00BD/g, "1/2")
+        .replace(/\u00BC/g, "1/4")
+        .replace(/\u00BE/g, "3/4")
+        .replace(/[^\w\s.,\-\/()&+:'"]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    return cleaned.slice(0, maxLen);
+}
+
+/**
  * Same tax math as invoiceController create/update (inclusive vs exclusive, invoice-level discount).
  * GRA rejects mismatched headers (e.g. E708 "Invalid total vat.") if totalVat/totalLevy/items disagree.
  */
@@ -440,7 +457,7 @@ exports.submitInvoice = async (req, res) => {
                 itemCode: `ITEM-${idx + 1}`,
                 itemCategory: line.itemCategory || "",
                 expireDate: line.expireDate || "",
-                description: (line.description || line.itemDescription || "").slice(0, 100),
+                description: toGraSafeText(line.description || line.itemDescription || "", 100),
                 // v8.2 examples often send these as strings; GRA accepts numeric too, but we match the sample shape.
                 quantity: qtyStr,
                 levyAmountA: levyA,
@@ -500,14 +517,14 @@ exports.submitInvoice = async (req, res) => {
             exchangeRate: "1.0",
             invoiceNumber: invoice.invoiceNumber,
             totalLevy,
-            userName: (user.businessName || invoice.billFrom?.businessName || "Business").slice(0, 100),
+            userName: toGraSafeText(user.businessName || invoice.billFrom?.businessName || "Business", 100),
             flag: "INVOICE",
             calculationType,
             totalVat: totalVatForGra,
             transactionDate,
             totalAmount: totalAmountForGra,
             totalExciseAmount: Number.isFinite(totalExciseAmount) ? roundTo(totalExciseAmount, 2) : 0,
-            businessPartnerName: businessPartnerName.slice(0, 100),
+            businessPartnerName: toGraSafeText(businessPartnerName, 100),
             businessPartnerTin: businessPartnerTin.slice(0, 15),
             saleType: (invoice.saleType || "NORMAL").slice(0, 20),
             discountType: (invoice.discountType || "GENERAL").slice(0, 300),
