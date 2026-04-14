@@ -7,7 +7,7 @@ const swaggerUi = require("swagger-ui-express");
 const spec = {
   openapi: "3.0.0",
   info: {
-    title: "Invoicy ERP API",
+    title: "QickBill ERP API",
     version: "1.0.0",
     description: "Enterprise Resource Planning API — Invoices, Accounting, CRM, HR, Branches, Audit, Permissions.",
   },

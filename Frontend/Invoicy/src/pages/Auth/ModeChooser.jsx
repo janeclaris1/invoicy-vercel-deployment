@@ -25,7 +25,7 @@ const ModeChooser = () => {
                     </div>
                     <h2 className="text-lg font-semibold text-gray-900 mb-1">Invoice Suite</h2>
                     <p className="text-sm text-gray-600">
-                        Dashboard, invoices, customers, items, reports — the full Invoicy experience.
+                        Dashboard, invoices, customers, items, reports — the full QickBill experience.
                     </p>
                 </button>
 

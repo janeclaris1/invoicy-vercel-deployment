@@ -46,8 +46,8 @@ const Header = () => {
         
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
-          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-8 w-auto object-contain" />
-          <span className="text-xl font-bold text-gray-900">Invoicy</span>
+          <img src="/logo%20svg.jpeg" alt="QickBill" className="h-8 w-auto object-contain" />
+          <span className="text-xl font-bold text-gray-900">QickBill</span>
         </Link>
 
         {/* Desktop Navigation */}

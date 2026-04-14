@@ -8,7 +8,7 @@ const PrivacyPolicy = () => {
       <p className="text-sm text-gray-500 mb-6">Last updated: {new Date().toLocaleDateString()}</p>
       <div className="prose prose-sm max-w-none space-y-4">
         <p>
-          Invoicy respects your privacy. This Privacy Policy describes how we collect, use, and
+          QickBill respects your privacy. This Privacy Policy describes how we collect, use, and
           protect your personal information when you use our service.
         </p>
         <p>

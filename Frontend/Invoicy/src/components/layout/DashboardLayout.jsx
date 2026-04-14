@@ -282,7 +282,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                 {/* App Logo - fixed at top */}
                 <div className="flex-shrink-0 flex items-center h-16 border-b border-gray-200 dark:border-slate-800 px-4">
                     <Link className="flex items-center space-x-3" to="/dashboard">
-                        <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-8 w-8 object-contain rounded-lg flex-shrink-0" />
+                        <img src="/logo%20svg.jpeg" alt="QickBill" className="h-8 w-8 object-contain rounded-lg flex-shrink-0" />
                         {!sidebarCollapsed && (
                             <span className="text-gray-900 dark:text-slate-100 font-bold text-xl">{t("appName")}</span>
                         )}

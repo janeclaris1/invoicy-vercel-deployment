@@ -8,7 +8,7 @@ const TermsOfService = () => {
       <p className="text-sm text-gray-500 mb-6">Last updated: {new Date().toLocaleDateString()}</p>
       <div className="prose prose-sm max-w-none space-y-4">
         <p>
-          By creating an account and using Invoicy, you agree to be bound by these Terms of Service.
+          By creating an account and using QickBill, you agree to be bound by these Terms of Service.
           Please read them carefully before signing up.
         </p>
         <p>

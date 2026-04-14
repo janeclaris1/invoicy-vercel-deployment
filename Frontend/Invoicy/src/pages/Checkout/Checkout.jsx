@@ -119,7 +119,7 @@ const Checkout = () => {
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Complete your subscription</h1>
                 {user?.subscription?.status === "trialing" && user?.subscription?.currentPeriodEnd && new Date(user.subscription.currentPeriodEnd).getTime() <= Date.now() ? (
-                    <p className="text-gray-600 mb-6">Your 7-day free trial has ended. Complete payment below to keep using Invoicy. You will be redirected to Paystack to pay securely.</p>
+                    <p className="text-gray-600 mb-6">Your 7-day free trial has ended. Complete payment below to keep using QickBill. You will be redirected to Paystack to pay securely.</p>
                 ) : (
                     <p className="text-gray-600 mb-6">You will be redirected to Paystack to pay securely.</p>
                 )}

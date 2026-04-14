@@ -85,7 +85,7 @@ export const FAQS = [
 
     {
         question: "Is the software intergrated with GRA VAT API?",
-        answer: "Yes, Invoicy is fully integrated with the GRA VAT API, allowing for seamless VAT calculations and compliance with Ghana Revenue Authority regulations."
+        answer: "Yes, QickBill is fully integrated with the GRA VAT API, allowing for seamless VAT calculations and compliance with Ghana Revenue Authority regulations."
     },
 
     {
@@ -94,8 +94,8 @@ export const FAQS = [
     },
 
     {
-        question: "Does Invoicy support multiple users?",
-        answer: "Yes, Invoicy supports multiple users, allowing teams to collaborate and manage invoices together efficiently."
+        question: "Does QickBill support multiple users?",
+        answer: "Yes, QickBill supports multiple users, allowing teams to collaborate and manage invoices together efficiently."
     }
 
 ];
@@ -123,7 +123,7 @@ export const TEAM_MEMBERS = [
         name: "Kwashie Elikplim",
         role: "Developer",
         photo: avatarUser,
-        bio: "Arrey is a skilled developer with a passion for creating user-friendly applications. He ensures that Invoicy is reliable and easy to use.",
+        bio: "Arrey is a skilled developer with a passion for creating user-friendly applications. He ensures that QickBill is reliable and easy to use.",
     },
 ];
 

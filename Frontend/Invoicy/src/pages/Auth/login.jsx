@@ -211,9 +211,9 @@ const Login = () => {
       <div className=" w-full max-w-sm">
         {/* Header*/}
         <div className="text-center mb-6">
-          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-14 w-auto object-contain mx-auto mb-6" />
+          <img src="/logo%20svg.jpeg" alt="QickBill" className="h-14 w-auto object-contain mx-auto mb-6" />
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login to Your Account</h1>
-            <p className="text-gray-600 text-sm">Welcome back to Invoicy! Please enter your details.</p>
+            <p className="text-gray-600 text-sm">Welcome back to QickBill! Please enter your details.</p>
             </div>
 
         {searchParams.get("payment") === "success" && (

@@ -39,7 +39,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-14 w-auto object-contain mx-auto mb-6" />
+          <img src="/logo%20svg.jpeg" alt="QickBill" className="h-14 w-auto object-contain mx-auto mb-6" />
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Reset your password</h1>
           <p className="text-gray-600 text-sm">Enter your email and we’ll send you a link to reset your password.</p>
         </div>

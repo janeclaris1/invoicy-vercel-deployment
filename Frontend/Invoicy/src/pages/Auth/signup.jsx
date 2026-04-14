@@ -242,10 +242,10 @@ const SignUp = () => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-6">
-          <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-14 w-auto object-contain mx-auto mb-6" />
+          <img src="/logo%20svg.jpeg" alt="QickBill" className="h-14 w-auto object-contain mx-auto mb-6" />
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h1>
           <p className="text-gray-600 text-sm">
-            Fill in your details to start your 7-day free trial. You&apos;ll complete payment after the trial to keep using Invoicy.
+            Fill in your details to start your 7-day free trial. You&apos;ll complete payment after the trial to keep using QickBill.
           </p>
         </div>
 

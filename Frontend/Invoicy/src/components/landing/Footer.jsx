@@ -27,8 +27,8 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <div className="space-y-4 md:col-span-2 lg:col-span-1">
                         <Link to="/" className="flex items-center space-x-2 mb-6">
-                            <img src="/logo%20svg.jpeg" alt="Invoicy" className="h-8 w-auto object-contain" />
-                            <span className="text-xl font-bold">Invoicy</span>
+                            <img src="/logo%20svg.jpeg" alt="QickBill" className="h-8 w-auto object-contain" />
+                            <span className="text-xl font-bold">QickBill</span>
                         </Link>
                         <p className="text-gray-400  leading-relaxed max-w-sm">
                             The simplest way to create and manage invoices for your business.
@@ -77,7 +77,7 @@ const Footer = () => {
                 <div className="border-t border-gray-800 py-8 mt-16">
                     <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                         <p className="text-gray-400">
-                            &copy; {new Date().getFullYear()} Invoicy. All rights reserved.
+                            &copy; {new Date().getFullYear()} QickBill. All rights reserved.
                         </p>
                         <div className="flex space-x-4">
                             <SocialLink href="https://twitter.com/yourprofile">

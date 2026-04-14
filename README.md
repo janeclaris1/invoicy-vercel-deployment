@@ -1,4 +1,4 @@
-# Invoicy - Invoice & HR Management System
+# QickBill - Invoice & HR Management System
 
 A comprehensive invoice generation and HR management system built with React and Node.js, designed for businesses in Ghana with GRA (Ghana Revenue Authority) integration.
 

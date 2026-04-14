@@ -114,7 +114,7 @@ const SubscriptionRequired = () => {
                 </h1>
                 <p className="text-gray-600 dark:text-slate-400 mb-6">
                     {isExpiredTrial
-                        ? "Your 7-day free trial has ended. Please complete payment to continue using Invoicy."
+                        ? "Your 7-day free trial has ended. Please complete payment to continue using QickBill."
                         : "Your subscription is inactive or payment could not be completed. Please update your payment method or choose a plan to continue using the app."}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">

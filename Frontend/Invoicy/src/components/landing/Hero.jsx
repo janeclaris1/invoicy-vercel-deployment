@@ -11,10 +11,10 @@ const Hero = () => {
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
                 <div className="text-center max-w-4xl mx-auto">
                     <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-blue-950 leading-tight">
-                        Invoicy - Accounting and Invoicing Software for Freelancers and Small Businesses
+                        QickBill - Accounting and Invoicing Software for Freelancers and Small Businesses
                     </h1>
                     <p className="text-base sm:text-xl text-gray-700 mb-8 leading-relaxed max-w-3xl mx-auto">
-                        Simplify your invoicing and accounting with AI-powered Invoicy. Create professional invoices from simple text, generate payment reminders, track expenses, daily report on WhatsApp, provides smart insights and manage your finances all in one place.
+                        Simplify your invoicing and accounting with AI-powered QickBill. Create professional invoices from simple text, generate payment reminders, track expenses, daily report on WhatsApp, provides smart insights and manage your finances all in one place.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
@@ -34,7 +34,7 @@ const Hero = () => {
                 </div>
                 <div className="mt-12 sm:mt-16 lg:mt-20 flex justify-center">
                     <div className="w-full max-w-4xl h-64 sm:h-80 bg-gradient-to-br from-blue-100 to-slate-100 rounded-lg shadow-2xl flex items-center justify-center border border-blue-200/50 overflow-hidden">
-                        <img src={heroImg} alt="Invoicy banner" className="w-full h-full object-cover object-center" />
+                        <img src={heroImg} alt="QickBill banner" className="w-full h-full object-cover object-center" />
                     </div>
                 </div>
             </div>

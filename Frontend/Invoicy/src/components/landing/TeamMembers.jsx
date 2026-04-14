@@ -9,7 +9,7 @@ const TeamMembers = () => {
                         Meet the Team
                     </h2>
                     <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                        The talented individuals behind Invoicy who are dedicated to making your invoicing experience seamless.
+                        The talented individuals behind QickBill who are dedicated to making your invoicing experience seamless.
                     </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">

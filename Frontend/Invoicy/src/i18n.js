@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      appName: "Invoicy",
+      appName: "QickBill",
       nav: {
         dashboard: "Dashboard",
         clients: "Subscribed clients",
@@ -96,7 +96,7 @@ const resources = {
   },
   fr: {
     translation: {
-      appName: "Invoicy",
+      appName: "QickBill",
       nav: {
         dashboard: "Tableau de bord",
         clients: "Clients abonnés",
@@ -188,7 +188,7 @@ const resources = {
   },
   zh: {
     translation: {
-      appName: "Invoicy",
+      appName: "QickBill",
       nav: {
         dashboard: "仪表盘",
         clients: "订阅客户",
