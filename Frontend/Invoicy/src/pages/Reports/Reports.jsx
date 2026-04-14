@@ -228,11 +228,66 @@ const Reports = () => {
     };
   }, [filteredInvoices]);
 
+  const zdDailyData = useMemo(() => {
+    const reportDate = moment(dateRange.endDate).format("YYYY-MM-DD");
+    const dayStart = moment(reportDate).startOf("day");
+    const dayEnd = moment(reportDate).endOf("day");
+
+    const dailyInvoices = invoices.filter((inv) => {
+      const invDate = moment(inv.invoiceDate);
+      return (
+        invDate.isSameOrAfter(dayStart) &&
+        invDate.isSameOrBefore(dayEnd) &&
+        (inv.type || "invoice") !== "proforma" &&
+        (inv.type || "invoice") !== "quotation"
+      );
+    });
+
+    const isStamped = (inv) =>
+      Boolean(
+        inv?.graReceiptNumber ||
+          inv?.graVerificationCode ||
+          inv?.graStatus === "SUCCESS" ||
+          inv?.graStatus === "APPROVED"
+      );
+
+    const stampedInvoices = dailyInvoices.filter(isStamped);
+    const unstampedInvoices = dailyInvoices.filter((inv) => !isStamped(inv));
+    const totalSales = dailyInvoices.reduce((sum, inv) => sum + Number(inv.grandTotal || 0), 0);
+    const totalVat = dailyInvoices.reduce((sum, inv) => sum + Number(inv.totalVat || 0), 0);
+    const totalNhil = dailyInvoices.reduce((sum, inv) => sum + Number(inv.totalNhil || 0), 0);
+    const totalGetFund = dailyInvoices.reduce((sum, inv) => sum + Number(inv.totalGetFund || 0), 0);
+    const totalLevies = totalNhil + totalGetFund;
+    const refundedAmount = dailyInvoices.reduce((sum, inv) => {
+      const events = Array.isArray(inv.refundEvents) ? inv.refundEvents : [];
+      const activeEvents = events.filter((ev) => !ev?.cancelled);
+      return sum + activeEvents.reduce((eventSum, ev) => eventSum + Number(ev.amount || 0), 0);
+    }, 0);
+
+    return {
+      reportDate,
+      dailyInvoices,
+      summary: {
+        totalInvoices: dailyInvoices.length,
+        stampedInvoices: stampedInvoices.length,
+        unstampedInvoices: unstampedInvoices.length,
+        totalSales,
+        totalVat,
+        totalNhil,
+        totalGetFund,
+        totalLevies,
+        refundedAmount,
+        netSalesAfterRefunds: totalSales - refundedAmount,
+      },
+    };
+  }, [invoices, dateRange.endDate]);
+
   const reportTypes = [
     { id: "sales", name: "Sales Summary", icon: TrendingUp, description: "Overview of all sales" },
     { id: "tax", name: "Tax Report (GRA)", icon: FileCheck, description: "GRA compliance report" },
     { id: "customer", name: "Customer Report", icon: Building2, description: "Customer analysis" },
-    { id: "payment", name: "Payment Report", icon: DollarSign, description: "Payment tracking" }
+    { id: "payment", name: "Payment Report", icon: DollarSign, description: "Payment tracking" },
+    { id: "zd-daily", name: "ZD Daily Report", icon: Calendar, description: "Daily sales and stamping summary" }
   ];
 
   const handlePrint = () => {
@@ -524,7 +579,7 @@ const Reports = () => {
       {/* Report Type Selection */}
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 p-6 mb-6 print:hidden no-print">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Report Type</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {reportTypes.map((type) => {
             const Icon = type.icon;
             return (
@@ -1036,6 +1091,111 @@ const Reports = () => {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ZD Daily Report */}
+        {reportType === "zd-daily" && (
+          <div>
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-indigo-900 mb-1">ZD Daily Summary</h4>
+              <p className="text-sm text-indigo-700">
+                Reporting date: {moment(zdDailyData.reportDate).format("MMM DD, YYYY")}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Daily Sales</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">
+                  {formatCurrency(zdDailyData.summary.totalSales, userCurrency)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Net after refunds: {formatCurrency(zdDailyData.summary.netSalesAfterRefunds, userCurrency)}
+                </p>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Invoices</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{zdDailyData.summary.totalInvoices}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {zdDailyData.summary.stampedInvoices} stamped, {zdDailyData.summary.unstampedInvoices} unstamped
+                </p>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Taxes & Levies</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">
+                  {formatCurrency(
+                    zdDailyData.summary.totalVat + zdDailyData.summary.totalLevies,
+                    userCurrency
+                  )}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  VAT {formatCurrency(zdDailyData.summary.totalVat, userCurrency)} / Levies {formatCurrency(zdDailyData.summary.totalLevies, userCurrency)}
+                </p>
+              </div>
+            </div>
+
+            {zdDailyData.dailyInvoices.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No invoice activity for the selected report date.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Stamping Activity</h3>
+                  <p className="text-sm text-gray-600">Daily invoice stamping status snapshot</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Invoice #</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Customer</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Stamp Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Receipt #</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Receipt Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {zdDailyData.dailyInvoices.map((invoice) => {
+                        const stamped = Boolean(
+                          invoice?.graReceiptNumber ||
+                            invoice?.graVerificationCode ||
+                            invoice?.graStatus === "SUCCESS" ||
+                            invoice?.graStatus === "APPROVED"
+                        );
+                        return (
+                          <tr key={invoice._id}>
+                            <td className="py-3 px-4 text-sm text-gray-900">{invoice.invoiceNumber}</td>
+                            <td className="py-3 px-4 text-sm text-gray-900">{getCustomerName(invoice)}</td>
+                            <td className="py-3 px-4 text-sm text-gray-900">
+                              {formatCurrency(Number(invoice.grandTotal || 0), userCurrency)}
+                            </td>
+                            <td className="py-3 px-4 text-sm">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  stamped ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                                }`}
+                              >
+                                {stamped ? "Stamped" : "Not Stamped"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-900">{invoice.graReceiptNumber || "-"}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {invoice.graReceiptDateTime
+                                ? moment(invoice.graReceiptDateTime).format("MMM DD, YYYY HH:mm")
+                                : "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
