@@ -578,6 +578,7 @@ exports.submitInvoice = async (req, res) => {
             discountAmountForGra,
             totalExciseAmount,
             totalAmountForGra,
+            totalAmountGrossBeforeDiscount: roundTo(sumExtendedItems + totalExciseAmount, 2),
             totalVatForGra,
             totalLevy,
             sumExclusiveTaxableBase: roundTo(sumExclusiveTaxableBase, 2),
@@ -658,6 +659,29 @@ exports.submitInvoice = async (req, res) => {
                 label: "header_discount_only",
                 body: {
                     ...body,
+                    totalLevy: zeroLineTotalLevy,
+                    totalVat: zeroLineTotalVat,
+                    discountAmount: lineDiscountSumForGra,
+                    items: cleanedZeroLineItems,
+                },
+            });
+
+            // Some GRA tenants validate totalAmount as gross before discount whenever discountAmount is present.
+            // Try gross-total variants as a fallback for E707 after discount-mapping attempts.
+            const grossTotalAmount = roundTo(sumExtendedItems + totalExciseAmount, 2);
+            attemptBodies.push({
+                label: "line_discount_header_zero_gross_total",
+                body: { ...body, totalAmount: grossTotalAmount },
+            });
+            attemptBodies.push({
+                label: "line_discount_header_sum_gross_total",
+                body: { ...body, discountAmount: lineDiscountSumForGra, totalAmount: grossTotalAmount },
+            });
+            attemptBodies.push({
+                label: "header_discount_only_gross_total",
+                body: {
+                    ...body,
+                    totalAmount: grossTotalAmount,
                     totalLevy: zeroLineTotalLevy,
                     totalVat: zeroLineTotalVat,
                     discountAmount: lineDiscountSumForGra,
