@@ -147,6 +147,16 @@ const PosDashboard = () => {
     const userCurrency = user?.currency || "GHS";
     const scanRef = useRef(null);
     const vatScenario = user?.graVatScenario || "inclusive";
+    const canOpenInvoiceSuite = useMemo(() => {
+        const responsibilities = user?.responsibilities || [];
+        const role = user?.role || "owner";
+        const isAdminLike = !user?.createdBy || role === "owner" || role === "admin" || user?.isPlatformAdmin;
+        if (isAdminLike) return true;
+        const hasExplicitWorkspacePermissions =
+            responsibilities.includes("workspace_invoice_suite") || responsibilities.includes("workspace_pos");
+        if (!hasExplicitWorkspacePermissions) return true;
+        return responsibilities.includes("workspace_invoice_suite");
+    }, [user]);
 
     const [catalog, setCatalog] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -681,12 +691,23 @@ const PosDashboard = () => {
                     >
                         All orders & invoices
                     </button>
-                    <Link
-                        to="/dashboard"
-                        className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 text-center"
-                    >
-                        Open Invoice Suite
-                    </Link>
+                    {canOpenInvoiceSuite ? (
+                        <Link
+                            to="/dashboard"
+                            className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 text-center"
+                        >
+                            Open Invoice Suite
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled
+                            title="You do not have Invoice Suite permission."
+                            className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/5 px-4 py-2 text-sm font-medium text-white/60 cursor-not-allowed text-center"
+                        >
+                            Open Invoice Suite
+                        </button>
+                    )}
                 </div>
             </div>
 
