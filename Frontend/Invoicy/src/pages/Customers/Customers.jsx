@@ -260,24 +260,68 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* Customers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Customers List */}
+      <div className="space-y-4">
         {filteredCustomers.map((customer) => (
           <div
             key={customer._id || customer.id}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+            className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3 min-w-0 lg:w-[28%]">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <User className="w-6 h-6 text-blue-900" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{customer.name}</h3>
-                  <p className="text-sm text-gray-600">{customer.company}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{customer.name}</h3>
+                  <p className="text-sm text-gray-600 truncate">{customer.company}</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:flex-1">
+                <div className="flex items-center space-x-2 text-sm text-gray-600 min-w-0">
+                  <Mail className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{customer.email}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 min-w-0">
+                  <Phone className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{customer.phone}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 min-w-0">
+                  <MapPin className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{customer.address}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 lg:justify-end lg:w-[34%]">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-600">Total Invoices:</span>
+                  <span className="font-semibold text-gray-900">
+                    {customerTotals[String(customer._id || customer.id)]?.totalInvoices ?? customer.totalInvoices ?? 0}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-600">Total Revenue:</span>
+                  <span className="font-semibold text-green-600">
+                    {formatCurrency(
+                      customerTotals[String(customer._id || customer.id)]?.totalRevenue ??
+                        (typeof customer.totalRevenue === "number"
+                          ? customer.totalRevenue
+                          : typeof customer.totalRevenue === "string"
+                            ? parseFloat(String(customer.totalRevenue).replace(/[^\d.-]/g, "")) || 0
+                            : 0),
+                      customer.currency || userCurrency
+                    )}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customers/${customer._id || customer.id}`)}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800"
+                >
+                  View Account
+                  <ArrowRight className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => openEditCustomer(customer)}
                   className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -291,52 +335,6 @@ const Customers = () => {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Mail className="w-4 h-4" />
-                <span>{customer.email}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Phone className="w-4 h-4" />
-                <span>{customer.phone}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{customer.address}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Total Invoices</span>
-                <span className="font-semibold text-gray-900">
-                  {customerTotals[String(customer._id || customer.id)]?.totalInvoices ?? customer.totalInvoices ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm mt-2">
-                <span className="text-gray-600">Total Revenue</span>
-                <span className="font-semibold text-green-600">
-                  {formatCurrency(
-                    customerTotals[String(customer._id || customer.id)]?.totalRevenue ??
-                      (typeof customer.totalRevenue === "number"
-                        ? customer.totalRevenue
-                        : typeof customer.totalRevenue === "string"
-                          ? parseFloat(String(customer.totalRevenue).replace(/[^\d.-]/g, "")) || 0
-                          : 0),
-                    customer.currency || userCurrency
-                  )}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate(`/customers/${customer._id || customer.id}`)}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800"
-              >
-                View Account
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
           </div>
         ))}
