@@ -227,6 +227,79 @@ const InvoiceRefunds = () => {
     URL.revokeObjectURL(url);
   };
 
+  const printRefundHistoryOnly = () => {
+    if (refundedInvoiceHistory.length === 0) {
+      toast.error("No refund history to export.");
+      return;
+    }
+    const rowsHtml = refundedInvoiceHistory
+      .map(
+        (row) => `
+          <tr>
+            <td>${row.invoiceNumber}</td>
+            <td>${row.customer}</td>
+            <td>${row.eventId}</td>
+            <td>${row.type}</td>
+            <td>${row.reference}</td>
+            <td>${formatCurrency(row.amount, userCurrency)}</td>
+            <td>${row.status}</td>
+            <td>${row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</td>
+          </tr>
+        `
+      )
+      .join("");
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) {
+      toast.error("Unable to open print preview window.");
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Refunded Invoices History</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
+            h1 { margin: 0 0 8px; font-size: 22px; }
+            p { margin: 0 0 16px; color: #555; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background: #f5f5f5; }
+            @media print {
+              body { padding: 0; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Refunded Invoices History</h1>
+          <p>Generated: ${new Date().toLocaleString()}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Event</th>
+                <th>Type</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 200);
+  };
+
   const handleSubmitRefundToGRA = async () => {
     if (!selectedInvoice) {
       toast.error("Select an invoice first.");
@@ -640,7 +713,7 @@ const InvoiceRefunds = () => {
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={exportHistoryCsv}>Export CSV</Button>
             <Button variant="outline" onClick={exportHistoryJson}>Export JSON</Button>
-            <Button variant="outline" onClick={() => window.print()}>Print / PDF</Button>
+            <Button variant="outline" onClick={printRefundHistoryOnly}>Print / PDF</Button>
           </div>
         </div>
 
