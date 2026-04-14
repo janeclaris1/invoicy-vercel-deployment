@@ -537,7 +537,7 @@ const InvoiceRefunds = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoice Refunds</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">Invoice Refunds</h1>
         <p className="text-sm text-slate-600 mt-1">Submit full or partial invoice refunds to GRA.</p>
       </div>
 
