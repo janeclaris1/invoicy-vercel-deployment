@@ -42,6 +42,18 @@ const getTeamMemberIds = async (currentUserId) => {
     return teamMembers.map((m) => m._id);
 };
 
+const WORKSPACE_RESPONSIBILITIES = ["workspace_invoice_suite", "workspace_pos"];
+const normalizeResponsibilities = (role, responsibilities) => {
+    const base = Array.isArray(responsibilities)
+        ? [...new Set(responsibilities.filter((r) => typeof r === "string" && r.trim()).map((r) => r.trim()))]
+        : [];
+    if (role === "owner" || role === "admin") {
+        const merged = new Set([...base, ...WORKSPACE_RESPONSIBILITIES]);
+        return Array.from(merged);
+    }
+    return base;
+};
+
 
 
 // Helper function to generate JWT
@@ -247,12 +259,13 @@ exports.createTeamMember = async (req, res) => {
         }
         const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ') || email;
         const allowedTeamRoles = ['owner', 'admin', 'staff', 'viewer', 'manager', 'cashier', 'accountant', 'hr', 'production_manager', 'procurement', 'supply_chain'];
+        const normalizedRole = allowedTeamRoles.includes(role) ? role : 'staff';
         const user = await User.create({
             name,
             email,
             password,
-            role: allowedTeamRoles.includes(role) ? role : 'staff',
-            responsibilities: Array.isArray(responsibilities) ? responsibilities : [],
+            role: normalizedRole,
+            responsibilities: normalizeResponsibilities(normalizedRole, responsibilities),
             cashierName: typeof cashierName === 'string' ? cashierName.trim() : '',
             cashierSignature: typeof cashierSignature === 'string' ? cashierSignature : '',
             createdBy: req.user.id,
@@ -294,7 +307,11 @@ exports.updateTeamMember = async (req, res) => {
         const { role, responsibilities, password, cashierName, cashierSignature } = req.body;
         const allowedTeamRoles = ['owner', 'admin', 'staff', 'viewer', 'manager', 'cashier', 'accountant', 'hr', 'production_manager', 'procurement', 'supply_chain'];
         if (role) member.role = allowedTeamRoles.includes(role) ? role : member.role;
-        if (Array.isArray(responsibilities)) member.responsibilities = responsibilities;
+        if (Array.isArray(responsibilities)) {
+            member.responsibilities = normalizeResponsibilities(member.role || "staff", responsibilities);
+        } else if (member.role === "owner" || member.role === "admin") {
+            member.responsibilities = normalizeResponsibilities(member.role, member.responsibilities);
+        }
         if (cashierName !== undefined) member.cashierName = typeof cashierName === 'string' ? cashierName.trim() : '';
         if (cashierSignature !== undefined) member.cashierSignature = typeof cashierSignature === 'string' ? cashierSignature : '';
         if (password && typeof password === 'string') {

@@ -28,6 +28,9 @@ const HR_PATH_TO_RESPONSIBILITY = {
 };
 
 const ALWAYS_ALLOWED = ["/profile", "/support", "/hr/self-service", "/customers"];
+const POS_PATHS = ["/pos", "/sales/pos"];
+const WORKSPACE_INVOICE_SUITE = "workspace_invoice_suite";
+const WORKSPACE_POS = "workspace_pos";
 
 const getRequiredResponsibility = (pathname) => {
   if (ALWAYS_ALLOWED.some((p) => pathname.startsWith(p))) return null;
@@ -66,8 +69,29 @@ const ResponsibilityGuard = ({ children }) => {
   const role = user.role || "owner";
   const responsibilities = user.responsibilities || [];
 
+  const hasExplicitWorkspacePermissions =
+    responsibilities.includes(WORKSPACE_INVOICE_SUITE) || responsibilities.includes(WORKSPACE_POS);
+  // Backward compatibility: legacy users without explicit workspace permissions keep access to both.
+  const workspaceAccess = {
+    invoiceSuite: hasExplicitWorkspacePermissions
+      ? responsibilities.includes(WORKSPACE_INVOICE_SUITE)
+      : true,
+    pos: hasExplicitWorkspacePermissions ? responsibilities.includes(WORKSPACE_POS) : true,
+  };
+
   if (!user.createdBy) return children; // Original account owner
   if (["owner", "admin"].includes(role)) return children;
+
+  if (POS_PATHS.some((p) => pathname.startsWith(p))) {
+    if (workspaceAccess.pos) return children;
+    return <Navigate to={workspaceAccess.invoiceSuite ? "/dashboard" : "/choose-mode"} replace />;
+  }
+  if (pathname !== "/choose-mode" && pathname !== "/checkout" && pathname !== "/subscription-required") {
+    if (!workspaceAccess.invoiceSuite) {
+      return <Navigate to={workspaceAccess.pos ? "/pos" : "/choose-mode"} replace />;
+    }
+  }
+
   if (HR_RESPONSIBILITIES.includes(required)) {
     if (hasHrAccess(responsibilities, required)) return children;
   } else if (responsibilities.includes(required)) return children;

@@ -53,6 +53,8 @@ const Settings = () => {
   const [branchForm, setBranchForm] = useState({ name: "", address: "", phone: "", email: "", tin: "", isDefault: false, status: "active" });
 
   const RESPONSIBILITIES = [
+    { id: "workspace_invoice_suite", label: "Workspace: Invoice Suite", description: "Allow access to dashboard and invoice suite modules" },
+    { id: "workspace_pos", label: "Workspace: POS", description: "Allow access to POS workspace and POS sales screen" },
     { id: "dashboard", label: "Dashboard (view)", description: "View dashboard and insights" },
     { id: "invoices", label: "Invoices", description: "Create, edit, and manage invoices" },
     { id: "customers", label: "Customers", description: "Manage customer records" },
@@ -951,7 +953,7 @@ const Settings = () => {
                             </option>
                           ))}
                         </select>
-                        <p className="text-xs text-gray-500 dark:text-slate-300 mt-1">Assign the appropriate role for each team member's function.</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-300 mt-1">Assign the appropriate role for each team member's function. Admin and Owner always get both workspaces by default.</p>
                       </div>
                       {userForm.role === "cashier" && (
                         <>
