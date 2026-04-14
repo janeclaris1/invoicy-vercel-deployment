@@ -690,8 +690,18 @@ exports.submitInvoice = async (req, res) => {
             });
         }
 
+        const isRetryableDiscountError = (err) => {
+            const code = String(err?.graResponse?.code || "").toUpperCase();
+            const msg = String(err?.graResponse?.message || err?.message || "").toUpperCase();
+            return (
+                code === "E707" ||
+                msg.includes("INVALID TOTAL DISCOUNT") ||
+                msg.includes("INVALID DISCOUNT")
+            );
+        };
+
         debugAttempts = [];
-        let lastE707Err = null;
+        let lastRetryableErr = null;
         for (const attempt of attemptBodies) {
             try {
                 const data = await callGRA(user, invoicePath, "POST", attempt.body);
@@ -708,14 +718,14 @@ exports.submitInvoice = async (req, res) => {
                     graCode: err?.graResponse?.code || null,
                     graMessage: err?.graResponse?.message || err?.message || null,
                 });
-                if (err?.graResponse?.code === "E707") {
-                    lastE707Err = err;
+                if (isRetryableDiscountError(err)) {
+                    lastRetryableErr = err;
                     continue;
                 }
                 throw err;
             }
         }
-        if (lastE707Err) throw lastE707Err;
+        if (lastRetryableErr) throw lastRetryableErr;
         throw new Error("GRA submit failed after trying discount mappings.");
     } catch (err) {
         console.error("GRA submitInvoice error:", err.message, err.graStatus, err.graResponse);
@@ -725,8 +735,15 @@ exports.submitInvoice = async (req, res) => {
             graStatus: err.graStatus,
             graResponse: err.graResponse,
             ...debugMeta,
-            ...(err?.graResponse?.code === "E707" ? { debugSnapshot } : {}),
-            ...(err?.graResponse?.code === "E707" && Array.isArray(debugAttempts) ? { debugAttempts } : {}),
+            ...((String(err?.graResponse?.code || "").toUpperCase() === "E707" ||
+                String(err?.graResponse?.message || "").toUpperCase().includes("INVALID TOTAL DISCOUNT"))
+                ? { debugSnapshot }
+                : {}),
+            ...((String(err?.graResponse?.code || "").toUpperCase() === "E707" ||
+                String(err?.graResponse?.message || "").toUpperCase().includes("INVALID TOTAL DISCOUNT")) &&
+            Array.isArray(debugAttempts)
+                ? { debugAttempts }
+                : {}),
         });
     }
 };
