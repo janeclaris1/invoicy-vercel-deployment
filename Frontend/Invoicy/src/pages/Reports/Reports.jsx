@@ -174,6 +174,14 @@ const Reports = () => {
     });
     const totalRevenue = paidInvoices.reduce((sum, inv) => sum + Number(inv.grandTotal || 0), 0);
     const totalUnpaidAmount = pendingInvoices.reduce((sum, inv) => sum + Number(inv.grandTotal || 0), 0);
+    const refundedInvoices = invoicesForVat.filter((inv) =>
+      Array.isArray(inv.refundEvents) && inv.refundEvents.some((ev) => !ev?.cancelled)
+    );
+    const refundedAmount = refundedInvoices.reduce((sum, inv) => {
+      const events = Array.isArray(inv.refundEvents) ? inv.refundEvents : [];
+      const activeEvents = events.filter((ev) => !ev?.cancelled);
+      return sum + activeEvents.reduce((eventSum, ev) => eventSum + Number(ev.amount || 0), 0);
+    }, 0);
 
     const customerMap = new Map();
     filteredInvoices.forEach((inv) => {
@@ -211,6 +219,8 @@ const Reports = () => {
         netRevenue: totalSales - totalTax,
         totalRevenue,
         totalUnpaidAmount,
+        refundedInvoices: refundedInvoices.length,
+        refundedAmount,
       },
       topCustomers,
       customers: allCustomers,
@@ -959,6 +969,14 @@ const Reports = () => {
                       <td className="py-2 pr-4 text-sm text-blue-700">Unpaid Invoices</td>
                       <td className="py-2 text-sm font-semibold text-blue-900">{reportData.summary.pendingInvoices}</td>
                     </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Refunded Invoices</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{reportData.summary.refundedInvoices}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 pr-4 text-sm text-blue-700">Refunded Amount</td>
+                      <td className="py-2 text-sm font-semibold text-blue-900">{formatCurrency(reportData.summary.refundedAmount, userCurrency)}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -983,6 +1001,7 @@ const Reports = () => {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Customer</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Refund</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Due Date</th>
                       </tr>
                     </thead>
@@ -1002,6 +1021,15 @@ const Reports = () => {
                             }`}>
                               {invoice.status || "Unpaid"}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {Array.isArray(invoice.refundEvents) && invoice.refundEvents.some((ev) => !ev?.cancelled) ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                Refunded
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">-</span>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-600">
                             {invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}

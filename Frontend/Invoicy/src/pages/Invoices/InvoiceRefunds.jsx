@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import graApi from "../../utils/graApi";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -21,6 +22,7 @@ const makeTxnRef = (prefix = "PREF") => {
 };
 
 const InvoiceRefunds = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
 
@@ -129,6 +131,101 @@ const InvoiceRefunds = () => {
       .slice()
       .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
   }, [selectedInvoice]);
+
+  const refundedInvoiceHistory = useMemo(() => {
+    const rows = [];
+    for (const inv of invoices) {
+      const events = Array.isArray(inv?.refundEvents) ? inv.refundEvents : [];
+      if (events.length === 0) continue;
+      events.forEach((ev) => {
+        rows.push({
+          invoiceId: inv._id,
+          invoiceNumber: inv.invoiceNumber || "-",
+          customer: inv.billTo?.clientName || "Customer",
+          eventId: ev.eventId || "-",
+          type: ev.type || "REFUND",
+          reference: ev.reference || "-",
+          amount: Number(ev.amount || 0),
+          status: ev.cancelled ? "Cancelled" : "Submitted",
+          createdAt: ev.createdAt || null,
+          cancelledAt: ev.cancelledAt || null,
+          refundInvoiceNumber: ev.refundInvoiceNumber || "",
+        });
+      });
+    }
+    return rows.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  }, [invoices]);
+
+  const historySummary = useMemo(() => {
+    const submitted = refundedInvoiceHistory.filter((r) => r.status === "Submitted");
+    const cancelled = refundedInvoiceHistory.filter((r) => r.status === "Cancelled");
+    const totalSubmitted = submitted.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    return {
+      refundedInvoices: new Set(refundedInvoiceHistory.map((r) => r.invoiceId)).size,
+      totalEvents: refundedInvoiceHistory.length,
+      submittedEvents: submitted.length,
+      cancelledEvents: cancelled.length,
+      totalSubmitted,
+    };
+  }, [refundedInvoiceHistory]);
+
+  const exportHistoryCsv = () => {
+    if (refundedInvoiceHistory.length === 0) {
+      toast.error("No refund history to export.");
+      return;
+    }
+    const headers = [
+      "Invoice Number",
+      "Customer",
+      "Event ID",
+      "Type",
+      "Reference",
+      "Amount",
+      "Status",
+      "Refund Invoice Number",
+      "Created At",
+      "Cancelled At",
+    ];
+    const lines = refundedInvoiceHistory.map((r) => [
+      r.invoiceNumber,
+      r.customer,
+      r.eventId,
+      r.type,
+      r.reference,
+      String(round2(r.amount)),
+      r.status,
+      r.refundInvoiceNumber || "",
+      r.createdAt ? new Date(r.createdAt).toISOString() : "",
+      r.cancelledAt ? new Date(r.cancelledAt).toISOString() : "",
+    ]);
+    const csvEscape = (value) => {
+      const s = String(value ?? "");
+      if (s.includes(",") || s.includes("\"") || s.includes("\n")) return `"${s.replace(/"/g, "\"\"")}"`;
+      return s;
+    };
+    const csv = [headers, ...lines].map((row) => row.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `refund-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportHistoryJson = () => {
+    if (refundedInvoiceHistory.length === 0) {
+      toast.error("No refund history to export.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(refundedInvoiceHistory, null, 2)], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `refund-history-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleSubmitRefundToGRA = async () => {
     if (!selectedInvoice) {
@@ -528,6 +625,90 @@ const InvoiceRefunds = () => {
                 ) : null}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Refunded Invoices History</h2>
+            <p className="text-xs text-slate-600 mt-1">
+              Tracks all refunded invoices and refund events across the workspace.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={exportHistoryCsv}>Export CSV</Button>
+            <Button variant="outline" onClick={exportHistoryJson}>Export JSON</Button>
+            <Button variant="outline" onClick={() => window.print()}>Print / PDF</Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="text-slate-500 text-xs">Refunded invoices</p>
+            <p className="font-semibold text-slate-900">{historySummary.refundedInvoices}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="text-slate-500 text-xs">Refund events</p>
+            <p className="font-semibold text-slate-900">{historySummary.totalEvents}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="text-slate-500 text-xs">Submitted events</p>
+            <p className="font-semibold text-emerald-700">{historySummary.submittedEvents}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="text-slate-500 text-xs">Submitted amount</p>
+            <p className="font-semibold text-blue-700">{formatCurrency(historySummary.totalSubmitted, userCurrency)}</p>
+          </div>
+        </div>
+
+        {refundedInvoiceHistory.length === 0 ? (
+          <p className="text-sm text-slate-600">No refunded invoices logged yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[980px]">
+              <thead>
+                <tr className="text-left border-b border-gray-200">
+                  <th className="py-2 pr-4">Invoice</th>
+                  <th className="py-2 pr-4">Customer</th>
+                  <th className="py-2 pr-4">Event</th>
+                  <th className="py-2 pr-4">Type</th>
+                  <th className="py-2 pr-4">Reference</th>
+                  <th className="py-2 pr-4">Amount</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Created</th>
+                  <th className="py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {refundedInvoiceHistory.map((row, idx) => (
+                  <tr key={`${row.invoiceId}-${row.eventId}-${idx}`} className="border-b border-gray-100">
+                    <td className="py-2 pr-4">{row.invoiceNumber}</td>
+                    <td className="py-2 pr-4">{row.customer}</td>
+                    <td className="py-2 pr-4">{row.eventId}</td>
+                    <td className="py-2 pr-4">{row.type}</td>
+                    <td className="py-2 pr-4">{row.reference}</td>
+                    <td className="py-2 pr-4">{formatCurrency(row.amount, userCurrency)}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`px-2 py-0.5 rounded text-xs ${row.status === "Cancelled" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4">{row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</td>
+                    <td className="py-2">
+                      <button
+                        type="button"
+                        className="text-blue-700 hover:text-blue-800 font-medium"
+                        onClick={() => navigate(`/invoices/${row.invoiceId}`)}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

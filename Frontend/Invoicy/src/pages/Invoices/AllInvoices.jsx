@@ -19,6 +19,11 @@ function invoiceStatusBadgeClass(status) {
   return "bg-red-100 text-red-800";
 }
 
+function hasRefundedEvent(invoice) {
+  const events = Array.isArray(invoice?.refundEvents) ? invoice.refundEvents : [];
+  return events.some((ev) => !ev?.cancelled);
+}
+
 const AllInvoices = ({ typeFilter }) => {
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
@@ -504,11 +509,18 @@ const AllInvoices = ({ typeFilter }) => {
                     {formatCurrency(Number(invoice.grandTotal || 0), userCurrency)}
                   </td>
                   <td className="px-4 py-2.5 text-sm text-black">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${invoiceStatusBadgeClass(invoice.status)} group-hover:opacity-90`}
-                    >
-                      {invoice.status || "Unpaid"}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${invoiceStatusBadgeClass(invoice.status)} group-hover:opacity-90`}
+                      >
+                        {invoice.status || "Unpaid"}
+                      </span>
+                      {hasRefundedEvent(invoice) && (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Refunded
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50 rounded-r-lg">
                     {invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}
