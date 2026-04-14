@@ -224,4 +224,4 @@ ISC
 
 ## Support
 
-For support, email support@invoicy.com or create an issue in the repository.
+For support, email support@qickbill.com or create an issue in the repository.

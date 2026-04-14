@@ -37,10 +37,10 @@ const Support = () => {
             Send us an email and we'll respond within 24 hours
           </p>
           <a
-            href="mailto:support@invoicy.com"
+            href="mailto:support@qickbill.com"
             className="text-sky-700 hover:text-sky-600 font-medium text-sm"
           >
-            support@invoicy.com
+            support@qickbill.com
           </a>
         </div>
 
@@ -53,7 +53,7 @@ const Support = () => {
             Chat with us instantly on WhatsApp
           </p>
           <a
-            href="https://wa.me/1234567890"
+            href="https://wa.me/233504171323"
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-700 hover:text-green-600 font-medium text-sm"

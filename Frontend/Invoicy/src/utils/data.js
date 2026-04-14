@@ -80,7 +80,7 @@ export const FAQS = [
 
     {
         question: "How can I contact customer support?",
-        answer: "You can reach our customer support team via email at help@invoicy.com or through the live chat feature on our website. We are available Monday to Friday, 9 AM to 5 PM EST, and strive to respond to all inquiries within 24 hours."
+        answer: "You can reach our customer support team via email at support@qickbill.com or through the live chat feature on our website. We are available Monday to Friday, 9 AM to 5 PM EST, and strive to respond to all inquiries within 24 hours."
     },
 
     {
