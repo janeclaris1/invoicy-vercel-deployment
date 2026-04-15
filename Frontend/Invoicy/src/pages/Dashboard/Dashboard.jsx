@@ -77,6 +77,7 @@ const Dashboard = () => {
         itemById[String(id)] = {
           name: it.name || "Item",
           cost: Number(it.cost) || 0,
+          price: Number(it.price) || 0,
         };
       });
       const normalizeStatus = (status) => {
@@ -167,11 +168,6 @@ const Dashboard = () => {
         const lines = Array.isArray(inv.item) ? inv.item : [];
         lines.forEach((line) => {
           const qty = Number(line.quantity) || 0;
-          let netRevenue = Number(line.amount);
-          if (!Number.isFinite(netRevenue)) {
-            const up = Number(line.unitPrice) || 0;
-            netRevenue = up * qty;
-          }
           const rawId = line.itemId;
           const idStr =
             rawId && typeof rawId === "object" && rawId._id != null
@@ -180,6 +176,17 @@ const Dashboard = () => {
                 ? String(rawId)
                 : null;
           const meta = idStr ? itemById[idStr] : null;
+          const lineAmount = Number(line.amount);
+          const lineUnit = Number(line.unitPrice) || 0;
+          const fromInvoiceLine = Number.isFinite(lineAmount) ? lineAmount : lineUnit * qty;
+          // Match COGS: use current catalog price for linked items so margin updates when Items price changes
+          let netRevenue = fromInvoiceLine;
+          if (meta) {
+            const catalogUnit = Number(meta.price);
+            if (Number.isFinite(catalogUnit) && catalogUnit > 0) {
+              netRevenue = catalogUnit * qty;
+            }
+          }
           const unitCost = meta ? meta.cost : 0;
           const lineCogs = unitCost * qty;
           const lineProfit = netRevenue - lineCogs;
@@ -243,9 +250,11 @@ const Dashboard = () => {
   useEffect(() => {
     const handler = () => fetchDashboardData();
     window.addEventListener("invoicesUpdated", handler);
+    window.addEventListener("itemsUpdated", handler);
     window.addEventListener("currencyChanged", handler);
     return () => {
       window.removeEventListener("invoicesUpdated", handler);
+      window.removeEventListener("itemsUpdated", handler);
       window.removeEventListener("currencyChanged", handler);
     };
   }, []);
@@ -490,7 +499,7 @@ const Dashboard = () => {
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Product gross profit</h3>
             <p className="text-sm text-slate-500">
-              Net line revenue minus catalog cost × quantity on fully paid invoices. Lines without a linked item use zero cost until you set cost on the item.
+              For each line linked to a catalog item, revenue uses the item’s current price × quantity and COGS uses current cost × quantity (so changing price or cost in Items updates this view). Manual lines use the amounts stored on the invoice.
             </p>
           </div>
           {topProductsByProfitData.length > 0 ? (

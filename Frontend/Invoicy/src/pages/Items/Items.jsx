@@ -258,6 +258,7 @@ const Items = () => {
     try {
       await axiosInstance.delete(API_PATHS.ITEMS.DELETE(itemId));
       setItems((prev) => prev.filter((item) => (item.id || item._id) !== itemId));
+      window.dispatchEvent(new CustomEvent("itemsUpdated"));
     } catch (err) {
       const updated = items.filter((item) => (item.id || item._id) !== itemId);
       setItems(updated);
@@ -319,6 +320,7 @@ const Items = () => {
           price: formatCurrency(Number(newItem.price), userCurrency),
         }, ...prev]);
       }
+      window.dispatchEvent(new CustomEvent("itemsUpdated"));
     } catch (err) {
       const selectedCat = activeCategories.find((cat) => String(cat.id) === String(formData.category));
       if (editingItemId) {
@@ -466,6 +468,7 @@ const Items = () => {
       );
       toast.success(`Updated ${successCount} item price${successCount > 1 ? "s" : ""}.`);
       cancelBulkEditMode();
+      window.dispatchEvent(new CustomEvent("itemsUpdated"));
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to bulk update item prices.");
     } finally {
@@ -539,6 +542,7 @@ const Items = () => {
             price: typeof i.price === "number" ? formatCurrency(i.price, userCurrency) : i.price,
           }))
         );
+        window.dispatchEvent(new CustomEvent("itemsUpdated"));
       }
     } catch (err) {
       setImportMessage({
