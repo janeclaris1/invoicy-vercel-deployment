@@ -22,6 +22,7 @@ const Items = () => {
     description: "",
     category: "",
     price: "",
+    cost: "",
     unit: "unit",
     sku: "",
     taxRate: "",
@@ -178,6 +179,7 @@ const Items = () => {
       description: "",
       category: "",
       price: "",
+      cost: "",
       unit: "unit",
       sku: "",
       taxRate: "",
@@ -203,6 +205,7 @@ const Items = () => {
       description: item.description || "",
       category: item.category || "",
       price: String(item.price || "").replace(/[^0-9.]/g, ""),
+      cost: String(item.cost || "").replace(/[^0-9.]/g, ""),
       unit: initialUnit,
       sku: item.sku || "",
       taxRate: item.taxRate || "",
@@ -268,6 +271,7 @@ const Items = () => {
     const categoryName = selectedCategory?.name || formData.category;
     const categoryColor = selectedCategory?.color || "#3B82F6";
     const normalizedPrice = Number(formData.price || 0);
+    const normalizedCost = Number(formData.cost || 0);
 
     try {
       if (editingItemId) {
@@ -277,6 +281,7 @@ const Items = () => {
           category: categoryName,
           categoryColor,
           price: normalizedPrice,
+          cost: normalizedCost,
           unit: formData.unit,
           sku: formData.sku,
           image: formData.image || "",
@@ -298,6 +303,7 @@ const Items = () => {
           category: categoryName,
           categoryColor,
           price: normalizedPrice,
+          cost: normalizedCost,
           unit: formData.unit,
           sku: formData.sku,
           image: formData.image || "",
@@ -325,6 +331,7 @@ const Items = () => {
                 category: selectedCat?.name || formData.category,
                 categoryColor: selectedCat?.color || item.categoryColor,
                 price: formatCurrency(normalizedPrice, userCurrency),
+                cost: normalizedCost,
                 unit: formData.unit,
                 sku: formData.sku,
                 taxRate: formData.taxRate,
@@ -341,6 +348,7 @@ const Items = () => {
           category: selectedCat?.name || formData.category,
           categoryColor: selectedCat?.color || "#3B82F6",
           price: `GH₵ ${normalizedPrice.toLocaleString()}`,
+          cost: normalizedCost,
           unit: formData.unit,
           sku: formData.sku,
           taxRate: formData.taxRate,
@@ -358,6 +366,7 @@ const Items = () => {
       description: "",
       category: "",
       price: "",
+      cost: "",
       unit: "unit",
       sku: "",
       taxRate: "",
@@ -436,6 +445,7 @@ const Items = () => {
           sku: item.sku || "",
           image: item.image || "",
           taxRate: item.taxRate || "",
+          cost: Number(item.cost) || 0,
           trackStock: Boolean(item.trackStock),
           quantityInStock: item.trackStock ? Number(item.quantityInStock) || 0 : 0,
           reorderLevel: item.trackStock ? Number(item.reorderLevel) || 0 : 0,
@@ -468,6 +478,7 @@ const Items = () => {
     "description",
     "category",
     "price",
+    "cost",
     "unit",
     "sku",
     "tax rate",
@@ -483,6 +494,7 @@ const Items = () => {
       "Short description",
       "Products",
       "100",
+      "65",
       "unit",
       "SKU-001",
       "0",
@@ -891,6 +903,25 @@ const Items = () => {
                       placeholder="0.00"
                       step="0.01"
                       required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cost
+                  </label>
+                  <div className="relative">
+                    <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="number"
+                      name="cost"
+                      value={formData.cost}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
                     />
                   </div>
                 </div>

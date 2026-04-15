@@ -41,7 +41,7 @@ const getItems = async (req, res) => {
 // @access  Private
 const createItem = async (req, res) => {
   try {
-    const { name, description, category, categoryColor, price, unit, sku, image, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
+    const { name, description, category, categoryColor, price, cost, unit, sku, image, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
     const item = await Item.create({
       user: req.user._id,
       name,
@@ -49,6 +49,7 @@ const createItem = async (req, res) => {
       category: category || '',
       categoryColor: categoryColor || '#3B82F6',
       price: Number(price) || 0,
+      cost: Number(cost) || 0,
       unit: unit || 'unit',
       sku: sku || '',
       image: typeof image === 'string' ? image : '',
@@ -76,12 +77,13 @@ const updateItem = async (req, res) => {
     if (!teamMemberIds.some(id => id.toString() === item.user.toString())) {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    const { name, description, category, categoryColor, price, unit, sku, image, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
+    const { name, description, category, categoryColor, price, cost, unit, sku, image, taxRate, trackStock, quantityInStock, reorderLevel } = req.body;
     item.name = name ?? item.name;
     item.description = description ?? item.description;
     item.category = category ?? item.category;
     item.categoryColor = categoryColor ?? item.categoryColor;
     item.price = price !== undefined ? Number(price) : item.price;
+    item.cost = cost !== undefined ? Number(cost) : item.cost;
     item.unit = unit ?? item.unit;
     item.sku = sku ?? item.sku;
     if (image !== undefined) item.image = typeof image === 'string' ? image : '';
@@ -350,6 +352,7 @@ const importItems = async (req, res) => {
         continue;
       }
       const priceNum = getNum(row, 'price', 'unit price', 'amount');
+      const costNum = getNum(row, 'cost', 'unit cost', 'buying price', 'purchase price');
       const trackStock = getBool(row, 'track stock', 'trackstock', 'track inventory');
       const quantityInStock = parseInt(getVal(row, 'quantity in stock', 'quantity', 'qty', 'stock') || '0', 10) || 0;
       const reorderLevel = parseInt(getVal(row, 'reorder level', 'reorderlevel', 'reorder') || '0', 10) || 0;
@@ -361,6 +364,7 @@ const importItems = async (req, res) => {
           category: getVal(row, 'category', 'category name'),
           categoryColor: '#3B82F6',
           price: priceNum,
+          cost: costNum,
           unit: getVal(row, 'unit', 'units', 'uom') || 'unit',
           sku: getVal(row, 'sku', 'code', 'item code'),
           taxRate: getNum(row, 'tax rate', 'taxrate', 'tax', 'vat'),

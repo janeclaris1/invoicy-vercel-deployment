@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import axiosInstance from "../../utils/axiosInstance";
 import {API_PATHS} from "../../utils/apiPaths";
-import {Loader2, FileText, DollarSign, Plus, } from "lucide-react";
+import {Loader2, FileText, DollarSign, Plus, TrendingUp } from "lucide-react";
 import {useNavigate, useLocation} from "react-router-dom";
 import  moment from "moment";
 import Button from "../../components/ui/Button";
@@ -38,6 +38,9 @@ const Dashboard = () => {
     totalVat: 0,
     totalNhil: 0,
     totalGetFund: 0,
+    /** Gross profit on line items (net of item cost) for fully paid formal invoices */
+    totalProductProfit: 0,
+    topProductsByProfit: [],
     topCustomers: [],
     revenueByMonth: [],
     documentTypeData: [],
@@ -61,10 +64,21 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(
-        `${API_PATHS.INVOICES.GET_ALL_INVOICES}?_=${Date.now()}`
-      );
+      const [response, itemsResponse] = await Promise.all([
+        axiosInstance.get(`${API_PATHS.INVOICES.GET_ALL_INVOICES}?_=${Date.now()}`),
+        axiosInstance.get(API_PATHS.ITEMS.GET_ALL).catch(() => ({ data: [] })),
+      ]);
       const invoices = response.data;
+      const catalogItems = Array.isArray(itemsResponse.data) ? itemsResponse.data : [];
+      const itemById = {};
+      catalogItems.forEach((it) => {
+        const id = it._id || it.id;
+        if (!id) return;
+        itemById[String(id)] = {
+          name: it.name || "Item",
+          cost: Number(it.cost) || 0,
+        };
+      });
       const normalizeStatus = (status) => {
         const raw = (status || "").toLowerCase();
         if (raw === "paid" || raw === "fully paid") return "fully paid";
@@ -143,6 +157,56 @@ const Dashboard = () => {
         { name: "Proforma", value: typeCounts.proforma, color: "#f59e0b" },
       ].filter((d) => d.value > 0);
 
+      // Gross profit: fully paid formal invoices only (matches "Total Revenue" semantics)
+      const productProfitMap = new Map();
+      let totalProductProfit = 0;
+      invoices.forEach((inv) => {
+        const docType = (inv.type || "invoice").toLowerCase();
+        if (docType !== "invoice") return;
+        if (normalizeStatus(inv.status) !== "fully paid") return;
+        const lines = Array.isArray(inv.item) ? inv.item : [];
+        lines.forEach((line) => {
+          const qty = Number(line.quantity) || 0;
+          let netRevenue = Number(line.amount);
+          if (!Number.isFinite(netRevenue)) {
+            const up = Number(line.unitPrice) || 0;
+            netRevenue = up * qty;
+          }
+          const rawId = line.itemId;
+          const idStr =
+            rawId && typeof rawId === "object" && rawId._id != null
+              ? String(rawId._id)
+              : rawId != null
+                ? String(rawId)
+                : null;
+          const meta = idStr ? itemById[idStr] : null;
+          const unitCost = meta ? meta.cost : 0;
+          const lineCogs = unitCost * qty;
+          const lineProfit = netRevenue - lineCogs;
+          totalProductProfit += lineProfit;
+
+          const label =
+            (meta && meta.name) ||
+            line.description ||
+            line.itemDescription ||
+            "Line item";
+          const key = idStr || `manual:${label}`;
+          const prev = productProfitMap.get(key) || { name: label, profit: 0, revenue: 0 };
+          prev.profit += lineProfit;
+          prev.revenue += netRevenue;
+          if (!prev.name && label) prev.name = label;
+          productProfitMap.set(key, prev);
+        });
+      });
+      const topProductsByProfit = Array.from(productProfitMap.values())
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 8)
+        .map((p) => ({
+          name: p.name,
+          profit: Number(p.profit.toFixed(2)),
+          revenue: Number(p.revenue.toFixed(2)),
+        }));
+
       setStats({
         totalInvoices,
         totalRevenue: totalPaid,
@@ -152,6 +216,8 @@ const Dashboard = () => {
         totalVat,
         totalNhil,
         totalGetFund,
+        totalProductProfit: Number(totalProductProfit.toFixed(2)),
+        topProductsByProfit,
         topCustomers,
         revenueByMonth,
         documentTypeData,
@@ -199,6 +265,13 @@ const Dashboard = () => {
       link: null,
     },
     {
+      icon: TrendingUp,
+      label: "Gross profit (products)",
+      value: formatCurrency(stats.totalProductProfit || 0, userCurrency),
+      color: "teal",
+      link: null,
+    },
+    {
       icon: DollarSign,
       label: "Total Unpaid",
       value: formatCurrency(stats.totalUnpaid, userCurrency),
@@ -217,6 +290,7 @@ const Dashboard = () => {
   const colorClasses = {
     blue: { bg: "bg-blue-100", text: "text-blue-600" },
     emerald: { bg: "bg-emerald-100 ", text: "text-emerald-600" },
+    teal: { bg: "bg-teal-100", text: "text-teal-600" },
     red: { bg: "bg-red-100", text: "text-red-600" },
   };
 
@@ -243,6 +317,7 @@ const Dashboard = () => {
   const topCustomersData = stats.topCustomers || [];
   const revenueByMonthData = stats.revenueByMonth || [];
   const documentTypeData = stats.documentTypeData || [];
+  const topProductsByProfitData = stats.topProductsByProfit || [];
 
 
   if (loading) {
@@ -278,7 +353,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards - explicit text colors so hover never makes text white in light mode */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {statsData.map((stat, index) => {
           const Wrapper = stat.link ? "button" : "div";
           const wrapperProps = stat.link ? { onClick: () => navigate(stat.link), type: "button", className: "text-left w-full" } : {};
@@ -405,6 +480,43 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center text-slate-500 text-sm">No documents yet</div>
+          )}
+        </div>
+      </div>
+
+      {/* Product profit (paid invoices) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 dashboard-chart-section">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm shadow-gray-100 lg:col-span-2">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-slate-900">Product gross profit</h3>
+            <p className="text-sm text-slate-500">
+              Net line revenue minus catalog cost × quantity on fully paid invoices. Lines without a linked item use zero cost until you set cost on the item.
+            </p>
+          </div>
+          {topProductsByProfitData.length > 0 ? (
+            <div className="h-72 min-h-[220px] w-full" style={{ minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={0}>
+                <BarChart
+                  data={topProductsByProfitData}
+                  layout="vertical"
+                  margin={{ top: 10, right: 24, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tickFormatter={(value) => formatCurrency(value, userCurrency)} />
+                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(value, name) =>
+                      name === "profit" ? formatCurrency(value, userCurrency) : formatCurrency(value, userCurrency)
+                    }
+                  />
+                  <Bar dataKey="profit" name="profit" fill="#0d9488" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-40 flex items-center justify-center text-slate-500 text-sm border border-dashed border-slate-200 rounded-lg">
+              No paid invoice line items yet, or no profit to show.
+            </div>
           )}
         </div>
       </div>

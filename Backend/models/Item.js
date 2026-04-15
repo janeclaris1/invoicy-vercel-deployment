@@ -11,6 +11,7 @@ const itemSchema = new mongoose.Schema({
   category: { type: String, default: '' },
   categoryColor: { type: String, default: '#3B82F6' },
   price: { type: Number, required: true },
+  cost: { type: Number, default: 0 },
   unit: { type: String, default: 'unit' },
   sku: { type: String, default: '' },
   /** Data URL (image/jpeg, image/png, image/webp) or HTTPS URL to product photo */

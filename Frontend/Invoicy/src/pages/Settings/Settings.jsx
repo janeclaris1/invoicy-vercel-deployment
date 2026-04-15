@@ -12,6 +12,12 @@ const Settings = () => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("general");
+  const [generalForm, setGeneralForm] = useState({
+    name: "",
+    email: "",
+    timeZone: "UTC",
+  });
+  const [savingGeneral, setSavingGeneral] = useState(false);
   const [companyForm, setCompanyForm] = useState({
     businessName: "",
     tin: "",
@@ -87,6 +93,14 @@ const Settings = () => {
     { value: "staff", label: "Staff" },
     { value: "viewer", label: "Viewer" },
   ];
+
+  useEffect(() => {
+    setGeneralForm({
+      name: user?.name || "",
+      email: user?.email || "",
+      timeZone: user?.timeZone || "UTC",
+    });
+  }, [user]);
 
   useEffect(() => {
     setCompanyForm((prev) => ({
@@ -456,6 +470,36 @@ const Settings = () => {
     }
   };
 
+  const handleSaveGeneral = async () => {
+    const name = (generalForm.name || "").trim();
+    const email = (generalForm.email || "").trim().toLowerCase();
+    const timeZone = (generalForm.timeZone || "UTC").trim() || "UTC";
+
+    if (!name) {
+      toast.error("Display name is required");
+      return;
+    }
+    if (!email) {
+      toast.error("Email address is required");
+      return;
+    }
+
+    setSavingGeneral(true);
+    try {
+      const response = await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, {
+        name,
+        email,
+        timeZone,
+      });
+      updateUser(response.data);
+      toast.success("General settings saved.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to save general settings");
+    } finally {
+      setSavingGeneral(false);
+    }
+  };
+
   const tabs = [
     { id: "general", name: "General", icon: User },
     { id: "company", name: "Company", icon: Building2 },
@@ -515,6 +559,8 @@ const Settings = () => {
                       type="text"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter your name"
+                      value={generalForm.name}
+                      onChange={(e) => setGeneralForm((prev) => ({ ...prev, name: e.target.value }))}
                     />
                   </div>
                   <div>
@@ -525,20 +571,31 @@ const Settings = () => {
                       type="email"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter your email"
+                      value={generalForm.email}
+                      onChange={(e) => setGeneralForm((prev) => ({ ...prev, email: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Time Zone
                     </label>
-                    <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                      <option>UTC (GMT+0:00)</option>
-                      <option>EST (GMT-5:00)</option>
-                      <option>PST (GMT-8:00)</option>
+                    <select
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={generalForm.timeZone}
+                      onChange={(e) => setGeneralForm((prev) => ({ ...prev, timeZone: e.target.value }))}
+                    >
+                      <option value="UTC">UTC (GMT+0:00)</option>
+                      <option value="America/New_York">EST (GMT-5:00)</option>
+                      <option value="America/Los_Angeles">PST (GMT-8:00)</option>
                     </select>
                   </div>
-                  <button className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors">
-                    Save Changes
+                  <button
+                    type="button"
+                    className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors disabled:opacity-60"
+                    onClick={handleSaveGeneral}
+                    disabled={savingGeneral}
+                  >
+                    {savingGeneral ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </div>

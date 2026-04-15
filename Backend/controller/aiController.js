@@ -1,6 +1,28 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Invoice = require('../models/invoice');
+const User = require('../models/User');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+/** Company + signer for reminders: use invoice billFrom, then org owner's businessName; signer from invoice or current user. */
+const getReminderSignatureContext = async (invoice, reqUser) => {
+    const accountUser = invoice.user
+        ? await User.findById(invoice.user).select('name businessName createdBy').lean()
+        : null;
+    const orgOwner =
+        accountUser && accountUser.createdBy
+            ? await User.findById(accountUser.createdBy).select('name businessName').lean()
+            : accountUser;
+    const fromBill = (invoice.billFrom && invoice.billFrom.businessName && String(invoice.billFrom.businessName).trim()) || '';
+    const fromOwnerBusiness = (orgOwner && orgOwner.businessName && String(orgOwner.businessName).trim()) || '';
+    const companyName =
+        fromBill ||
+        fromOwnerBusiness ||
+        (orgOwner && orgOwner.name && String(orgOwner.name).trim()) ||
+        'Our company';
+    const signatory = (invoice.signatoryName && String(invoice.signatoryName).trim()) || '';
+    const senderName = signatory || (reqUser && reqUser.name && String(reqUser.name).trim()) || 'Sales Team';
+    return { companyName, senderName };
+};
 const parseInvoiceFromText = async (req, res) => {
     const { text, itemsList } = req.body || {};
 
@@ -251,9 +273,7 @@ const generateReminderEmail = async (req, res) => {
         const normalizeStatus = (status) => (status || "").toLowerCase();
         const isFullyPaid = normalizeStatus(invoice.status) === "paid" || normalizeStatus(invoice.status) === "fully paid";
 
-        // Default sender information
-        const senderName = "Sales Team";
-        const companyName = "ZY PLASTIC LTD";
+        const { senderName, companyName } = await getReminderSignatureContext(invoice, req.user);
 
         let prompt;
         if (isFullyPaid) {
@@ -269,6 +289,8 @@ const generateReminderEmail = async (req, res) => {
 The tone should be warm, appreciative, and professional. Express gratitude for their timely payment and continued business relationship. Keep it concise and friendly. Start the email with "Subject:" and end the email with a signature that includes:
 - ${senderName}
 - ${companyName}
+
+Use only these exact names in the signature — do not use any other or example company name.
 `;
         } else {
             // Generate payment reminder for unpaid invoices
@@ -283,6 +305,8 @@ The tone should be warm, appreciative, and professional. Express gratitude for t
 The tone should be friendly but clear. Keep it concise. Start the email with "Subject:" and end the email with a signature that includes:
 - ${senderName}
 - ${companyName}
+
+Use only these exact names in the signature — do not use any other or example company name.
 `;
         }
 
@@ -316,9 +340,7 @@ const generateWhatsAppReminder = async (req, res) => {
         const normalizeStatus = (status) => (status || "").toLowerCase();
         const isFullyPaid = normalizeStatus(invoice.status) === "paid" || normalizeStatus(invoice.status) === "fully paid";
 
-        // Default sender information
-        const senderName = "Sales Team";
-        const companyName = "ZY PLASTIC LTD";
+        const { senderName, companyName } = await getReminderSignatureContext(invoice, req.user);
 
         let prompt;
         if (isFullyPaid) {
@@ -330,7 +352,9 @@ const generateWhatsAppReminder = async (req, res) => {
 - Payment Date: ${invoice.updatedAt ? new Date(invoice.updatedAt).toDateString() : 'recently'}
 - Sender: ${senderName} from ${companyName}
 
-Write a concise, friendly WhatsApp message (max 300 characters). Use emojis sparingly. Be warm and appreciative. Do NOT include "Subject:" line. End with: ${senderName}, ${companyName}`;
+Write a concise, friendly WhatsApp message (max 300 characters). Use emojis sparingly. Be warm and appreciative. Do NOT include "Subject:" line. End with: ${senderName}, ${companyName}
+
+Use only these exact names at the end — do not use any other or example company name.`;
         } else {
             // Generate payment reminder for unpaid invoices (WhatsApp format)
             prompt = `You are a polite and professional assistant. Write a friendly WhatsApp reminder message to a client about an invoice payment. Use the following details:
@@ -340,7 +364,9 @@ Write a concise, friendly WhatsApp message (max 300 characters). Use emojis spar
 - Amount Due: GH₵ ${invoice.grandTotal ? invoice.grandTotal.toFixed(2) : '0.00'}
 - Sender: ${senderName} from ${companyName}
 
-Write a concise, friendly WhatsApp message (max 300 characters). Use emojis sparingly. Be polite but clear about the payment. Do NOT include "Subject:" line. End with: ${senderName}, ${companyName}`;
+Write a concise, friendly WhatsApp message (max 300 characters). Use emojis sparingly. Be polite but clear about the payment. Do NOT include "Subject:" line. End with: ${senderName}, ${companyName}
+
+Use only these exact names at the end — do not use any other or example company name.`;
         }
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });

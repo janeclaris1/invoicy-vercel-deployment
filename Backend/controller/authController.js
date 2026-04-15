@@ -180,6 +180,7 @@ exports.registerUser = async (req, res, next) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
+                timeZone: user.timeZone || 'UTC',
                 token,
                 subscription: subscription,
             });
@@ -460,6 +461,7 @@ exports.loginUser = async (req, res, next) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
+                timeZone: user.timeZone || 'UTC',
                 token,
                 businessName: user.businessName || '',
                 tin: user.tin || '',
@@ -522,6 +524,7 @@ exports.getMe = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            timeZone: user.timeZone || 'UTC',
             businessName: user.businessName || '',
             tin: user.tin || '',
             address: user.address || '',
@@ -567,7 +570,24 @@ exports.updateUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('+password');
         if (user) {
-            user.name = req.body.name || user.name;
+            const nextName = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+            if (nextName) user.name = nextName;
+            if (typeof req.body.email === 'string') {
+                const nextEmail = req.body.email.trim().toLowerCase();
+                if (!nextEmail) {
+                    return res.status(400).json({ message: 'Email is required' });
+                }
+                if (nextEmail !== (user.email || '').toLowerCase()) {
+                    const emailTaken = await User.findOne({ email: nextEmail, _id: { $ne: user._id } }).select('_id').lean();
+                    if (emailTaken) {
+                        return res.status(400).json({ message: 'Email already in use' });
+                    }
+                    user.email = nextEmail;
+                }
+            }
+            if (req.body.timeZone !== undefined) {
+                user.timeZone = String(req.body.timeZone || 'UTC').trim() || 'UTC';
+            }
             user.businessName = req.body.businessName || user.businessName;
             user.tin = req.body.tin !== undefined ? req.body.tin : user.tin;
             user.address = req.body.address || user.address;
@@ -681,6 +701,7 @@ exports.updateUserProfile = async (req, res) => {
                 _id: updatedUser._id,
                 name: updatedUser.name,
                 email: updatedUser.email,
+                timeZone: updatedUser.timeZone || 'UTC',
                 businessName: updatedUser.businessName,
                 tin: updatedUser.tin || '',
                 address: updatedUser.address,
@@ -734,6 +755,7 @@ exports.uploadProfilePicture = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            timeZone: user.timeZone || 'UTC',
             businessName: user.businessName || '',
             tin: user.tin || '',
             address: user.address || '',
