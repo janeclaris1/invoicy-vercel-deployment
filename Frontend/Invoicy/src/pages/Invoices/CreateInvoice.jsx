@@ -539,8 +539,9 @@ const CreateInvoice = () => {
         items: itemsForApi,
         type: (formData.type || "invoice").toLowerCase() === "quotation" ? "quotation" : (formData.type || "invoice").toLowerCase() === "proforma" ? "proforma" : "invoice",
         companyLogo: formData.companyLogo || user?.companyLogo || "",
-        companySignature: formData.companySignature || user?.companySignature || "",
-        companyStamp: formData.companyStamp || user?.companyStamp || "",
+        // Do NOT fall back to user profile here; if user unchecks stamp/signature we want them to be saved as blank.
+        companySignature: formData.companySignature || "",
+        companyStamp: formData.companyStamp || "",
         discountPercent: toFloat2(formData.discountPercent),
         discountAmount: toFloat2(formData.discountAmount),
         amountPaid: amountPaidValue,
@@ -1033,6 +1034,51 @@ const CreateInvoice = () => {
                 onChange={(e) => handleInputChange(e)}
                 placeholder="Additional notes or terms"
               />
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold mb-2">Stamp & Signature</h3>
+                <label className="flex items-center gap-2 text-sm text-white dark:text-black cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={String(formData.companySignature || "").trim() !== ""}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      const defaultSignature =
+                        (existingInvoice?.companySignature || user?.companySignature || "").toString();
+                      setFormData((prev) => ({ ...prev, companySignature: next ? defaultSignature : "" }));
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                  Include company signature
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white dark:text-black cursor-pointer mt-2">
+                  <input
+                    type="checkbox"
+                    checked={String(formData.companyStamp || "").trim() !== ""}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      const defaultStamp =
+                        (existingInvoice?.companyStamp || user?.companyStamp || "").toString();
+                      setFormData((prev) => ({ ...prev, companyStamp: next ? defaultStamp : "" }));
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                  Include company stamp
+                </label>
+                {String(formData.companySignature || "").trim() !== "" && (
+                  <img
+                    src={formData.companySignature}
+                    alt="Company signature"
+                    className="mt-3 h-14 w-auto object-contain rounded border border-gray-200 bg-white p-1"
+                  />
+                )}
+                {String(formData.companyStamp || "").trim() !== "" && (
+                  <img
+                    src={formData.companyStamp}
+                    alt="Company stamp"
+                    className="mt-3 h-14 w-auto object-contain rounded border border-gray-200 bg-white p-1"
+                  />
+                )}
+              </div>
               <div className="space-y-2">
                 <div className="text-sm font-medium">GRA Verification QR</div>
                 {graQrValue ? (
