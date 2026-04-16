@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin, User, ArrowRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Mail, Phone, MapPin, User, ArrowRight, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
@@ -12,6 +12,11 @@ const toNumber = (value) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") return parseFloat(value.replace(/[^\d.-]/g, "")) || 0;
   return 0;
+};
+const csvCell = (value) => {
+  const str = String(value ?? "");
+  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
 };
 
 const Customers = () => {
@@ -230,6 +235,72 @@ const Customers = () => {
     return totals;
   }, [filteredCustomers, invoices]);
 
+  const handleExportCustomerAccounts = () => {
+    const header = [
+      "Name",
+      "Email",
+      "Phone",
+      "Company",
+      "Address",
+      "City",
+      "Country",
+      "Tax ID",
+      "Currency",
+      "Total Invoices",
+      "Total Revenue",
+    ];
+
+    const rows = customers.map((customer) => {
+      const customerName = norm(customer.name);
+      const customerEmail = norm(customer.email);
+      const customerTaxId = norm(customer.taxId);
+      const customerCompany = norm(customer.company);
+      const matched = invoices.filter((inv) => {
+        const billTo = inv?.billTo || {};
+        const invName = norm(billTo.clientName);
+        const invEmail = norm(billTo.email);
+        const invTin = norm(billTo.tin);
+        const invBiz = norm(billTo.businessName);
+        return (
+          (customerName && invName && customerName === invName) ||
+          (customerEmail && invEmail && customerEmail === invEmail) ||
+          (customerTaxId && invTin && customerTaxId === invTin) ||
+          (customerCompany && invBiz && customerCompany === invBiz)
+        );
+      });
+      const totalInvoices = matched.length;
+      const totalRevenue = matched.reduce((sum, inv) => sum + toNumber(inv.grandTotal), 0);
+
+      return [
+        customer.name || "",
+        customer.email || "",
+        customer.phone || "",
+        customer.company || "",
+        customer.address || "",
+        customer.city || "",
+        customer.country || "",
+        customer.taxId || "",
+        customer.currency || userCurrency,
+        totalInvoices,
+        Number(totalRevenue.toFixed(2)),
+      ];
+    });
+
+    const csv = [
+      header.map(csvCell).join(","),
+      ...rows.map((row) => row.map(csvCell).join(",")),
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `customer-accounts-${stamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-8">
@@ -237,13 +308,23 @@ const Customers = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Customers</h1>
           <p className="text-gray-600 dark:text-white">{t("customers.subtitle")}</p>
         </div>
-        <button
-          onClick={openAddCustomer}
-          className="flex items-center space-x-2 px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>{t("customers.add")}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleExportCustomerAccounts}
+            className="flex items-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-5 h-5" />
+            <span>Export Accounts</span>
+          </button>
+          <button
+            onClick={openAddCustomer}
+            className="flex items-center space-x-2 px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span>{t("customers.add")}</span>
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

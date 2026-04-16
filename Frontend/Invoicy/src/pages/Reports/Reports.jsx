@@ -721,48 +721,37 @@ const Reports = () => {
         {/* Sales Summary Report */}
         {reportType === "sales" && (
           <div>
-            {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-blue-50 dark:bg-slate-900 rounded-lg p-4 border border-blue-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Total Revenue (Paid)</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-white mt-1">
-                      {formatCurrency(reportData.summary.totalRevenue, userCurrency)}
-                    </p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-blue-700 dark:text-blue-300" />
-                </div>
-              </div>
-
-              <div className="bg-emerald-50 dark:bg-slate-900 rounded-lg p-4 border border-emerald-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">Total Invoices</p>
-                    <p className="text-2xl font-bold text-emerald-900 dark:text-white mt-1">
-                      {reportData.summary.totalInvoices}
-                    </p>
-                    <p className="text-xs text-emerald-700 dark:text-emerald-200 mt-1">
-                      {reportData.summary.paidInvoices} Paid, {reportData.summary.pendingInvoices} Pending
-                    </p>
-                  </div>
-                  <FileText className="w-8 h-8 text-emerald-700 dark:text-emerald-300" />
-                </div>
-              </div>
-
-              <div className="bg-purple-50 dark:bg-slate-900 rounded-lg p-4 border border-purple-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">Total Unpaid</p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-white mt-1">
-                      {formatCurrency(reportData.summary.totalUnpaidAmount, userCurrency)}
-                    </p>
-                    <p className="text-xs text-purple-700 dark:text-purple-200 mt-1">
-                      Tax: {formatCurrency(reportData.summary.totalTax, userCurrency)}
-                    </p>
-                  </div>
-                  <DollarSign className="w-8 h-8 text-purple-700 dark:text-purple-300" />
-                </div>
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Summary (Spreadsheet View)</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] border border-gray-300">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300">Metric</th>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300">Value</th>
+                      <th className="text-left py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="py-2 px-3 text-sm text-gray-900 border border-gray-200">Total Revenue (Paid)</td>
+                      <td className="py-2 px-3 text-sm font-semibold text-gray-900 border border-gray-200">{formatCurrency(reportData.summary.totalRevenue, userCurrency)}</td>
+                      <td className="py-2 px-3 text-sm text-gray-700 border border-gray-200">Collected from fully paid invoices</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 text-sm text-gray-900 border border-gray-200">Total Invoices</td>
+                      <td className="py-2 px-3 text-sm font-semibold text-gray-900 border border-gray-200">{reportData.summary.totalInvoices}</td>
+                      <td className="py-2 px-3 text-sm text-gray-700 border border-gray-200">
+                        {reportData.summary.paidInvoices} paid, {reportData.summary.pendingInvoices} pending
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 text-sm text-gray-900 border border-gray-200">Total Unpaid</td>
+                      <td className="py-2 px-3 text-sm font-semibold text-gray-900 border border-gray-200">{formatCurrency(reportData.summary.totalUnpaidAmount, userCurrency)}</td>
+                      <td className="py-2 px-3 text-sm text-gray-700 border border-gray-200">Tax total: {formatCurrency(reportData.summary.totalTax, userCurrency)}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -1109,35 +1098,41 @@ const Reports = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Daily Sales</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(zdDailyData.summary.totalSales, userCurrency)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Net after refunds: {formatCurrency(zdDailyData.summary.netSalesAfterRefunds, userCurrency)}
-                </p>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Invoices</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{zdDailyData.summary.totalInvoices}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {zdDailyData.summary.stampedInvoices} stamped, {zdDailyData.summary.unstampedInvoices} unstamped
-                </p>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-600">Taxes & Levies</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(
-                    zdDailyData.summary.totalVat + zdDailyData.summary.totalLevies,
-                    userCurrency
-                  )}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  VAT {formatCurrency(zdDailyData.summary.totalVat, userCurrency)} / Levies {formatCurrency(zdDailyData.summary.totalLevies, userCurrency)}
-                </p>
-              </div>
+            <div className="mb-6 overflow-x-auto">
+              <table className="w-full min-w-[620px] border border-gray-300">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300">Metric</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300">Value</th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-2 px-3 text-sm text-gray-900 border border-gray-200">Daily Sales</td>
+                    <td className="py-2 px-3 text-sm font-semibold text-gray-900 border border-gray-200">{formatCurrency(zdDailyData.summary.totalSales, userCurrency)}</td>
+                    <td className="py-2 px-3 text-sm text-gray-700 border border-gray-200">
+                      Net after refunds: {formatCurrency(zdDailyData.summary.netSalesAfterRefunds, userCurrency)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 text-sm text-gray-900 border border-gray-200">Invoices</td>
+                    <td className="py-2 px-3 text-sm font-semibold text-gray-900 border border-gray-200">{zdDailyData.summary.totalInvoices}</td>
+                    <td className="py-2 px-3 text-sm text-gray-700 border border-gray-200">
+                      {zdDailyData.summary.stampedInvoices} stamped, {zdDailyData.summary.unstampedInvoices} unstamped
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 text-sm text-gray-900 border border-gray-200">Taxes & Levies</td>
+                    <td className="py-2 px-3 text-sm font-semibold text-gray-900 border border-gray-200">
+                      {formatCurrency(zdDailyData.summary.totalVat + zdDailyData.summary.totalLevies, userCurrency)}
+                    </td>
+                    <td className="py-2 px-3 text-sm text-gray-700 border border-gray-200">
+                      VAT {formatCurrency(zdDailyData.summary.totalVat, userCurrency)} / Levies {formatCurrency(zdDailyData.summary.totalLevies, userCurrency)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             {zdDailyData.dailyInvoices.length === 0 ? (
