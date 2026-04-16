@@ -589,7 +589,9 @@ exports.updateUserProfile = async (req, res) => {
                 user.timeZone = String(req.body.timeZone || 'UTC').trim() || 'UTC';
             }
             user.businessName = req.body.businessName || user.businessName;
-            user.tin = req.body.tin !== undefined ? req.body.tin : user.tin;
+            if (req.body.tin !== undefined) {
+                user.tin = String(req.body.tin || "").trim();
+            }
             user.address = req.body.address || user.address;
             user.phone = req.body.phone || user.phone;
             user.companyLogo = req.body.companyLogo !== undefined ? req.body.companyLogo : user.companyLogo;
