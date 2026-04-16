@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const Invoice = require("../models/invoice");
 
-const GRA_BASE_URL = process.env.GRA_BASE_URL || "https://vsdcstaging.vat-gh.com/vsdc/api/v1";
+const GRA_BASE_URL = String(process.env.GRA_BASE_URL || "https://gravsdc.vat-gh.com/api/v1").replace(/\/+$/, "");
 
 const getTeamMemberIds = async (currentUserId) => {
     try {
