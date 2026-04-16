@@ -13,21 +13,40 @@ const ACCEPT_ATTACHMENTS = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv";
 
 function MessageAttachment({ attachment, isMe }) {
   const [blobUrl, setBlobUrl] = useState(null);
-  const fullUrl = `${BASE_URL}/${API_PATHS.MESSAGES.ATTACHMENT(attachment.url)}`;
+  const [loadError, setLoadError] = useState(false);
+  const fullUrl = `${BASE_URL}${API_PATHS.MESSAGES.ATTACHMENT(encodeURIComponent(attachment.url || ""))}`;
   const isImage = IMAGE_TYPES.includes(attachment.contentType);
+  const isPdf = attachment.contentType === "application/pdf";
 
   useEffect(() => {
     let objectUrl;
+    setLoadError(false);
     axiosInstance.get(fullUrl, { responseType: "blob" })
       .then((res) => {
         objectUrl = URL.createObjectURL(res.data);
         setBlobUrl(objectUrl);
       })
-      .catch(() => {});
+      .catch(() => {
+        setLoadError(true);
+      });
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [fullUrl]);
+
+  if (loadError) {
+    return (
+      <a
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm border ${isMe ? "border-blue-200 text-blue-100" : "border-slate-500 text-slate-300"}`}
+      >
+        <FileText className="w-4 h-4 shrink-0" />
+        {attachment.filename || "Open attachment"}
+      </a>
+    );
+  }
 
   if (!blobUrl) {
     return (
@@ -43,8 +62,29 @@ function MessageAttachment({ attachment, isMe }) {
       </a>
     );
   }
+  if (isPdf) {
+    return (
+      <div className="max-w-[280px] rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 bg-white">
+        <iframe
+          src={blobUrl}
+          title={attachment.filename || "PDF attachment"}
+          className="w-[280px] h-[220px]"
+        />
+        <div className="p-2 border-t border-gray-200">
+          <a
+            href={blobUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-2 text-sm ${isMe ? "text-blue-100" : "text-slate-700"}`}
+          >
+            <FileText className="w-4 h-4 shrink-0" /> {attachment.filename}
+          </a>
+        </div>
+      </div>
+    );
+  }
   return (
-    <a href={blobUrl} download={attachment.filename} className={`inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm border ${isMe ? "border-blue-200 text-blue-100" : "border-slate-500 text-slate-300"}`}>
+    <a href={blobUrl} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm border ${isMe ? "border-blue-200 text-blue-100" : "border-slate-500 text-slate-300"}`}>
       <FileText className="w-4 h-4 shrink-0" /> {attachment.filename}
     </a>
   );
