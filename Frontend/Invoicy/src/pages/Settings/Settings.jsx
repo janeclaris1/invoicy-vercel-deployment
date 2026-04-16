@@ -640,6 +640,15 @@ const Settings = () => {
                         className="mt-3 h-16 w-auto object-contain border border-slate-200 rounded bg-white p-2"
                       />
                     )}
+                    {companyForm.companySignature && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyForm((prev) => ({ ...prev, companySignature: "" }))}
+                        className="mt-2 text-sm text-red-600 hover:underline text-left w-fit"
+                      >
+                        Remove signature
+                      </button>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -657,6 +666,15 @@ const Settings = () => {
                         alt="Company stamp preview"
                         className="mt-3 h-16 w-auto object-contain border border-slate-200 rounded bg-white p-2"
                       />
+                    )}
+                    {companyForm.companyStamp && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyForm((prev) => ({ ...prev, companyStamp: "" }))}
+                        className="mt-2 text-sm text-red-600 hover:underline text-left w-fit"
+                      >
+                        Remove stamp
+                      </button>
                     )}
                   </div>
                   <div>
