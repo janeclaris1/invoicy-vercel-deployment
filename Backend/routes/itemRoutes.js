@@ -8,6 +8,7 @@ const {
   getStockMovements,
   getStockReport,
   importItems,
+  importItemPrices,
 } = require('../controller/itemController.js');
 const { protect } = require('../middlewares/authMiddleware.js');
 const uploadItemsFile = require('../middlewares/uploadItemsFile.js');
@@ -25,6 +26,13 @@ router.post('/import', protect, (req, res, next) => {
     next();
   });
 }, importItems);
+
+router.post('/import-prices', protect, (req, res, next) => {
+  uploadItemsFile(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message || 'File upload failed' });
+    next();
+  });
+}, importItemPrices);
 
 // Stock movements list and report (must be before /:id so "stock" is not an id)
 router.get('/stock/movements', protect, getStockMovements);

@@ -35,13 +35,13 @@ const ProfitLossPage = () => {
     const headerHtml = (logoHtml || bizHtml) ? `<div style="text-align:center;border-bottom:2px solid #ddd;padding-bottom:20px;margin-bottom:20px;">${logoHtml}${bizHtml}</div>` : "";
     const html = `
       <!DOCTYPE html><html><head><title>Profit & Loss</title>
-      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111} table{width:100%;max-width:400px} td{padding:6px 0} .label{color:#555} .total{font-weight:700;border-top:1px solid #ddd;padding-top:8px;margin-top:8px}</style></head><body>
+      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111} table{width:100%;max-width:400px;table-layout:fixed} td{padding:6px 0} .label{color:#555;width:60%} .value{width:40%;text-align:right} .total{font-weight:700;border-top:1px solid #ddd;padding-top:8px;margin-top:8px} .total.value{text-align:right}</style></head><body>
       ${headerHtml}<h1>Profit & Loss Statement</h1>
       <p>${moment(dateFrom).format("MMM D, YYYY")} — ${moment(dateTo).format("MMM D, YYYY")}</p>
       <table>
-        <tr><td class="label">Revenue</td><td>${formatCurrency(revenue, userCurrency)}</td></tr>
-        <tr><td class="label">Expenses</td><td>${formatCurrency(expenses, userCurrency)}</td></tr>
-        <tr><td class="total">Net Income</td><td class="total">${formatCurrency(netIncome, userCurrency)}</td></tr>
+        <tr><td class="label">Revenue</td><td class="value">${formatCurrency(revenue, userCurrency)}</td></tr>
+        <tr><td class="label">Expenses</td><td class="value">${formatCurrency(expenses, userCurrency)}</td></tr>
+        <tr><td class="total label">Net Income</td><td class="total value">${formatCurrency(netIncome, userCurrency)}</td></tr>
       </table>
       </body></html>`;
     const printWindow = window.open("", "_blank");
@@ -97,37 +97,37 @@ const ProfitLossPage = () => {
                 <h4 className="text-sm font-medium text-white mb-2">Revenue</h4>
                 {(data?.revenue || []).length > 0 ? (
                   (data.revenue || []).map((r, i) => (
-                    <div key={i} className="flex justify-between text-sm text-white">
+                    <div key={i} className="grid grid-cols-[1fr_auto] items-center text-sm text-white">
                       <span className="text-slate-200">{r.code} — {r.name}</span>
-                      <span className="font-medium text-white">{formatCurrency(r.amount || 0, userCurrency)}</span>
+                      <span className="font-medium text-white justify-self-end">{formatCurrency(r.amount || 0, userCurrency)}</span>
                     </div>
                   ))
                 ) : (
-                  <div className="flex justify-between text-sm text-slate-300"><span>No revenue accounts with balance</span><span>{formatCurrency(0, userCurrency)}</span></div>
+                  <div className="grid grid-cols-[1fr_auto] items-center text-sm text-slate-300"><span>No revenue accounts with balance</span><span className="justify-self-end">{formatCurrency(0, userCurrency)}</span></div>
                 )}
-                <div className="flex justify-between text-sm font-medium mt-2 pt-2 border-t border-slate-600 text-white">
-                  <span>Total Revenue</span><span>{formatCurrency(data?.totalRevenue ?? 0, userCurrency)}</span>
+                <div className="grid grid-cols-[1fr_auto] items-center text-sm font-medium mt-2 pt-2 border-t border-slate-600 text-white">
+                  <span>Total Revenue</span><span className="justify-self-end">{formatCurrency(data?.totalRevenue ?? 0, userCurrency)}</span>
                 </div>
               </div>
               <div className="border-t border-slate-600 pt-4">
                 <h4 className="text-sm font-medium text-white mb-2">Expenses</h4>
                 {(data?.expenses || []).length > 0 ? (
                   (data.expenses || []).map((e, i) => (
-                    <div key={i} className="flex justify-between text-sm text-white">
+                    <div key={i} className="grid grid-cols-[1fr_auto] items-center text-sm text-white">
                       <span className="text-slate-200">{e.code} — {e.name}</span>
-                      <span className="font-medium text-white">{formatCurrency(e.amount || 0, userCurrency)}</span>
+                      <span className="font-medium text-white justify-self-end">{formatCurrency(e.amount || 0, userCurrency)}</span>
                     </div>
                   ))
                 ) : (
-                  <div className="flex justify-between text-sm text-slate-300"><span>No expense accounts with balance</span><span>{formatCurrency(0, userCurrency)}</span></div>
+                  <div className="grid grid-cols-[1fr_auto] items-center text-sm text-slate-300"><span>No expense accounts with balance</span><span className="justify-self-end">{formatCurrency(0, userCurrency)}</span></div>
                 )}
-                <div className="flex justify-between text-sm font-medium mt-2 pt-2 border-t border-slate-600 text-white">
-                  <span>Total Expenses</span><span>{formatCurrency(data?.totalExpenses ?? 0, userCurrency)}</span>
+                <div className="grid grid-cols-[1fr_auto] items-center text-sm font-medium mt-2 pt-2 border-t border-slate-600 text-white">
+                  <span>Total Expenses</span><span className="justify-self-end">{formatCurrency(data?.totalExpenses ?? 0, userCurrency)}</span>
                 </div>
               </div>
-              <div className="border-t border-slate-600 pt-4 flex justify-between font-semibold text-white">
+              <div className="border-t border-slate-600 pt-4 grid grid-cols-[1fr_auto] items-center font-semibold text-white">
                 <span>Net Income</span>
-                <span className={(data?.netIncome ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"}>{formatCurrency(data?.netIncome ?? 0, userCurrency)}</span>
+                <span className={`${(data?.netIncome ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"} justify-self-end`}>{formatCurrency(data?.netIncome ?? 0, userCurrency)}</span>
               </div>
             </div>
           </div>

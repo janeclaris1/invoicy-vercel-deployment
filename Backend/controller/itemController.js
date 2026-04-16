@@ -276,54 +276,57 @@ function parseCSVLine(line) {
   return result;
 }
 
+const parseImportRowsFromFile = (file) => {
+  if (!file || !file.buffer) {
+    throw new Error('No file uploaded. Use form field "file".');
+  }
+
+  const buffer = file.buffer;
+  const filename = (file.originalname || '').toLowerCase();
+  let rows = [];
+
+  if (filename.endsWith('.csv') || file.mimetype === 'text/csv') {
+    const text = buffer.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = text.split('\n').filter((l) => l.trim());
+    if (lines.length < 2) {
+      throw new Error('CSV must have a header row and at least one data row.');
+    }
+    const header = parseCSVLine(lines[0]).map((h) => (h || '').trim().toLowerCase().replace(/\s+/g, ' '));
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const row = {};
+      header.forEach((col, j) => {
+        row[col] = values[j] !== undefined ? String(values[j]).trim() : '';
+      });
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  try {
+    const XLSX = require('xlsx');
+    const wb = XLSX.read(buffer, { type: 'buffer' });
+    const firstSheet = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false });
+    return rows.map((r) => {
+      const out = {};
+      Object.keys(r).forEach((k) => {
+        const normalized = String(k).trim().toLowerCase().replace(/\s+/g, ' ');
+        out[normalized] = r[k] != null ? String(r[k]).trim() : '';
+      });
+      return out;
+    });
+  } catch (e) {
+    throw new Error('Excel files require the xlsx package. Install it with: npm install xlsx. Or save the file as CSV and upload again.');
+  }
+};
+
 // @desc    Import items from CSV/Excel file
 // @route   POST /api/items/import
 // @access  Private
 const importItems = async (req, res) => {
   try {
-    if (!req.file || !req.file.buffer) {
-      return res.status(400).json({ message: 'No file uploaded. Use form field "file".' });
-    }
-    const buffer = req.file.buffer;
-    const filename = (req.file.originalname || '').toLowerCase();
-    let rows = [];
-
-    if (filename.endsWith('.csv') || req.file.mimetype === 'text/csv') {
-      const text = buffer.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      const lines = text.split('\n').filter((l) => l.trim());
-      if (lines.length < 2) {
-        return res.status(400).json({ message: 'CSV must have a header row and at least one data row.' });
-      }
-      const header = parseCSVLine(lines[0]).map((h) => (h || '').trim().toLowerCase().replace(/\s+/g, ' '));
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i]);
-        const row = {};
-        header.forEach((col, j) => {
-          row[col] = values[j] !== undefined ? String(values[j]).trim() : '';
-        });
-        rows.push(row);
-      }
-    } else {
-      // Excel .xlsx / .xls - try using optional xlsx
-      try {
-        const XLSX = require('xlsx');
-        const wb = XLSX.read(buffer, { type: 'buffer' });
-        const firstSheet = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false });
-        rows = rows.map((r) => {
-          const out = {};
-          Object.keys(r).forEach((k) => {
-            const normalized = String(k).trim().toLowerCase().replace(/\s+/g, ' ');
-            out[normalized] = r[k] != null ? String(r[k]).trim() : '';
-          });
-          return out;
-        });
-      } catch (e) {
-        return res.status(400).json({
-          message: 'Excel files require the xlsx package. Install it with: npm install xlsx. Or save the file as CSV and upload again.',
-        });
-      }
-    }
+    const rows = parseImportRowsFromFile(req.file);
 
     // Helper to get cell value by common header names
     const getVal = (row, ...keys) => {
@@ -389,6 +392,79 @@ const importItems = async (req, res) => {
   }
 };
 
+// @desc    Import item prices from CSV/Excel file (update only)
+// @route   POST /api/items/import-prices
+// @access  Private
+const importItemPrices = async (req, res) => {
+  try {
+    const rows = parseImportRowsFromFile(req.file);
+    const teamMemberIds = await getTeamMemberIds(req.user._id);
+
+    const getVal = (row, ...keys) => {
+      for (const k of keys) {
+        const v = row[k];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+      }
+      return '';
+    };
+    const parsePrice = (value) => {
+      const num = Number(String(value || '').replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(num) ? num : NaN;
+    };
+
+    let updated = 0;
+    const errors = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 2;
+      const itemId = getVal(row, 'item id', 'id', '_id');
+      const sku = getVal(row, 'sku', 'item sku');
+      const name = getVal(row, 'name', 'item name', 'product name');
+      const nextPriceRaw = getVal(row, 'new price', 'price', 'updated price');
+      const nextPrice = parsePrice(nextPriceRaw);
+
+      if (!nextPriceRaw || Number.isNaN(nextPrice) || nextPrice < 0) {
+        errors.push({ row: rowNumber, message: 'Valid "new price" is required.' });
+        continue;
+      }
+
+      let item = null;
+      if (itemId) {
+        item = await Item.findOne({ _id: itemId, user: { $in: teamMemberIds } });
+      }
+      if (!item && sku) {
+        item = await Item.findOne({ sku, user: { $in: teamMemberIds } });
+      }
+      if (!item && name) {
+        item = await Item.findOne({ name, user: { $in: teamMemberIds } });
+      }
+
+      if (!item) {
+        errors.push({ row: rowNumber, message: "Item not found (match by item id, sku, or name)." });
+        continue;
+      }
+
+      item.price = nextPrice;
+      await item.save();
+      updated += 1;
+    }
+
+    res.status(200).json({
+      message: `Updated prices for ${updated} item(s).`,
+      updated,
+      errors: errors.length ? errors : undefined,
+    });
+  } catch (error) {
+    const message = error.message || 'Price import failed';
+    const statusCode =
+      message.includes('No file uploaded') || message.includes('CSV must have') || message.includes('Excel files require')
+        ? 400
+        : 500;
+    res.status(statusCode).json({ message });
+  }
+};
+
 module.exports = {
   getItems,
   createItem,
@@ -398,4 +474,5 @@ module.exports = {
   getStockMovements,
   getStockReport,
   importItems,
+  importItemPrices,
 };

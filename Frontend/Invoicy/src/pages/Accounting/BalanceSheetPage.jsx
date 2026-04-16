@@ -30,16 +30,16 @@ const BalanceSheetPage = () => {
     const headerHtml = (logoHtml || bizHtml) ? `<div style="text-align:center;border-bottom:2px solid #ddd;padding-bottom:20px;margin-bottom:20px;">${logoHtml}${bizHtml}</div>` : "";
     const html = `
       <!DOCTYPE html><html><head><title>Balance Sheet</title>
-      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111} table{width:100%;max-width:400px} td{padding:6px 0} .label{color:#555} .total{font-weight:700;border-top:1px solid #ddd;padding-top:8px;margin-top:8px} h2{font-size:14px;margin-top:16px}</style></head><body>
+      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111} table{width:100%;max-width:400px;table-layout:fixed} td{padding:6px 0} .label{color:#555;width:70%} .value{width:30%;text-align:right} .total{font-weight:700;border-top:1px solid #ddd;padding-top:8px;margin-top:8px} .total.value{text-align:right} h2{font-size:14px;margin-top:16px}</style></head><body>
       ${headerHtml}<h1>Balance Sheet</h1>
       <p>As of ${moment(asOfDate).format("MMMM D, YYYY")}</p>
       <h2>Assets</h2>
-      <table>${(data?.assets || []).map((a) => `<tr><td class="label">${a.code} — ${a.name}</td><td>${formatCurrency(a.balance || 0, userCurrency)}</td></tr>`).join("")}
-      <tr><td class="total">Total Assets</td><td class="total">${formatCurrency(data?.totalAssets ?? 0, userCurrency)}</td></tr></table>
+      <table>${(data?.assets || []).map((a) => `<tr><td class="label">${a.code} — ${a.name}</td><td class="value">${formatCurrency(a.balance || 0, userCurrency)}</td></tr>`).join("")}
+      <tr><td class="total label">Total Assets</td><td class="total value">${formatCurrency(data?.totalAssets ?? 0, userCurrency)}</td></tr></table>
       <h2>Liabilities & Equity</h2>
-      <table>${(data?.liabilities || []).map((l) => `<tr><td class="label">${l.code} — ${l.name}</td><td>${formatCurrency(l.balance || 0, userCurrency)}</td></tr>`).join("")}
-      ${(data?.equity || []).map((e) => `<tr><td class="label">${e.code} — ${e.name}</td><td>${formatCurrency(e.balance || 0, userCurrency)}</td></tr>`).join("")}
-      <tr><td class="total">Total Liabilities & Equity</td><td class="total">${formatCurrency(data?.totalLiabilitiesAndEquity ?? 0, userCurrency)}</td></tr></table>
+      <table>${(data?.liabilities || []).map((l) => `<tr><td class="label">${l.code} — ${l.name}</td><td class="value">${formatCurrency(l.balance || 0, userCurrency)}</td></tr>`).join("")}
+      ${(data?.equity || []).map((e) => `<tr><td class="label">${e.code} — ${e.name}</td><td class="value">${formatCurrency(e.balance || 0, userCurrency)}</td></tr>`).join("")}
+      <tr><td class="total label">Total Liabilities & Equity</td><td class="total value">${formatCurrency(data?.totalLiabilitiesAndEquity ?? 0, userCurrency)}</td></tr></table>
       ${balanced ? "<p style='color:#059669;margin-top:16px'>✓ Assets = Liabilities + Equity</p>" : ""}
       </body></html>`;
     const printWindow = window.open("", "_blank");
@@ -75,36 +75,36 @@ const BalanceSheetPage = () => {
               <h4 className="text-sm font-semibold text-white mb-3">Assets</h4>
               <div className="space-y-2 text-sm">
                 {(data?.assets || []).map((a, i) => (
-                  <div key={i} className="flex justify-between text-white">
+                  <div key={i} className="grid grid-cols-[1fr_auto] items-center text-white">
                     <span className="text-slate-200">{a.code} — {a.name}</span>
-                    <span className="font-medium text-white">{formatCurrency(a.balance || 0, userCurrency)}</span>
+                    <span className="font-medium text-white justify-self-end">{formatCurrency(a.balance || 0, userCurrency)}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-600 flex justify-between font-semibold text-white">
+              <div className="mt-4 pt-3 border-t border-slate-600 grid grid-cols-[1fr_auto] items-center font-semibold text-white">
                 <span>Total Assets</span>
-                <span>{formatCurrency(data?.totalAssets ?? 0, userCurrency)}</span>
+                <span className="justify-self-end">{formatCurrency(data?.totalAssets ?? 0, userCurrency)}</span>
               </div>
             </div>
             <div>
               <h4 className="text-sm font-semibold text-white mb-3">Liabilities & Equity</h4>
               <div className="space-y-2 text-sm">
                 {(data?.liabilities || []).map((l, i) => (
-                  <div key={i} className="flex justify-between text-white">
+                  <div key={i} className="grid grid-cols-[1fr_auto] items-center text-white">
                     <span className="text-slate-200">{l.code} — {l.name}</span>
-                    <span className="font-medium text-white">{formatCurrency(l.balance || 0, userCurrency)}</span>
+                    <span className="font-medium text-white justify-self-end">{formatCurrency(l.balance || 0, userCurrency)}</span>
                   </div>
                 ))}
                 {(data?.equity || []).map((e, i) => (
-                  <div key={i} className="flex justify-between text-white">
+                  <div key={i} className="grid grid-cols-[1fr_auto] items-center text-white">
                     <span className="text-slate-200">{e.code} — {e.name}</span>
-                    <span className="font-medium text-white">{formatCurrency(e.balance || 0, userCurrency)}</span>
+                    <span className="font-medium text-white justify-self-end">{formatCurrency(e.balance || 0, userCurrency)}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-600 flex justify-between font-semibold text-white">
+              <div className="mt-4 pt-3 border-t border-slate-600 grid grid-cols-[1fr_auto] items-center font-semibold text-white">
                 <span>Total Liabilities & Equity</span>
-                <span>{formatCurrency(data?.totalLiabilitiesAndEquity ?? 0, userCurrency)}</span>
+                <span className="justify-self-end">{formatCurrency(data?.totalLiabilitiesAndEquity ?? 0, userCurrency)}</span>
               </div>
             </div>
           </div>

@@ -82,6 +82,7 @@ const Items = () => {
   const [items, setItems] = useState([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [priceImporting, setPriceImporting] = useState(false);
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkPriceDrafts, setBulkPriceDrafts] = useState({});
@@ -94,6 +95,7 @@ const Items = () => {
     description: "",
   });
   const fileInputRef = React.useRef(null);
+  const priceFileInputRef = React.useRef(null);
   const itemImageInputRef = React.useRef(null);
   const activeCategories = categories.filter((cat) => cat?.isActive !== false);
 
@@ -516,6 +518,30 @@ const Items = () => {
     setImportMessage(null);
   };
 
+  const csvEscape = (value) => {
+    const raw = value == null ? "" : String(value);
+    const escaped = raw.replace(/"/g, '""');
+    return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+  };
+
+  const downloadPriceUpdateTemplate = () => {
+    const headers = ["item id", "sku", "name", "current price", "new price"];
+    const rows = items.map((item) => {
+      const itemId = item.id || item._id || "";
+      const currentPrice = parsePriceInput(item.price);
+      return [itemId, item.sku || "", item.name || "", currentPrice, ""];
+    });
+    const csv = [headers, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "item_price_update_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    setImportMessage(null);
+  };
+
   const handleImportFile = async (e) => {
     const file = e?.target?.files?.[0];
     if (!file) return;
@@ -555,6 +581,49 @@ const Items = () => {
     }
   };
 
+  const handlePriceImportFile = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setImportMessage(null);
+    setPriceImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await axiosInstance.post(API_PATHS.ITEMS.IMPORT_PRICES, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const data = response.data || {};
+      const updatedCount = Number(data.updated || 0);
+      setImportMessage({
+        type: "success",
+        text:
+          (data.message || `Updated prices for ${updatedCount} item(s).`) +
+          (data.errors?.length ? ` ${data.errors.length} row(s) had errors.` : ""),
+      });
+
+      if (updatedCount > 0) {
+        const listRes = await axiosInstance.get(API_PATHS.ITEMS.GET_ALL);
+        const dataList = Array.isArray(listRes.data) ? listRes.data : [];
+        setItems(
+          dataList.map((i) => ({
+            ...i,
+            id: i._id || i.id,
+            price: typeof i.price === "number" ? formatCurrency(i.price, userCurrency) : i.price,
+          }))
+        );
+        window.dispatchEvent(new CustomEvent("itemsUpdated"));
+      }
+    } catch (err) {
+      setImportMessage({
+        type: "error",
+        text: err.response?.data?.message || err.message || "Price import failed",
+      });
+    } finally {
+      setPriceImporting(false);
+      if (priceFileInputRef.current) priceFileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-8">
@@ -571,6 +640,14 @@ const Items = () => {
             <FileSpreadsheet className="w-5 h-5" />
             <span>Download template</span>
           </button>
+          <button
+            type="button"
+            onClick={downloadPriceUpdateTemplate}
+            className="flex items-center space-x-2 px-4 py-3 border border-blue-300 text-blue-900 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            <FileSpreadsheet className="w-5 h-5" />
+            <span>Download Price Template</span>
+          </button>
           <label className="flex items-center space-x-2 px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50">
             <input
               ref={fileInputRef}
@@ -586,6 +663,24 @@ const Items = () => {
               <>
                 <Upload className="w-5 h-5" />
                 <span>Import from Excel/CSV</span>
+              </>
+            )}
+          </label>
+          <label className="flex items-center space-x-2 px-4 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors cursor-pointer disabled:opacity-50">
+            <input
+              ref={priceFileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={handlePriceImportFile}
+              disabled={priceImporting}
+            />
+            {priceImporting ? (
+              <span className="animate-pulse">Updating prices…</span>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                <span>Import Price Updates</span>
               </>
             )}
           </label>

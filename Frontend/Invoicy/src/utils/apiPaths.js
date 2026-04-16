@@ -82,6 +82,7 @@ export const API_PATHS = {
         GET_ALL: "api/items",
         CREATE: "api/items",
         IMPORT: "api/items/import",
+        IMPORT_PRICES: "api/items/import-prices",
         UPDATE: (id) => `api/items/${id}`,
         DELETE: (id) => `api/items/${id}`,
         ADJUST_STOCK: (id) => `api/items/${id}/adjust-stock`,
