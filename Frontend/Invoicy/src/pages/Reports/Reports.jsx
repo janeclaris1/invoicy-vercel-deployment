@@ -1283,6 +1283,18 @@ const Reports = () => {
             background: white !important;
             page-break-inside: avoid;
           }
+
+          /* Spreadsheet-style print look */
+          #report-content .rounded-lg,
+          #report-content .shadow-sm,
+          #report-content .border {
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+
+          #report-content svg {
+            display: none !important;
+          }
           
           /* Ensure text is black and readable */
           #report-content,
@@ -1303,6 +1315,7 @@ const Reports = () => {
             page-break-inside: auto;
             border-collapse: collapse;
             width: 100%;
+            font-size: 11px !important;
           }
           
           #report-content tr {
@@ -1310,10 +1323,31 @@ const Reports = () => {
             page-break-after: auto;
           }
           
-          /* Ensure borders are visible */
+          /* Spreadsheet gridlines */
           #report-content th,
           #report-content td {
-            border: 1px solid #e5e7eb !important;
+            border: 1px solid #9ca3af !important;
+            padding: 6px 8px !important;
+            vertical-align: top !important;
+          }
+
+          #report-content thead {
+            display: table-header-group;
+          }
+
+          #report-content th {
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.02em !important;
+          }
+
+          /* Section blocks should read like worksheet regions */
+          #report-content > div,
+          #report-content .overflow-x-auto,
+          #report-content .space-y-4 > div {
+            border: 1px solid #d1d5db !important;
+            margin-bottom: 10px !important;
+            padding: 8px !important;
           }
           
           /* Hide loading indicators */
