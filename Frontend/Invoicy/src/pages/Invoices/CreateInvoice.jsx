@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -117,6 +117,7 @@ const CreateInvoice = () => {
   const [billToSelection, setBillToSelection] = useState("");
   const [branches, setBranches] = useState([]);
   const [billFromBranch, setBillFromBranch] = useState("");
+  const productDropdownRef = useRef(null);
   const filteredCatalogItems = itemsCatalog
     .filter((item) => (selectedCategory ? item.category === selectedCategory : true))
     .filter((item) =>
@@ -194,6 +195,18 @@ const CreateInvoice = () => {
     loadItems();
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (!productDropdownOpen) return;
+    const handleOutsideClick = (event) => {
+      if (!productDropdownRef.current) return;
+      if (!productDropdownRef.current.contains(event.target)) {
+        setProductDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [productDropdownOpen]);
 
   useEffect(() => {
     if (!existingInvoice && canSelectBillFromBranch) {
@@ -822,7 +835,7 @@ const CreateInvoice = () => {
         </div>
         <div className="px-4 sm:px-6 pb-6">
           <div className="mb-2 text-sm font-medium text-gray-700">Products</div>
-          <div className="relative">
+          <div className="relative" ref={productDropdownRef}>
             <button
               type="button"
               onClick={() => setProductDropdownOpen((prev) => !prev)}
@@ -844,7 +857,6 @@ const CreateInvoice = () => {
                           onClick={() => {
                             setSelectedItemId(String(item.id));
                             handleAddCatalogItem(item.id);
-                            setProductDropdownOpen(false);
                           }}
                           className="w-full aspect-square rounded-lg border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-2 text-left flex flex-col"
                           title={`Add ${item.name}`}

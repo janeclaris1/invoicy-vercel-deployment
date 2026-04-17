@@ -66,21 +66,28 @@ const CustomerAccount = () => {
     const customerName = norm(customer.name);
     const customerEmail = norm(customer.email);
     const customerTaxId = norm(customer.taxId);
-    const customerCompany = norm(customer.company);
+    const customerPhone = norm(customer.phone);
 
     return invoices.filter((inv) => {
       const billTo = inv?.billTo || {};
       const invName = norm(billTo.clientName);
       const invEmail = norm(billTo.email);
       const invTin = norm(billTo.tin);
-      const invBiz = norm(billTo.businessName);
+      const invPhone = norm(billTo.phone);
 
-      return (
-        (customerName && invName && customerName === invName) ||
-        (customerEmail && invEmail && customerEmail === invEmail) ||
+      // Prefer strong identifiers first to avoid mixing invoices from different customers
+      // that may share generic names/company labels.
+      const strongMatch =
         (customerTaxId && invTin && customerTaxId === invTin) ||
-        (customerCompany && invBiz && customerCompany === invBiz)
-      );
+        (customerEmail && invEmail && customerEmail === invEmail) ||
+        (customerPhone && invPhone && customerPhone === invPhone);
+      if (strongMatch) return true;
+
+      const hasStrongCustomerIdentity = Boolean(customerTaxId || customerEmail || customerPhone);
+      if (hasStrongCustomerIdentity) return false;
+
+      // Fallback for legacy records where only customer name exists on both sides.
+      return customerName && invName && customerName === invName;
     });
   }, [customer, invoices]);
 
