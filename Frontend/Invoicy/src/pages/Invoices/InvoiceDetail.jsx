@@ -264,31 +264,57 @@ const InvoiceDetail = () => {
       // Show success immediately when GRA accepts (no throw = success)
       toast.success("Invoice submitted to GRA successfully.");
 
-      // GRA invoice response: distributor_tin, num, ysdcid, ysdcrecnum, ysdcintdata, ysdcregsig, ysdcmrc, ysdcmrctime, ysdctime, flag, ysdcitems, qr_code, status
+      // GRA response can vary by tenant/version; normalize from all known payload shapes.
       const res = data?.response || data?.data || data;
-      const msg = res?.message ?? res?.mesaage ?? data?.message ?? data?.mesaage;
-      const r = msg || res;
-      const qrCode = res?.qr_code ?? data?.qr_code ?? r?.qr_code ?? res?.verificationUrl ?? data?.verificationUrl ?? r?.verificationUrl;
-      const verificationUrl = (typeof qrCode === "string" && qrCode.trim() && /^(https?:\/\/|data:)/i.test(qrCode.trim()))
-        ? qrCode.trim()
-        : (res?.verificationUrl ?? data?.verificationUrl ?? r?.verificationUrl ?? null);
-      const verificationCode = res?.verificationCode ?? data?.verificationCode ?? r?.ysdcintdata ?? res?.ysdcintdata ?? data?.ysdcintdata ?? r?.verificationCode;
+      const msgObj = typeof (res?.message ?? res?.mesaage ?? data?.message ?? data?.mesaage) === "object"
+        ? (res?.message ?? res?.mesaage ?? data?.message ?? data?.mesaage)
+        : null;
+      const payloads = [res, data, msgObj].filter((obj) => obj && typeof obj === "object");
+      const pick = (...keys) => {
+        for (const key of keys) {
+          for (const p of payloads) {
+            const value = p?.[key];
+            if (value !== undefined && value !== null && String(value).trim() !== "") {
+              return value;
+            }
+          }
+        }
+        return null;
+      };
+
+      const qrCode = pick("qr_code", "qrCode", "verificationUrl", "verification_url");
+      const qrCodeStr = qrCode != null ? String(qrCode).trim() : "";
+      const verificationUrl = /^(https?:\/\/|data:)/i.test(qrCodeStr)
+        ? qrCodeStr
+        : String(pick("verificationUrl", "verification_url") || "").trim() || null;
+      let verificationCode = pick("verificationCode", "verification_code", "ysdcintdata", "internalData");
+      if ((!verificationCode || String(verificationCode).trim() === "") && qrCodeStr && !/^(https?:\/\/|data:)/i.test(qrCodeStr)) {
+        verificationCode = qrCodeStr;
+      }
       const updates = {};
       if (verificationUrl && String(verificationUrl).trim()) updates.graVerificationUrl = String(verificationUrl).trim();
       if (verificationCode && String(verificationCode).trim()) updates.graVerificationCode = String(verificationCode).trim();
-      if (qrCode && String(qrCode).startsWith("data:image")) updates.graQrCode = qrCode;
-      if (r?.ysdcid != null) updates.graSdcId = String(r.ysdcid).trim();
-      if (r?.ysdcrecnum != null) updates.graReceiptNumber = String(r.ysdcrecnum).trim();
-      if (r?.ysdctime != null) updates.graReceiptDateTime = r.ysdctime;
-      if (r?.ysdcmrc != null) updates.graMrc = String(r.ysdcmrc).trim();
-      if (r?.mrc != null && updates.graMrc == null) updates.graMrc = String(r.mrc).trim();
-      const sig = r?.ysdcregsig ?? r?.receiptSignature ?? r?.signature;
+      if (qrCodeStr.startsWith("data:image")) updates.graQrCode = qrCodeStr;
+      const sdcId = pick("ysdcid", "sdcId");
+      if (sdcId != null) updates.graSdcId = String(sdcId).trim();
+      const receiptNo = pick("ysdcrecnum", "receiptNumber");
+      if (receiptNo != null) updates.graReceiptNumber = String(receiptNo).trim();
+      const receiptDateTime = pick("ysdctime", "receiptDateTime");
+      if (receiptDateTime != null) updates.graReceiptDateTime = receiptDateTime;
+      const mrc = pick("ysdcmrc", "mrc");
+      if (mrc != null) updates.graMrc = String(mrc).trim();
+      const sig = pick("ysdcregsig", "receiptSignature", "signature");
       if (sig != null) updates.graReceiptSignature = String(sig).trim();
-      if (r?.distributor_tin != null) updates.graDistributorTin = String(r.distributor_tin).trim();
-      if (r?.ysdcmrctime != null) updates.graMcDateTime = r.ysdcmrctime;
-      if (r?.flag != null) updates.graFlag = String(r.flag).trim();
-      if (r?.ysdcitems != null) updates.graLineItemCount = Number(r.ysdcitems);
-      if (r?.status != null || data?.status != null) updates.graStatus = String(r?.status ?? data?.status ?? "").trim();
+      const distributorTin = pick("distributor_tin", "distributorTin");
+      if (distributorTin != null) updates.graDistributorTin = String(distributorTin).trim();
+      const mcDateTime = pick("ysdcmrctime", "mcDateTime");
+      if (mcDateTime != null) updates.graMcDateTime = mcDateTime;
+      const flag = pick("flag");
+      if (flag != null) updates.graFlag = String(flag).trim();
+      const lineCount = pick("ysdcitems", "lineItemCount");
+      if (lineCount != null) updates.graLineItemCount = Number(lineCount);
+      const statusValue = pick("status");
+      if (statusValue != null) updates.graStatus = String(statusValue).trim();
 
       if (Object.keys(updates).length > 0) {
         await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(id), updates);

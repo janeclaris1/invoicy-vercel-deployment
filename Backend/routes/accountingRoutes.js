@@ -40,7 +40,7 @@ const {
   deleteExchangeRate,
 } = require("../controller/accountingController");
 const { protect } = require("../middlewares/authMiddleware");
-const { attachSubscriptionPlan, requirePlan } = require("../middlewares/planMiddleware");
+const { attachSubscriptionPlan, requirePlanPermission } = require("../middlewares/planMiddleware");
 
 const router = express.Router();
 
@@ -63,10 +63,10 @@ router.delete("/journal-entries/:id", deleteJournalEntry);
 router.post("/journal-entries/:id/post", postJournalEntry);
 
 // Reports (Pro+ only)
-router.get("/reports/general-ledger", requirePlan("pro"), getGeneralLedger);
-router.get("/reports/trial-balance", requirePlan("pro"), getTrialBalance);
-router.get("/reports/profit-loss", requirePlan("pro"), getProfitLoss);
-router.get("/reports/balance-sheet", requirePlan("pro"), getBalanceSheet);
+router.get("/reports/general-ledger", requirePlanPermission("accounting.reports"), getGeneralLedger);
+router.get("/reports/trial-balance", requirePlanPermission("accounting.reports"), getTrialBalance);
+router.get("/reports/profit-loss", requirePlanPermission("accounting.reports"), getProfitLoss);
+router.get("/reports/balance-sheet", requirePlanPermission("accounting.reports"), getBalanceSheet);
 
 // Expenditures
 router.get("/expenditures", getExpenditures);
@@ -84,10 +84,10 @@ router.put("/bills/:id", updateBill);
 router.delete("/bills/:id", deleteBill);
 
 // Budgets (Pro+ only)
-router.get("/budgets", requirePlan("pro"), getBudgets);
-router.post("/budgets", requirePlan("pro"), createBudget);
-router.put("/budgets/:id", requirePlan("pro"), updateBudget);
-router.delete("/budgets/:id", requirePlan("pro"), deleteBudget);
+router.get("/budgets", requirePlanPermission("accounting.budgets"), getBudgets);
+router.post("/budgets", requirePlanPermission("accounting.budgets"), createBudget);
+router.put("/budgets/:id", requirePlanPermission("accounting.budgets"), updateBudget);
+router.delete("/budgets/:id", requirePlanPermission("accounting.budgets"), deleteBudget);
 
 // Tax rules
 router.get("/tax-rules", getTaxRules);

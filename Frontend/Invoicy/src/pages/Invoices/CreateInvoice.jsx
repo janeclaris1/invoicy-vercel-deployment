@@ -403,11 +403,22 @@ const CreateInvoice = () => {
 
     const numericPrice = Number(String(selected.price).replace(/[^0-9.]/g, "")) || 0;
 
-    const alreadyAdded = formData.items.some(
+    const existingIndex = formData.items.findIndex(
       (item) => String(item.catalogId) === String(selected.id)
     );
-    if (alreadyAdded) {
-      window.alert("Item already added");
+    if (existingIndex >= 0) {
+      setFormData((prev) => {
+        const nextItems = [...prev.items];
+        const current = nextItems[existingIndex];
+        const nextQty = (Number(current.quantity) || 0) + 1;
+        const unitPrice = Number(current.itemPrice) || numericPrice;
+        nextItems[existingIndex] = {
+          ...current,
+          quantity: nextQty,
+          amount: nextQty * unitPrice,
+        };
+        return { ...prev, items: nextItems };
+      });
       setSelectedItemId("");
       setItemSearch("");
       return;
@@ -778,7 +789,6 @@ const CreateInvoice = () => {
               name="email"
               value={formData.billTo.email}
               onChange={(e) => handleInputChange(e, "billTo")}
-              required
             />
             <TextareaField
               label="Address"
