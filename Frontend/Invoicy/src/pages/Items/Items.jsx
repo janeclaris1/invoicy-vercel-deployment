@@ -84,6 +84,9 @@ const Items = () => {
   const [importing, setImporting] = useState(false);
   const [priceImporting, setPriceImporting] = useState(false);
   const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkPriceDrafts, setBulkPriceDrafts] = useState({});
   const [importMessage, setImportMessage] = useState(null);
@@ -419,6 +422,73 @@ const Items = () => {
     setBulkPriceDrafts({});
   };
 
+  const enterBulkDeleteMode = () => {
+    setBulkDeleteMode(true);
+    setSelectedItemIds([]);
+  };
+
+  const cancelBulkDeleteMode = () => {
+    setBulkDeleteMode(false);
+    setSelectedItemIds([]);
+  };
+
+  const toggleItemSelection = (itemId) => {
+    const normalizedId = String(itemId || "");
+    if (!normalizedId) return;
+    setSelectedItemIds((prev) =>
+      prev.includes(normalizedId)
+        ? prev.filter((id) => id !== normalizedId)
+        : [...prev, normalizedId]
+    );
+  };
+
+  const toggleSelectAllFiltered = () => {
+    const filteredIds = filteredItems
+      .map((item) => String(item.id || item._id || ""))
+      .filter(Boolean);
+    if (filteredIds.length === 0) return;
+    const allSelected = filteredIds.every((id) => selectedItemIds.includes(id));
+    setSelectedItemIds((prev) => {
+      if (allSelected) {
+        return prev.filter((id) => !filteredIds.includes(id));
+      }
+      const next = new Set([...prev, ...filteredIds]);
+      return Array.from(next);
+    });
+  };
+
+  const handleBulkDeleteItems = async () => {
+    if (selectedItemIds.length === 0) {
+      toast("Select at least one item to delete.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Delete ${selectedItemIds.length} selected item${selectedItemIds.length > 1 ? "s" : ""}? This cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    setBulkDeleting(true);
+    let successCount = 0;
+    try {
+      for (const itemId of selectedItemIds) {
+        await axiosInstance.delete(API_PATHS.ITEMS.DELETE(itemId));
+        successCount += 1;
+      }
+
+      setItems((prev) =>
+        prev.filter((item) => !selectedItemIds.includes(String(item.id || item._id || "")))
+      );
+      toast.success(`Deleted ${successCount} item${successCount > 1 ? "s" : ""}.`);
+      cancelBulkDeleteMode();
+      window.dispatchEvent(new CustomEvent("itemsUpdated"));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to bulk delete selected items.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const handleBulkSavePrices = async () => {
     const changed = filteredItems.filter((item) => {
       const itemId = String(item.id || item._id || "");
@@ -734,6 +804,41 @@ const Items = () => {
               </button>
             </>
           )}
+          {!bulkDeleteMode ? (
+            <button
+              type="button"
+              onClick={enterBulkDeleteMode}
+              className="flex items-center space-x-2 px-4 py-3 border border-red-200 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-5 h-5" />
+              <span>Bulk Delete</span>
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleBulkDeleteItems}
+                disabled={bulkDeleting || selectedItemIds.length === 0}
+                className="flex items-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60"
+              >
+                <Trash2 className="w-5 h-5" />
+                <span>
+                  {bulkDeleting
+                    ? "Deleting..."
+                    : `Delete Selected${selectedItemIds.length ? ` (${selectedItemIds.length})` : ""}`}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={cancelBulkDeleteMode}
+                disabled={bulkDeleting}
+                className="flex items-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+              >
+                <X className="w-5 h-5" />
+                <span>Cancel</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
       {importMessage && (
@@ -761,6 +866,23 @@ const Items = () => {
           />
         </div>
       </div>
+      {bulkDeleteMode && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <span>Select items to delete. This action cannot be undone.</span>
+          <button
+            type="button"
+            onClick={toggleSelectAllFiltered}
+            className="font-medium underline decoration-red-400 underline-offset-2 hover:text-red-900"
+          >
+            {filteredItems.length > 0 &&
+            filteredItems.every((item) =>
+              selectedItemIds.includes(String(item.id || item._id || ""))
+            )
+              ? "Unselect all"
+              : "Select all shown"}
+          </button>
+        </div>
+      )}
 
       {/* Items List */}
       {itemsLoading ? (
@@ -775,6 +897,15 @@ const Items = () => {
               <li key={item.id} className="px-3 sm:px-4 py-2.5">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
+                    {bulkDeleteMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedItemIds.includes(String(item.id || item._id || ""))}
+                        onChange={() => toggleItemSelection(item.id || item._id)}
+                        className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        aria-label={`Select ${item.name} for bulk delete`}
+                      />
+                    )}
                     <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden shrink-0">
                       {item.image ? (
                         <img src={item.image} alt="" className="w-full h-full object-cover" />
@@ -827,6 +958,7 @@ const Items = () => {
                     </button>
                     <button
                       onClick={() => handleDeleteItem(item.id)}
+                      disabled={bulkDeleteMode}
                       className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                       aria-label={`Delete ${item.name}`}
                     >
