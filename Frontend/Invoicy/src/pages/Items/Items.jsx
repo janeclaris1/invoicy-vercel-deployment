@@ -8,6 +8,7 @@ import { formatCurrency } from "../../utils/helper";
 
 const MAX_ITEM_IMAGE_BYTES = 1.5 * 1024 * 1024;
 const DEFAULT_UNITS = ["unit", "hour", "day", "month", "year", "project", "piece", "kg", "lb"];
+const normalizeUnitValue = (value) => String(value || "").trim().toLowerCase();
 
 const Items = () => {
   const { user } = useAuth();
@@ -403,6 +404,25 @@ const Items = () => {
     if (catCompare !== 0) return catCompare;
     return String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" });
   });
+
+  const unitOptions = (() => {
+    const seen = new Set();
+    const options = [];
+    const pushUnit = (value) => {
+      const trimmed = String(value || "").trim();
+      if (!trimmed) return;
+      const key = normalizeUnitValue(trimmed);
+      if (seen.has(key)) return;
+      seen.add(key);
+      options.push(trimmed);
+    };
+
+    DEFAULT_UNITS.forEach(pushUnit);
+    items.forEach((item) => pushUnit(item?.unit));
+    pushUnit(formData.unit);
+    pushUnit(customUnitDraft);
+    return options;
+  })();
 
   const parsePriceInput = (value) => Number(String(value ?? "").replace(/[^0-9.]/g, "")) || 0;
 
@@ -1185,7 +1205,7 @@ const Items = () => {
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {DEFAULT_UNITS.map((u) => (
+                    {unitOptions.map((u) => (
                       <option key={u} value={u}>
                         {u}
                       </option>
