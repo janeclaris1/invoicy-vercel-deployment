@@ -9,6 +9,7 @@ const WhatsAppReminderModal = ({ isOpen, onClose, invoice }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [isOpeningWhatsApp, setIsOpeningWhatsApp] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
 
   useEffect(() => {
     if (!isOpen || !invoice?._id) return;
@@ -29,6 +30,11 @@ const WhatsAppReminderModal = ({ isOpen, onClose, invoice }) => {
     generateMessage();
   }, [isOpen, invoice?._id]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setPhoneInput(String(invoice?.billTo?.phone || "").trim());
+  }, [isOpen, invoice?.billTo?.phone]);
+
   const handleCopyToClipboard = () => {
     if (!messageText) return;
     navigator.clipboard.writeText(messageText);
@@ -38,11 +44,19 @@ const WhatsAppReminderModal = ({ isOpen, onClose, invoice }) => {
   };
 
   const handleOpenWhatsApp = () => {
-    const rawPhone = String(invoice?.billTo?.phone || "").trim();
+    const rawPhone = String(phoneInput || invoice?.billTo?.phone || "").trim();
     // WhatsApp deep links require phone in international format with digits only (no +, spaces, or symbols).
     let phone = rawPhone.replace(/\D/g, "");
     if (phone.startsWith("00")) {
       phone = phone.slice(2);
+    }
+    // Common local Ghana formats (05XXXXXXXX / 5XXXXXXXX) -> 233XXXXXXXXX
+    if (!phone.startsWith("233")) {
+      if (phone.startsWith("0") && phone.length === 10) {
+        phone = `233${phone.slice(1)}`;
+      } else if (phone.length === 9) {
+        phone = `233${phone}`;
+      }
     }
 
     if (!phone) {
@@ -50,7 +64,7 @@ const WhatsAppReminderModal = ({ isOpen, onClose, invoice }) => {
       return;
     }
     if (phone.length < 7) {
-      toast.error("Customer phone number looks invalid for WhatsApp.");
+      toast.error("Customer phone number looks invalid for WhatsApp. Use country code, e.g. 233XXXXXXXXX.");
       return;
     }
     if (!messageText.trim()) {
@@ -98,6 +112,19 @@ const WhatsAppReminderModal = ({ isOpen, onClose, invoice }) => {
           </div>
         ) : (
           <>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-black mb-2">WhatsApp Number</label>
+              <input
+                type="text"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="e.g. 233501234567"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Use full international format (country code + number, no leading + required).
+              </p>
+            </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-black mb-2">WhatsApp Message</label>
               <textarea

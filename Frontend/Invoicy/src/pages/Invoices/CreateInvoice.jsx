@@ -113,6 +113,7 @@ const CreateInvoice = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [itemSearch, setItemSearch] = useState("");
   const [selectedItemId, setSelectedItemId] = useState("");
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
   const [billToSelection, setBillToSelection] = useState("");
   const [branches, setBranches] = useState([]);
   const [billFromBranch, setBillFromBranch] = useState("");
@@ -821,36 +822,54 @@ const CreateInvoice = () => {
         </div>
         <div className="px-4 sm:px-6 pb-6">
           <div className="mb-2 text-sm font-medium text-gray-700">Products</div>
-          {filteredCatalogItems.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {filteredCatalogItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleAddCatalogItem(item.id)}
-                  className="aspect-square rounded-xl border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-3 text-left flex flex-col"
-                  title={`Add ${item.name}`}
-                >
-                  <div className="h-16 w-full rounded-md bg-gray-100 border border-gray-200 overflow-hidden mb-2 flex items-center justify-center">
-                    {item.image ? (
-                      <img src={item.image} alt={item.name || "Product"} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-[11px] text-gray-400">No image</span>
-                    )}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setProductDropdownOpen((prev) => !prev)}
+              className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-left text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {productDropdownOpen
+                ? "Close product list"
+                : `Select product (${filteredCatalogItems.length} found)`}
+            </button>
+            {productDropdownOpen && (
+              <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-lg p-3">
+                {filteredCatalogItems.length > 0 ? (
+                  <div className="max-h-80 overflow-y-auto">
+                    <div className="flex flex-wrap gap-2">
+                      {filteredCatalogItems.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedItemId(String(item.id));
+                            handleAddCatalogItem(item.id);
+                            setProductDropdownOpen(false);
+                          }}
+                          className="w-24 h-24 rounded-lg border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-2 text-left flex flex-col"
+                          title={`Add ${item.name}`}
+                        >
+                          <div className="h-10 w-full rounded bg-gray-100 border border-gray-200 overflow-hidden mb-1 flex items-center justify-center">
+                            {item.image ? (
+                              <img src={item.image} alt={item.name || "Product"} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-[9px] text-gray-400">No img</span>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-semibold text-black truncate">{item.name || "Item"}</div>
+                          <div className="text-[9px] text-gray-500 truncate">{item.sku || "-"}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold text-black line-clamp-2">{item.name || "Unnamed item"}</div>
-                  <div className="mt-1 text-[11px] text-gray-500 truncate">SKU: {item.sku || "-"}</div>
-                  <div className="mt-auto text-[11px] font-medium text-blue-900">
-                    {formatCurrency(Number(item.price) || 0, userCurrency)}
+                ) : (
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+                    No products match your filter.
                   </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500">
-              No products match your filter.
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full divide-y divide-slate-200">
