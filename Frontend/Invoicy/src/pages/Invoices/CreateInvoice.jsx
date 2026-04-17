@@ -116,6 +116,11 @@ const CreateInvoice = () => {
   const [billToSelection, setBillToSelection] = useState("");
   const [branches, setBranches] = useState([]);
   const [billFromBranch, setBillFromBranch] = useState("");
+  const filteredCatalogItems = itemsCatalog
+    .filter((item) => (selectedCategory ? item.category === selectedCategory : true))
+    .filter((item) =>
+      itemSearch ? `${item.name} ${item.sku || ""}`.toLowerCase().includes(itemSearch.toLowerCase()) : true
+    );
 
   useEffect(() => {
     const loadCustomers = async () => {
@@ -789,7 +794,7 @@ const CreateInvoice = () => {
           <h3 className="text-lg font-semibold text-black">Items</h3>
         </div>
         <div className="flex justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6 items-center w-full max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 mb-6 items-center w-full max-w-5xl">
             <SelectField
               label="Category"
               name="categoryFilter"
@@ -812,36 +817,40 @@ const CreateInvoice = () => {
               onChange={(e) => setItemSearch(e.target.value)}
               placeholder="Search by name or SKU"
             />
-            <SelectField
-              label="Select Item"
-              name="itemSelect"
-              labelClassName="text-center"
-              value={selectedItemId}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSelectedItemId(value);
-                if (value) {
-                  handleAddCatalogItem(value);
-                }
-              }}
-              options={[
-                { label: "Select an item", value: "" },
-                ...itemsCatalog
-                  .filter((item) => (
-                    selectedCategory ? item.category === selectedCategory : true
-                  ))
-                  .filter((item) => (
-                    itemSearch
-                      ? `${item.name} ${item.sku}`.toLowerCase().includes(itemSearch.toLowerCase())
-                      : true
-                  ))
-                  .map((item) => ({
-                    label: `${item.name} (${item.sku || ""})`,
-                    value: item.id,
-                  })),
-              ]}
-            />
           </div>
+        </div>
+        <div className="px-4 sm:px-6 pb-6">
+          <div className="mb-2 text-sm font-medium text-gray-700">Products</div>
+          {filteredCatalogItems.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {filteredCatalogItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleAddCatalogItem(item.id)}
+                  className="aspect-square rounded-xl border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-3 text-left flex flex-col"
+                  title={`Add ${item.name}`}
+                >
+                  <div className="h-16 w-full rounded-md bg-gray-100 border border-gray-200 overflow-hidden mb-2 flex items-center justify-center">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name || "Product"} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-[11px] text-gray-400">No image</span>
+                    )}
+                  </div>
+                  <div className="text-xs font-semibold text-black line-clamp-2">{item.name || "Unnamed item"}</div>
+                  <div className="mt-1 text-[11px] text-gray-500 truncate">SKU: {item.sku || "-"}</div>
+                  <div className="mt-auto text-[11px] font-medium text-blue-900">
+                    {formatCurrency(Number(item.price) || 0, userCurrency)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+              No products match your filter.
+            </div>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full divide-y divide-slate-200">

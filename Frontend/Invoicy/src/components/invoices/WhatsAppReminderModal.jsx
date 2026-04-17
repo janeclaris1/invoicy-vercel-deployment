@@ -39,22 +39,36 @@ const WhatsAppReminderModal = ({ isOpen, onClose, invoice }) => {
 
   const handleOpenWhatsApp = () => {
     const rawPhone = String(invoice?.billTo?.phone || "").trim();
-    const phone = rawPhone.replace(/[^\d+]/g, "");
+    // WhatsApp deep links require phone in international format with digits only (no +, spaces, or symbols).
+    let phone = rawPhone.replace(/\D/g, "");
+    if (phone.startsWith("00")) {
+      phone = phone.slice(2);
+    }
+
     if (!phone) {
       toast.error("Customer phone number is missing.");
+      return;
+    }
+    if (phone.length < 7) {
+      toast.error("Customer phone number looks invalid for WhatsApp.");
       return;
     }
     if (!messageText.trim()) {
       toast.error("Message is empty.");
       return;
     }
+
     setIsOpeningWhatsApp(true);
-    window.open(
-      `https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(messageText.trim())}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-    setIsOpeningWhatsApp(false);
+    const message = encodeURIComponent(messageText.trim());
+    const waMeUrl = `https://wa.me/${phone}?text=${message}`;
+    const apiFallbackUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${message}`;
+    const opened = window.open(waMeUrl, "_blank", "noopener,noreferrer");
+
+    // If the direct wa.me open is blocked/fails in some environments, fallback to WhatsApp API URL.
+    if (!opened) {
+      window.open(apiFallbackUrl, "_blank", "noopener,noreferrer");
+    }
+    setTimeout(() => setIsOpeningWhatsApp(false), 150);
   };
 
   if (!isOpen) return null;
