@@ -833,10 +833,10 @@ const CreateInvoice = () => {
                 : `Select product (${filteredCatalogItems.length} found)`}
             </button>
             {productDropdownOpen && (
-              <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-lg p-3">
+              <div className="absolute right-0 z-20 mt-2 w-[34rem] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 bg-white shadow-lg p-3">
                 {filteredCatalogItems.length > 0 ? (
                   <div className="max-h-80 overflow-y-auto">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                       {filteredCatalogItems.map((item) => (
                         <button
                           key={item.id}
@@ -846,7 +846,7 @@ const CreateInvoice = () => {
                             handleAddCatalogItem(item.id);
                             setProductDropdownOpen(false);
                           }}
-                          className="w-24 h-24 rounded-lg border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-2 text-left flex flex-col"
+                          className="w-full aspect-square rounded-lg border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-2 text-left flex flex-col"
                           title={`Add ${item.name}`}
                         >
                           <div className="h-10 w-full rounded bg-gray-100 border border-gray-200 overflow-hidden mb-1 flex items-center justify-center">
