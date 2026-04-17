@@ -561,13 +561,25 @@ const Items = () => {
       if (data.created > 0) {
         const listRes = await axiosInstance.get(API_PATHS.ITEMS.GET_ALL);
         const dataList = Array.isArray(listRes.data) ? listRes.data : [];
-        setItems(
-          dataList.map((i) => ({
-            ...i,
-            id: i._id || i.id,
-            price: typeof i.price === "number" ? formatCurrency(i.price, userCurrency) : i.price,
-          }))
-        );
+        const normalized = dataList.map((i) => ({
+          ...i,
+          id: i._id || i.id,
+          price: typeof i.price === "number" ? formatCurrency(i.price, userCurrency) : i.price,
+        }));
+
+        // Keep newly imported rows in the same order as they appear in the uploaded template.
+        const createdIds = Array.isArray(data.createdIds) ? data.createdIds.map((id) => String(id)) : [];
+        if (createdIds.length) {
+          const itemById = new Map(normalized.map((item) => [String(item.id || item._id || ""), item]));
+          const orderedImported = createdIds.map((id) => itemById.get(id)).filter(Boolean);
+          const importedSet = new Set(createdIds);
+          const remainingItems = normalized.filter(
+            (item) => !importedSet.has(String(item.id || item._id || ""))
+          );
+          setItems([...orderedImported, ...remainingItems]);
+        } else {
+          setItems(normalized);
+        }
         window.dispatchEvent(new CustomEvent("itemsUpdated"));
       }
     } catch (err) {

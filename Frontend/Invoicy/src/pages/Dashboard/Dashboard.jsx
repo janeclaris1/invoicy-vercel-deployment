@@ -176,6 +176,11 @@ const Dashboard = () => {
                 ? String(rawId)
                 : null;
           const meta = idStr ? itemById[idStr] : null;
+          const unitCost = meta ? Number(meta.cost) : NaN;
+          const hasConfiguredCost = Number.isFinite(unitCost) && unitCost > 0;
+          if (!hasConfiguredCost) {
+            return;
+          }
           const lineAmount = Number(line.amount);
           const lineUnit = Number(line.unitPrice) || 0;
           const fromInvoiceLine = Number.isFinite(lineAmount) ? lineAmount : lineUnit * qty;
@@ -187,7 +192,6 @@ const Dashboard = () => {
               netRevenue = catalogUnit * qty;
             }
           }
-          const unitCost = meta ? meta.cost : 0;
           const lineCogs = unitCost * qty;
           const lineProfit = netRevenue - lineCogs;
           totalProductProfit += lineProfit;
