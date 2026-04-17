@@ -63,6 +63,7 @@ const CustomerAccount = () => {
 
   const customerInvoices = useMemo(() => {
     if (!customer) return [];
+    const customerId = String(customer._id || customer.id || "");
     const customerName = norm(customer.name);
     const customerEmail = norm(customer.email);
     const customerTaxId = norm(customer.taxId);
@@ -70,6 +71,9 @@ const CustomerAccount = () => {
 
     return invoices.filter((inv) => {
       const billTo = inv?.billTo || {};
+      const billToCustomerId = String(billTo.customerId || "");
+      if (customerId && billToCustomerId && customerId === billToCustomerId) return true;
+
       const invName = norm(billTo.clientName);
       const invEmail = norm(billTo.email);
       const invTin = norm(billTo.tin);
@@ -83,7 +87,7 @@ const CustomerAccount = () => {
         (customerPhone && invPhone && customerPhone === invPhone);
       if (strongMatch) return true;
 
-      const hasStrongCustomerIdentity = Boolean(customerTaxId || customerEmail || customerPhone);
+      const hasStrongCustomerIdentity = Boolean(customerTaxId || customerEmail || customerPhone || customerId);
       if (hasStrongCustomerIdentity) return false;
 
       // Fallback for legacy records where only customer name exists on both sides.

@@ -663,6 +663,7 @@ const CreateInvoice = () => {
               setFormData((prev) => ({
                 ...prev,
                 billTo: {
+                  customerId: type === "customer" ? String(selected._id || selected.id || "") : "",
                   clientName: selected.name || selected.company || "",
                   email: selected.email || "",
                   address: selected.address || "",

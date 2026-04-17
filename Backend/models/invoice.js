@@ -56,6 +56,7 @@ const invoiceSchema = new mongoose.Schema({
         phone: String,
         },
     billTo: {
+        customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null },
         clientName: String,
         email: String,
         address: String,
