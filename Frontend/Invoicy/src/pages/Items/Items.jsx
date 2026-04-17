@@ -489,19 +489,35 @@ const Items = () => {
     if (!confirmDelete) return;
 
     setBulkDeleting(true);
-    let successCount = 0;
     try {
-      for (const itemId of selectedItemIds) {
-        await axiosInstance.delete(API_PATHS.ITEMS.DELETE(itemId));
-        successCount += 1;
+      // Delete in parallel to avoid slow sequential requests for large selections.
+      const deleteResults = await Promise.allSettled(
+        selectedItemIds.map((itemId) => axiosInstance.delete(API_PATHS.ITEMS.DELETE(itemId)))
+      );
+
+      const successfulIds = selectedItemIds.filter((_, index) => deleteResults[index]?.status === "fulfilled");
+      const failedCount = selectedItemIds.length - successfulIds.length;
+
+      if (successfulIds.length > 0) {
+        setItems((prev) =>
+          prev.filter((item) => !successfulIds.includes(String(item.id || item._id || "")))
+        );
+        window.dispatchEvent(new CustomEvent("itemsUpdated"));
       }
 
-      setItems((prev) =>
-        prev.filter((item) => !selectedItemIds.includes(String(item.id || item._id || "")))
-      );
-      toast.success(`Deleted ${successCount} item${successCount > 1 ? "s" : ""}.`);
-      cancelBulkDeleteMode();
-      window.dispatchEvent(new CustomEvent("itemsUpdated"));
+      if (failedCount > 0) {
+        toast.error(
+          `Deleted ${successfulIds.length} item${successfulIds.length === 1 ? "" : "s"}, ${failedCount} failed.`
+        );
+      } else {
+        toast.success(`Deleted ${successfulIds.length} item${successfulIds.length === 1 ? "" : "s"}.`);
+      }
+
+      if (failedCount === 0) {
+        cancelBulkDeleteMode();
+      } else {
+        setSelectedItemIds((prev) => prev.filter((id) => !successfulIds.includes(id)));
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to bulk delete selected items.");
     } finally {
