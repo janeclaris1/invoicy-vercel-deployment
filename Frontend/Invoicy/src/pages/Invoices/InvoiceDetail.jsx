@@ -1195,7 +1195,7 @@ const InvoiceDetail = () => {
               )}
             </div>
           )}
-          <div className="mt-3 flex justify-center">
+          <div className="mt-6 pt-2 flex justify-center">
             {(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode) ? (
               String(invoice.graQrCode || invoice.graVerificationUrl || invoice.graVerificationCode).startsWith("data:image") ? (
                 <img

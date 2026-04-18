@@ -47,7 +47,7 @@ function graQrImgTag(invoice) {
     } else {
         src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(s)}`;
     }
-    return `<div class="gra-qr"><img src="${escapeHtml(src)}" alt="E-VAT QR" width="96" height="96" style="width:96px;height:96px;object-fit:contain;display:inline-block" /></div>`;
+    return `<div class="gra-qr"><img src="${escapeHtml(src)}" alt="E-VAT QR" width="96" height="96" style="width:96px;height:96px;object-fit:contain;display:inline-block;vertical-align:middle" /></div>`;
 }
 
 function formatGraDate(d) {
@@ -71,7 +71,6 @@ function buildGraSectionHtml(invoice) {
     push("GRA receipt", invoice.graReceiptNumber);
     push("SDC ID", invoice.graSdcId);
     push("Verification code", invoice.graVerificationCode);
-    push("Verification URL", invoice.graVerificationUrl);
     push("Status", invoice.graStatus);
     push("MRC", invoice.graMrc);
     push("Flag", invoice.graFlag);
@@ -156,7 +155,7 @@ export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
   .gra-evat-title { text-align: left; margin-bottom: 6px; letter-spacing: 0.04em; font-size: 10px; }
   .gra-row { margin: 4px 0; line-height: 1.3; white-space: nowrap; }
   .gra-val { font-weight: 400; }
-  .gra-qr { text-align: left; margin-top: 6px; }
+  .gra-qr { text-align: center; margin-top: 14px; }
   @media print {
     html, body { padding: 8px; width: 72mm; max-width: 72mm; }
   }
@@ -167,9 +166,6 @@ export function buildPosReceiptHtml(invoice, userCurrency, fallbackProfile) {
     <div class="bold" style="margin-top:8px;letter-spacing:0.05em">POS RECEIPT</div>
     <div class="small">${escapeHtml(invoice.invoiceNumber || "")} · ${escapeHtml(when)}</div>
   </div>
-  <div class="small" style="margin-bottom:8px"><span class="bold">Customer:</span> ${escapeHtml(
-      invoice.billTo?.clientName || "—"
-  )}</div>
   <div class="dash">${itemsHtml}</div>
   <div class="tot"><span>Subtotal</span><span>${formatCurrency(invoice.subtotal ?? 0, userCurrency)}</span></div>
   ${discRow}
