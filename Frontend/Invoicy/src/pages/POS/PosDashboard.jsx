@@ -13,7 +13,6 @@ import {
     Banknote,
     Package,
     Truck,
-    Save,
     XCircle,
     Loader2,
     X,
@@ -23,6 +22,11 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
+import {
+    canAttemptGraSubmit,
+    formatGraSubmitError,
+    submitInvoiceToGraAndFetch,
+} from "../../utils/graSubmitPersist";
 
 /** Filter key for items with no category set */
 const UNCATEGORIZED_KEY = "__uncategorized__";
@@ -655,10 +659,25 @@ const PosDashboard = () => {
                 toast.error("Sale saved but invoice id missing. Check invoices list.");
                 return;
             }
+
+            let printInvoice = invoice;
+            const baseToast = wasEditing ? "Order updated" : isCod ? "Order saved (COD)" : "Payment recorded";
+            const tryGra = await canAttemptGraSubmit(user);
+            if (tryGra) {
+                try {
+                    printInvoice = await submitInvoiceToGraAndFetch(invoice._id);
+                    toast.success(`${baseToast} · Submitted to GRA (eVAT).`);
+                } catch (graErr) {
+                    toast.error(`${formatGraSubmitError(graErr)} The sale was saved; open the invoice to retry GRA.`);
+                    toast.success(baseToast);
+                }
+            } else {
+                toast.success(baseToast);
+            }
+
             window.dispatchEvent(new CustomEvent("invoicesUpdated"));
             clearCart();
-            toast.success(wasEditing ? "Order updated" : isCod ? "Order saved (COD)" : "Payment recorded");
-            const printed = printPosReceiptWindow(invoice, userCurrency, user);
+            const printed = printPosReceiptWindow(printInvoice, userCurrency, user);
             if (!printed) {
                 toast.error("Pop-up blocked — allow pop-ups to print, or find this sale under Sales → POS.");
             }
@@ -969,7 +988,7 @@ const PosDashboard = () => {
                         {submitting ? (
                             <Loader2 className="h-6 w-6 animate-spin shrink-0" aria-hidden />
                         ) : editingInvoiceId ? (
-                            <Save className="h-6 w-6 shrink-0" aria-hidden />
+                            <span className="text-sm font-semibold tracking-wide">Save</span>
                         ) : paymentMethod === "cod" ? (
                             <Truck className="h-6 w-6 shrink-0" aria-hidden />
                         ) : (
