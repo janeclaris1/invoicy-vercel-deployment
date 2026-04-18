@@ -823,7 +823,7 @@ const InvoiceDetail = () => {
         </div>
 
         {/* Column 1: EVAT details (left) | Column 2: payment details + QR (right) */}
-        <div className="invoice-gra-and-tax mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-transparent dark:bg-transparent text-black dark:text-black rounded-xl p-0 dark:p-0">
+        <div className="invoice-gra-and-tax invoice-print-summary-block mt-6 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 bg-transparent dark:bg-transparent text-black dark:text-black rounded-xl p-0 dark:p-0">
           {/* Right column: Subtotal, tax details, and GRA QR */}
           <div className="text-[9px] sm:text-[10px] space-y-[3px] leading-tight flex flex-col items-start text-left w-full min-w-0 max-w-[14rem] justify-self-start md:order-2 print:order-2 md:justify-self-end print:justify-self-end">
             {(invoice.vatScenario === "exclusive" || invoice.vatScenario === "inclusive") && (

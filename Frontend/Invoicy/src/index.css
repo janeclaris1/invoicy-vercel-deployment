@@ -225,6 +225,15 @@
       letter-spacing: normal !important;
     }
 
+    /* Keep payment summary + notes + EVAT details + QR together.
+       If the block cannot fit in remaining space, move all of it to the next page. */
+    body.invoice-print-page .invoice-print-summary-block {
+      break-inside: avoid-page !important;
+      page-break-inside: avoid !important;
+      break-before: auto !important;
+      page-break-before: auto !important;
+    }
+
     /* Print a normal clean page border around the invoice card */
     body.invoice-print-page .invoice-print-card {
       box-shadow: none !important;
