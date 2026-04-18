@@ -169,6 +169,7 @@ const PosDashboard = () => {
     const [discountPercent, setDiscountPercent] = useState("");
     const [discountAmount, setDiscountAmount] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [amountPaidDraft, setAmountPaidDraft] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [categories, setCategories] = useState([]);
     const [categoryFilter, setCategoryFilter] = useState("");
@@ -307,6 +308,16 @@ const PosDashboard = () => {
         const t = setTimeout(() => scanRef.current?.focus(), 100);
         return () => clearTimeout(t);
     }, []);
+
+    /** Default amount received: full total for immediate payment methods, 0 for COD. Skip while editing an existing order (loaded amount stays until user changes it). */
+    useEffect(() => {
+        if (editingInvoiceId) return;
+        if (paymentMethod === "cod") {
+            setAmountPaidDraft("0");
+        } else {
+            setAmountPaidDraft(grandTotal > 0 ? String(grandTotal) : "");
+        }
+    }, [grandTotal, paymentMethod, editingInvoiceId]);
 
     const findByScanCode = useCallback(
         (code) => {
@@ -527,6 +538,8 @@ const PosDashboard = () => {
             setDiscountPercent(dp != null && dp !== "" ? String(dp) : "");
             setDiscountAmount(da != null && da !== "" ? String(da) : "");
             setPaymentMethod(paymentMethodIdFromInvoice(inv));
+            const ap = Number(inv.amountPaid);
+            setAmountPaidDraft(Number.isFinite(ap) && ap >= 0 ? String(ap) : "0");
             setEditingInvoiceId(inv._id);
             toast.success("Order loaded — adjust cart and save");
         } catch (e) {
@@ -573,8 +586,6 @@ const PosDashboard = () => {
         setPreviewInvoice(null);
     };
 
-    const amountPaidValue = Math.max(0, grandTotal);
-
     const receivePayment = async () => {
         if (!cart.length) {
             toast.error("Cart is empty");
@@ -583,6 +594,15 @@ const PosDashboard = () => {
         const methodLabel =
             PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label || paymentMethod;
         const isCod = paymentMethod === "cod";
+        const paid = Math.max(0, toFloat2(amountPaidDraft));
+        const gt = Number(grandTotal.toFixed(2));
+        const pRounded = Number(paid.toFixed(2));
+        let status;
+        if (pRounded >= gt) status = "Fully Paid";
+        else if (pRounded > 0) status = "Partially Paid";
+        else status = "Unpaid";
+        const balance = Number(Math.max(0, gt - pRounded).toFixed(2));
+
         const itemsForApi = cart.map((l) => ({
             description: l.name,
             quantity: l.qty,
@@ -598,16 +618,12 @@ const PosDashboard = () => {
             tin: user?.tin || "",
         };
         const billTo = {
-            clientName: "Walk-in (POS)",
+            clientName: "Cash customer (POS)",
             email: "",
             address: "",
             phone: "",
             tin: "",
         };
-        const status = isCod ? "Unpaid" : "Fully Paid";
-        const paid = isCod ? 0 : amountPaidValue;
-        const balance = isCod ? grandTotal : 0;
-
         const createPayload = {
             invoiceDate: today,
             dueDate: today,
@@ -636,6 +652,7 @@ const PosDashboard = () => {
             paymentTerms: methodLabel,
             status,
             amountPaid: paid,
+            balanceDue: balance,
             discountPercent: toFloat2(discountPercent),
             discountAmount: toFloat2(discountAmount),
         };
@@ -661,7 +678,15 @@ const PosDashboard = () => {
             }
 
             let printInvoice = invoice;
-            const baseToast = wasEditing ? "Order updated" : isCod ? "Order saved (COD)" : "Payment recorded";
+            const baseToast = wasEditing
+                ? "Order updated"
+                : isCod
+                  ? "Order saved (COD)"
+                  : status === "Fully Paid"
+                    ? "Payment recorded"
+                    : status === "Partially Paid"
+                      ? "Partial payment recorded"
+                      : "Order saved";
             const tryGra = await canAttemptGraSubmit(user);
             if (tryGra) {
                 try {
@@ -953,6 +978,39 @@ const PosDashboard = () => {
                         <div className="flex justify-between font-semibold text-gray-900 pt-1">
                             <span>Total due</span>
                             <span className="tabular-nums text-sm">{formatCurrency(grandTotal, userCurrency)}</span>
+                        </div>
+                        <label className="block pt-2">
+                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                                Amount received
+                            </span>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                value={amountPaidDraft}
+                                onChange={(e) => {
+                                    let v = e.target.value.replace(",", ".");
+                                    if (v === "" || /^\d*\.?\d*$/.test(v)) setAmountPaidDraft(v);
+                                }}
+                                className="mt-1 w-full rounded-md border border-gray-200 px-2 py-1.5 text-xs tabular-nums"
+                                placeholder="0.00"
+                            />
+                        </label>
+                        <div className="flex justify-between text-gray-600 text-[11px]">
+                            <span>Balance due</span>
+                            <span className="tabular-nums font-medium text-gray-900">
+                                {formatCurrency(
+                                    Math.max(
+                                        0,
+                                        Number(
+                                            (
+                                                grandTotal - Math.max(0, parseDecimalInput(amountPaidDraft))
+                                            ).toFixed(2)
+                                        )
+                                    ),
+                                    userCurrency
+                                )}
+                            </span>
                         </div>
                     </div>
 
