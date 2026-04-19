@@ -1,11 +1,37 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 import { API_PATHS } from '../utils/apiPaths';
+import { normalizeAuthProfilePayload } from '../utils/authProfilePayload';
 
 const AuthContext = createContext();
 
 /** Auto sign-out after this many ms of no user activity (default 5 minutes) */
 const INACTIVITY_MS = 5 * 60 * 1000;
+
+/** Last good /api/auth/me payload — used when a redeployed API returns a non-fatal Google Calendar envelope */
+const PROFILE_BACKUP_KEY = 'invoicy_profile_backup';
+
+function persistProfileBackup(profile) {
+    if (typeof window === 'undefined' || !profile) return;
+    try {
+        sessionStorage.setItem(PROFILE_BACKUP_KEY, JSON.stringify(profile));
+    } catch (_) {
+        /* ignore quota / private mode */
+    }
+}
+
+function readProfileBackup() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = sessionStorage.getItem(PROFILE_BACKUP_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && (parsed.email || parsed._id)) return parsed;
+    } catch (_) {
+        /* ignore */
+    }
+    return null;
+}
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -39,6 +65,11 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
 
+            const subscriptionSubject = (raw) => {
+                const { user } = normalizeAuthProfilePayload(raw);
+                return user || (raw && typeof raw === "object" && (raw.email || raw._id) ? raw : null);
+            };
+
             if (hasPaymentSuccess && data) {
                 const hasValidSub = (d) => {
                     const sub = d?.subscription;
@@ -50,19 +81,34 @@ export const AuthProvider = ({ children }) => {
                     }
                     return false;
                 };
-                if (!hasValidSub(data)) {
+                let subj = subscriptionSubject(data);
+                if (!hasValidSub(subj)) {
                     await new Promise((r) => setTimeout(r, 2500));
                     data = await fetchProfile().catch(() => data);
+                    subj = subscriptionSubject(data);
                 }
-                if (!hasValidSub(data) && data) {
+                if (!hasValidSub(subj) && subj) {
                     await new Promise((r) => setTimeout(r, 3000));
                     data = await fetchProfile().catch(() => data);
+                    subj = subscriptionSubject(data);
                 }
             }
 
-            if (data) {
-                setUser(data);
+            const { user: normalizedUser, calendarOptionalFailure } = normalizeAuthProfilePayload(data);
+            let profile = normalizedUser;
+            if (!profile && calendarOptionalFailure) {
+                profile = readProfileBackup();
+                if (profile) {
+                    console.warn(
+                        "[Auth] Profile response included a Google Calendar notice; using last session profile. Connect Calendar in Integrations if you need it."
+                    );
+                }
+            }
+
+            if (profile) {
+                setUser(profile);
                 setIsAuthenticated(true);
+                persistProfileBackup(profile);
             } else {
                 setUser(null);
                 setIsAuthenticated(false);
@@ -76,8 +122,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     const login = (userData) => {
-        setUser(userData);
+        const { user: normalizedUser } = normalizeAuthProfilePayload(userData);
+        const next =
+            normalizedUser ||
+            (userData && typeof userData === 'object' && (userData.email || userData._id) ? userData : null);
+        if (!next) return;
+        setUser(next);
         setIsAuthenticated(true);
+        persistProfileBackup(next);
     };
 
     const logout = async () => {
@@ -116,6 +168,9 @@ export const AuthProvider = ({ children }) => {
             newUserData.isPlatformAdmin = user.isPlatformAdmin;
         }
         setUser(newUserData);
+        if (newUserData && (newUserData.email || newUserData._id)) {
+            persistProfileBackup(newUserData);
+        }
     };
 
     const value = {

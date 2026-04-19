@@ -22,11 +22,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { printPosReceiptWindow } from "../../utils/posReceiptPrint";
-import {
-    canAttemptGraSubmit,
-    formatGraSubmitError,
-    submitInvoiceToGraAndFetch,
-} from "../../utils/graSubmitPersist";
 
 /** Filter key for items with no category set */
 const UNCATEGORIZED_KEY = "__uncategorized__";
@@ -677,7 +672,6 @@ const PosDashboard = () => {
                 return;
             }
 
-            let printInvoice = invoice;
             const baseToast = wasEditing
                 ? "Order updated"
                 : isCod
@@ -687,22 +681,11 @@ const PosDashboard = () => {
                     : status === "Partially Paid"
                       ? "Partial payment recorded"
                       : "Order saved";
-            const tryGra = await canAttemptGraSubmit(user);
-            if (tryGra) {
-                try {
-                    printInvoice = await submitInvoiceToGraAndFetch(invoice._id);
-                    toast.success(`${baseToast} · Submitted to GRA (eVAT).`);
-                } catch (graErr) {
-                    toast.error(`${formatGraSubmitError(graErr)} The sale was saved; open the invoice to retry GRA.`);
-                    toast.success(baseToast);
-                }
-            } else {
-                toast.success(baseToast);
-            }
+            toast.success(`${baseToast}. You can edit this invoice before submitting to GRA.`);
 
             window.dispatchEvent(new CustomEvent("invoicesUpdated"));
             clearCart();
-            const printed = printPosReceiptWindow(printInvoice, userCurrency, user);
+            const printed = printPosReceiptWindow(invoice, userCurrency, user);
             if (!printed) {
                 toast.error("Pop-up blocked — allow pop-ups to print, or find this sale under Sales → POS.");
             }

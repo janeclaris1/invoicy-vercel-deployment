@@ -12,6 +12,7 @@ import {useAuth} from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPostLoginRedirectPath } from "../../utils/appMode";
+import { normalizeAuthProfilePayload } from "../../utils/authProfilePayload";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -129,7 +130,10 @@ const Login = () => {
             for (let attempt = 1; attempt <= maxAttempts && !done; attempt++) {
               try {
                 const meRes = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-                const data = meRes.data || {};
+                const rawMe = meRes.data || {};
+                const { user: meUser } = normalizeAuthProfilePayload(rawMe);
+                const data = meUser || (rawMe.email || rawMe._id ? rawMe : null);
+                if (!data) continue;
                 const status = (data.subscription?.status || "").toLowerCase();
                 const hasAccess = data.isPlatformAdmin || status === "active" || status === "trialing";
                 if (hasAccess) {
