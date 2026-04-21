@@ -805,15 +805,15 @@ const InvoiceDetail = () => {
             <tbody className="bg-white dark:bg-white">
               {lineItems.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-100 group transition-colors duration-150">
-                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.sn || index + 1}</td>
-                  <td className="px-2 py-2 align-top text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300 break-words min-w-0">
+                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.sn || index + 1}</td>
+                  <td className="px-2 py-1 align-top text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300 break-words min-w-0">
                     {item.description || item.itemDescription || "-"}
                   </td>
-                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.quantity ?? "-"}</td>
-                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
+                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.quantity ?? "-"}</td>
+                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
                     {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
                   </td>
-                  <td className="px-2 py-2 align-top tabular-nums text-black dark:text-black group-hover:text-black border-b border-gray-300">
+                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-b border-gray-300">
                     {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
                   </td>
                 </tr>
