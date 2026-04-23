@@ -51,6 +51,21 @@
     opacity: 1;
   }
 
+  /* Keep search bars readable across pages/themes. */
+  input[type="search"],
+  input[placeholder*="Search"],
+  input[placeholder*="search"] {
+    color: #111827;
+    -webkit-text-fill-color: #111827;
+    caret-color: #111827;
+  }
+  input[type="search"]::placeholder,
+  input[placeholder*="Search"]::placeholder,
+  input[placeholder*="search"]::placeholder {
+    color: #6b7280;
+    opacity: 1;
+  }
+
   /* Invoice detail page header */
   .invoice-detail-page-header {
     background-color: #ffffff; /* match card background */
