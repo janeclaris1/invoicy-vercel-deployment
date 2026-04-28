@@ -2,6 +2,32 @@ const User = require("../models/User");
 const Invoice = require("../models/invoice");
 
 const GRA_BASE_URL = String(process.env.GRA_BASE_URL || "https://gravsdc.vat-gh.com/api/v1").replace(/\/+$/, "");
+const GRA_CONNECT_TIMEOUT_MS = Number(process.env.GRA_CONNECT_TIMEOUT_MS || 30000);
+const GRA_RETRY_COUNT = Number(process.env.GRA_RETRY_COUNT || 2);
+
+let graFetchDispatcher = null;
+try {
+    const { Agent } = require("undici");
+    graFetchDispatcher = new Agent({
+        connect: { timeout: GRA_CONNECT_TIMEOUT_MS },
+    });
+} catch (_) {
+    // Fallback to default Node fetch behavior when undici is unavailable.
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const isRetryableGraNetworkError = (error) => {
+    const msg = String(error?.message || "").toLowerCase();
+    const cause = String(error?.cause || "").toLowerCase();
+    return (
+        msg.includes("fetch failed") ||
+        msg.includes("timeout") ||
+        cause.includes("timeout") ||
+        cause.includes("econnreset") ||
+        cause.includes("enetunreach") ||
+        cause.includes("eai_again")
+    );
+};
 
 const getTeamMemberIds = async (currentUserId) => {
     try {
@@ -39,16 +65,27 @@ const callGRA = async (user, path, method, body) => {
         security_key: securityKey,
     };
     let res;
-    try {
-        res = await fetch(url, {
-            method: method || "POST",
-            headers,
-            body: body ? JSON.stringify(body) : undefined,
-        });
-    } catch (e) {
-        const err = new Error(`Failed to reach GRA (${new URL(url).host}). ${e?.message || "Network error"}`);
+    let lastErr = null;
+    for (let attempt = 0; attempt <= GRA_RETRY_COUNT; attempt++) {
+        try {
+            res = await fetch(url, {
+                method: method || "POST",
+                headers,
+                body: body ? JSON.stringify(body) : undefined,
+                ...(graFetchDispatcher ? { dispatcher: graFetchDispatcher } : {}),
+            });
+            lastErr = null;
+            break;
+        } catch (e) {
+            lastErr = e;
+            if (attempt >= GRA_RETRY_COUNT || !isRetryableGraNetworkError(e)) break;
+            await sleep(400 * (attempt + 1));
+        }
+    }
+    if (lastErr) {
+        const err = new Error(`Failed to reach GRA (${new URL(url).host}). ${lastErr?.message || "Network error"}`);
         err.graStatus = 0;
-        err.graResponse = { message: e?.message, cause: e?.cause ? String(e.cause) : undefined };
+        err.graResponse = { message: lastErr?.message, cause: lastErr?.cause ? String(lastErr.cause) : undefined };
         throw err;
     }
     const data = await res.json().catch(() => ({}));
@@ -76,18 +113,29 @@ const callGRAGet = async (user, path) => {
     }
     const url = `${GRA_BASE_URL}${path}`;
     let res;
-    try {
-        res = await fetch(url, {
-            method: "GET",
-            headers: {
-                Accept: "application/json",
-                security_key: securityKey,
-            },
-        });
-    } catch (e) {
-        const err = new Error(`Failed to reach GRA (${new URL(url).host}). ${e?.message || "Network error"}`);
+    let lastErr = null;
+    for (let attempt = 0; attempt <= GRA_RETRY_COUNT; attempt++) {
+        try {
+            res = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    security_key: securityKey,
+                },
+                ...(graFetchDispatcher ? { dispatcher: graFetchDispatcher } : {}),
+            });
+            lastErr = null;
+            break;
+        } catch (e) {
+            lastErr = e;
+            if (attempt >= GRA_RETRY_COUNT || !isRetryableGraNetworkError(e)) break;
+            await sleep(400 * (attempt + 1));
+        }
+    }
+    if (lastErr) {
+        const err = new Error(`Failed to reach GRA (${new URL(url).host}). ${lastErr?.message || "Network error"}`);
         err.graStatus = 0;
-        err.graResponse = { message: e?.message, cause: e?.cause ? String(e.cause) : undefined };
+        err.graResponse = { message: lastErr?.message, cause: lastErr?.cause ? String(lastErr.cause) : undefined };
         throw err;
     }
     const data = await res.json().catch(() => ({}));
