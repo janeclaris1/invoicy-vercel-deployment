@@ -632,8 +632,12 @@ exports.submitInvoice = async (req, res) => {
             sumExclusiveTaxableBase: roundTo(sumExclusiveTaxableBase, 2),
             lineSupplyAfterDiscount: sumGraInclusiveLineSupplyAfterDiscount(itemsForGra, roundTo),
         };
-        // VER 8.2 invoice endpoint: /taxpayer/{COMPANY_REFERENCE}/invoice
-        const invoicePath = `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`;
+        // VER 8.2 invoice endpoint is typically `/invoice`, but some tenants expose `/invoices`.
+        const invoicePathCandidates = [
+            `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoice`,
+            `/taxpayer/${encodeURIComponent(user.graCompanyReference)}/invoices`,
+        ];
+        let selectedInvoicePath = invoicePathCandidates[0];
         const maskCompanyReference = (ref) => {
             const s = String(ref || "");
             if (!s) return "";
@@ -649,13 +653,15 @@ exports.submitInvoice = async (req, res) => {
                 }
             })(),
             companyReferenceUsed: maskCompanyReference(user.graCompanyReference),
+            graInvoicePathAttempted: selectedInvoicePath,
         };
 
         // Debug mode: return the exact computed payload so you can compare with Postman.
         // Does NOT call GRA.
         if (debugPayload) {
             return res.json({
-                graEndpoint: `${GRA_BASE_URL}${invoicePath}`,
+                graEndpoint: `${GRA_BASE_URL}${invoicePathCandidates[0]}`,
+                graEndpointFallback: `${GRA_BASE_URL}${invoicePathCandidates[1]}`,
                 graPayload: body,
                 taxRecalc,
                 levyDiscountFactor,
@@ -752,11 +758,26 @@ exports.submitInvoice = async (req, res) => {
         let lastRetryableErr = null;
         for (const attempt of attemptBodies) {
             try {
-                const data = await callGRA(user, invoicePath, "POST", attempt.body);
+                let data = null;
+                let lastErr = null;
+                for (const pathCandidate of invoicePathCandidates) {
+                    selectedInvoicePath = pathCandidate;
+                    debugMeta.graInvoicePathAttempted = selectedInvoicePath;
+                    try {
+                        data = await callGRA(user, pathCandidate, "POST", attempt.body);
+                        lastErr = null;
+                        break;
+                    } catch (err) {
+                        lastErr = err;
+                        if (err?.graStatus !== 404) throw err;
+                    }
+                }
+                if (lastErr) throw lastErr;
                 return res.json(data);
             } catch (err) {
                 debugAttempts.push({
                     attempt: attempt.label,
+                    pathAttempted: selectedInvoicePath,
                     headerDiscountAmount: Number(attempt.body.discountAmount || 0),
                     itemDiscountSum: roundTo(
                         (attempt.body.items || []).reduce((s, it) => s + Number(it.discountAmount || 0), 0),
