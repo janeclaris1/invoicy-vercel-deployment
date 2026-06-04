@@ -11,12 +11,14 @@ import { formatCurrency } from "../../utils/helper";
 import {
   INVOICE_REPORT_COLUMNS,
   buildInvoiceReportFilename,
+  computeInvoiceReportGrandTotals,
   downloadInvoiceReportCsv,
   downloadInvoiceReportExcel,
   downloadInvoiceReportWord,
   formatReportAmount,
   formatReportDate,
   groupInvoiceReportRows,
+  isInvoiceNumericColumn,
 } from "../../utils/invoiceReportExport";
 // html2pdf will be loaded dynamically
 
@@ -315,15 +317,31 @@ const Reports = () => {
     return groupInvoiceReportRows(invoicesForReport, getCustomerName);
   }, [filteredInvoices]);
 
+  const invoiceReportGrandTotals = useMemo(
+    () => computeInvoiceReportGrandTotals(invoiceReportGroups),
+    [invoiceReportGroups]
+  );
+
+  const companyDetails = useMemo(
+    () => ({
+      name: user?.businessName || user?.companyName || user?.name || "",
+      tin: user?.tin || "",
+      address: user?.address || "",
+      phone: user?.phone || "",
+      email: user?.email || "",
+    }),
+    [user?.businessName, user?.companyName, user?.name, user?.tin, user?.address, user?.phone, user?.email]
+  );
+
   const invoiceReportExportMeta = useMemo(
     () => ({
       groups: invoiceReportGroups,
       title: "Invoice Report",
       periodLabel: `${moment(dateRange.startDate).format("MMM DD, YYYY")} - ${moment(dateRange.endDate).format("MMM DD, YYYY")}`,
       generatedAt: moment().format("MMM DD, YYYY HH:mm"),
-      businessName: user?.businessName || user?.companyName || "",
+      companyDetails,
     }),
-    [invoiceReportGroups, dateRange.startDate, dateRange.endDate, user?.businessName, user?.companyName]
+    [invoiceReportGroups, dateRange.startDate, dateRange.endDate, companyDetails]
   );
 
   const reportTypes = REPORT_TYPE_OPTIONS;
@@ -554,7 +572,7 @@ const Reports = () => {
         jsPDF: { 
           unit: "in", 
           format: "a4", 
-          orientation: reportType === "invoice-report" ? "landscape" : "portrait"
+          orientation: "landscape"
         },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] }
       };
@@ -782,16 +800,25 @@ const Reports = () => {
         )}
         {/* Report Header */}
         <div className="border-b border-gray-200 pb-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="flex-1">
+              {companyDetails.name && (
+                <p className="text-lg font-bold text-gray-900">{companyDetails.name}</p>
+              )}
+              <div className="mt-1 space-y-0.5 text-sm text-gray-600">
+                {companyDetails.tin && <p>TIN: {companyDetails.tin}</p>}
+                {companyDetails.address && <p>{companyDetails.address}</p>}
+                {companyDetails.phone && <p>Tel: {companyDetails.phone}</p>}
+                {companyDetails.email && <p>Email: {companyDetails.email}</p>}
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mt-4">
                 {reportTypes.find(r => r.id === reportType)?.name}
               </h2>
               <p className="text-gray-600 mt-1">
                 Period: {moment(dateRange.startDate).format('MMM DD, YYYY')} - {moment(dateRange.endDate).format('MMM DD, YYYY')}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="text-sm text-gray-600">Generated on</p>
               <p className="font-semibold text-gray-900">{moment().format('MMM DD, YYYY HH:mm')}</p>
             </div>
@@ -1178,16 +1205,14 @@ const Reports = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1400px] border border-gray-300 text-sm">
+                <table className="w-full min-w-[1550px] border border-gray-300 text-sm">
                   <thead className="bg-gray-100">
                     <tr>
                       {INVOICE_REPORT_COLUMNS.map((column) => (
                         <th
                           key={column}
                           className={`py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300 whitespace-nowrap ${
-                            column.includes("@") || column.includes("Amount") || column.includes("Levy") || column.includes("Taxable")
-                              ? "text-right"
-                              : "text-left"
+                            isInvoiceNumericColumn(column) ? "text-right" : "text-left"
                           }`}
                         >
                           {column}
@@ -1250,10 +1275,77 @@ const Reports = () => {
                             <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
                               {formatReportAmount(row.vat)}
                             </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap font-medium">
+                              {formatReportAmount(row.grandTotal)}
+                            </td>
                           </tr>
                         ))}
+                        <tr className="bg-gray-100 font-semibold">
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300" colSpan={6}>
+                            Subtotal
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.exclusiveAmount)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.getFund)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.nhil)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.covid)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.cst)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.tourism)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.vatTaxable)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.vat)}
+                          </td>
+                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                            {formatReportAmount(group.totals.grandTotal)}
+                          </td>
+                        </tr>
                       </Fragment>
                     ))}
+                    <tr className="bg-amber-100 font-bold">
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300" colSpan={6}>
+                        GRAND TOTAL
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.exclusiveAmount)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.getFund)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.nhil)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.covid)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.cst)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.tourism)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.vatTaxable)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.vat)}
+                      </td>
+                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                        {formatReportAmount(invoiceReportGrandTotals.grandTotal)}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1440,6 +1532,7 @@ const Reports = () => {
           
           /* Reset body and page */
           @page {
+            size: landscape;
             margin: 0.5in;
           }
           

@@ -15,6 +15,19 @@ export const INVOICE_REPORT_COLUMNS = [
   "Tourism Levy",
   "VAT Taxable",
   "VAT @ 15%",
+  "Total Invoice Amount",
+];
+
+const NUMERIC_FIELDS = [
+  "exclusiveAmount",
+  "getFund",
+  "nhil",
+  "covid",
+  "cst",
+  "tourism",
+  "vatTaxable",
+  "vat",
+  "grandTotal",
 ];
 
 const round2 = (value) => Math.round(Number(value || 0) * 100) / 100;
@@ -35,6 +48,14 @@ const sumLineField = (invoice, field) => {
   return round2(items.reduce((sum, line) => sum + Number(line?.[field] || 0), 0));
 };
 
+export const sumInvoiceReportRows = (rows) => {
+  const totals = {};
+  NUMERIC_FIELDS.forEach((field) => {
+    totals[field] = round2(rows.reduce((sum, row) => sum + Number(row[field] || 0), 0));
+  });
+  return totals;
+};
+
 export const buildInvoiceReportRow = (invoice, getCustomerName) => {
   const exclusiveAmount = round2(
     Math.max(0, Number(invoice?.subtotal || 0) - Number(invoice?.totalDiscount || 0))
@@ -46,6 +67,7 @@ export const buildInvoiceReportRow = (invoice, getCustomerName) => {
   const tourism = sumLineField(invoice, "tourism");
   const vatTaxable = round2(exclusiveAmount + nhil + getFund + covid + cst + tourism);
   const vat = round2(invoice?.totalVat || 0);
+  const grandTotal = round2(invoice?.grandTotal || 0);
 
   return {
     invoiceId: invoice?._id || invoice?.invoiceNumber || "",
@@ -63,6 +85,7 @@ export const buildInvoiceReportRow = (invoice, getCustomerName) => {
     tourism,
     vatTaxable,
     vat,
+    grandTotal,
     vsdcId: invoice?.graSdcId || "Unstamped",
     branchName: invoice?.branch?.name || "Head Office",
   };
@@ -85,16 +108,23 @@ export const groupInvoiceReportRows = (invoices, getCustomerName) => {
   });
 
   return Array.from(groups.values())
-    .map((group) => ({
-      ...group,
-      rows: group.rows.sort(
+    .map((group) => {
+      const rows = group.rows.sort(
         (a, b) =>
           moment(a.invoiceDate).valueOf() - moment(b.invoiceDate).valueOf() ||
           String(a.invoiceNumber).localeCompare(String(b.invoiceNumber))
-      ),
-    }))
+      );
+      return {
+        ...group,
+        rows,
+        totals: sumInvoiceReportRows(rows),
+      };
+    })
     .sort((a, b) => a.vsdcId.localeCompare(b.vsdcId) || a.branchName.localeCompare(b.branchName));
 };
+
+export const computeInvoiceReportGrandTotals = (groups) =>
+  sumInvoiceReportRows(groups.flatMap((group) => group.rows));
 
 const rowToValues = (row) => [
   formatReportDate(row.createdDate),
@@ -111,6 +141,25 @@ const rowToValues = (row) => [
   formatReportAmount(row.tourism),
   formatReportAmount(row.vatTaxable),
   formatReportAmount(row.vat),
+  formatReportAmount(row.grandTotal),
+];
+
+const totalsToValues = (totals, label = "TOTAL") => [
+  label,
+  "",
+  "",
+  "",
+  "",
+  "",
+  formatReportAmount(totals.exclusiveAmount),
+  formatReportAmount(totals.getFund),
+  formatReportAmount(totals.nhil),
+  formatReportAmount(totals.covid),
+  formatReportAmount(totals.cst),
+  formatReportAmount(totals.tourism),
+  formatReportAmount(totals.vatTaxable),
+  formatReportAmount(totals.vat),
+  formatReportAmount(totals.grandTotal),
 ];
 
 export const csvEscape = (value) => {
@@ -130,10 +179,41 @@ const triggerDownload = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-export const buildInvoiceReportHtml = ({ groups, title, periodLabel, generatedAt, businessName }) => {
+export const buildCompanyDetailsHtml = (companyDetails = {}) => {
+  const lines = [
+    companyDetails.name ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">${companyDetails.name}</p>` : "",
+    companyDetails.tin ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">TIN: ${companyDetails.tin}</p>` : "",
+    companyDetails.address ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">${companyDetails.address}</p>` : "",
+    companyDetails.phone ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">Tel: ${companyDetails.phone}</p>` : "",
+    companyDetails.email ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">Email: ${companyDetails.email}</p>` : "",
+  ].filter(Boolean);
+
+  return lines.join("");
+};
+
+const buildTotalsRowHtml = (totals, label, background = "#fef3c7") => {
+  const cells = totalsToValues(totals, label)
+    .map((value, index) => {
+      const align = index >= 6 ? "right" : "left";
+      const weight = index === 0 ? "font-weight:bold;" : "";
+      return `<td style="border:1px solid #333;padding:6px 8px;text-align:${align};${weight}">${value}</td>`;
+    })
+    .join("");
+  return `<tr style="background:${background};">${cells}</tr>`;
+};
+
+export const buildInvoiceReportHtml = ({
+  groups,
+  title,
+  periodLabel,
+  generatedAt,
+  companyDetails,
+}) => {
   const headerCells = INVOICE_REPORT_COLUMNS.map(
     (col) => `<th style="border:1px solid #333;padding:6px 8px;text-align:left;font-weight:bold;background:#f3f4f6;">${col}</th>`
   ).join("");
+
+  const grandTotals = computeInvoiceReportGrandTotals(groups);
 
   const body = groups
     .map((group) => {
@@ -150,9 +230,12 @@ export const buildInvoiceReportHtml = ({ groups, title, periodLabel, generatedAt
           return `<tr>${cells}</tr>`;
         })
         .join("");
-      return groupRow + dataRows;
+      const subtotalRow = buildTotalsRowHtml(group.totals, "Subtotal", "#f3f4f6");
+      return groupRow + dataRows + subtotalRow;
     })
     .join("");
+
+  const grandTotalRow = buildTotalsRowHtml(grandTotals, "GRAND TOTAL", "#fde68a");
 
   return `<!DOCTYPE html>
 <html>
@@ -161,22 +244,37 @@ export const buildInvoiceReportHtml = ({ groups, title, periodLabel, generatedAt
   <title>${title}</title>
 </head>
 <body>
-  <h2 style="margin:0 0 8px;font-family:Arial,sans-serif;">${title}</h2>
-  <p style="margin:0 0 4px;font-family:Arial,sans-serif;">${businessName || ""}</p>
+  ${buildCompanyDetailsHtml(companyDetails)}
+  <h2 style="margin:8px 0 8px;font-family:Arial,sans-serif;">${title}</h2>
   <p style="margin:0 0 4px;font-family:Arial,sans-serif;">Period: ${periodLabel}</p>
   <p style="margin:0 0 16px;font-family:Arial,sans-serif;">Generated: ${generatedAt}</p>
   <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11px;">
     <thead><tr>${headerCells}</tr></thead>
-    <tbody>${body}</tbody>
+    <tbody>${body}${grandTotalRow}</tbody>
   </table>
 </body>
 </html>`;
 };
 
-export const downloadInvoiceReportCsv = ({ groups, filename, title, periodLabel, generatedAt, businessName }) => {
+const pushCompanyLines = (lines, companyDetails) => {
+  if (companyDetails?.name) lines.push([companyDetails.name].map(csvEscape).join(","));
+  if (companyDetails?.tin) lines.push([`TIN: ${companyDetails.tin}`].map(csvEscape).join(","));
+  if (companyDetails?.address) lines.push([companyDetails.address].map(csvEscape).join(","));
+  if (companyDetails?.phone) lines.push([`Tel: ${companyDetails.phone}`].map(csvEscape).join(","));
+  if (companyDetails?.email) lines.push([`Email: ${companyDetails.email}`].map(csvEscape).join(","));
+};
+
+export const downloadInvoiceReportCsv = ({
+  groups,
+  filename,
+  title,
+  periodLabel,
+  generatedAt,
+  companyDetails,
+}) => {
   const lines = [];
   lines.push([title].map(csvEscape).join(","));
-  if (businessName) lines.push([businessName].map(csvEscape).join(","));
+  pushCompanyLines(lines, companyDetails);
   lines.push([`Period: ${periodLabel}`].map(csvEscape).join(","));
   lines.push([`Generated: ${generatedAt}`].map(csvEscape).join(","));
   lines.push("");
@@ -187,8 +285,12 @@ export const downloadInvoiceReportCsv = ({ groups, filename, title, periodLabel,
     group.rows.forEach((row) => {
       lines.push(rowToValues(row).map(csvEscape).join(","));
     });
+    lines.push(totalsToValues(group.totals, "Subtotal").map(csvEscape).join(","));
     lines.push("");
   });
+
+  const grandTotals = computeInvoiceReportGrandTotals(groups);
+  lines.push(totalsToValues(grandTotals, "GRAND TOTAL").map(csvEscape).join(","));
 
   const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
   triggerDownload(blob, filename);
@@ -214,3 +316,9 @@ export const buildInvoiceReportFilename = (startDate, endDate, extension) => {
   const stamp = `${moment(startDate).format("YYYY-MM-DD")}_to_${moment(endDate).format("YYYY-MM-DD")}`;
   return `Invoice_Report_${stamp}.${extension}`;
 };
+
+export const isInvoiceNumericColumn = (column) =>
+  column.includes("@") ||
+  column.includes("Amount") ||
+  column.includes("Levy") ||
+  column.includes("Taxable");
