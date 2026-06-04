@@ -21,7 +21,7 @@ const resources = {
         categories: "Categories",
         items: "Items",
         stock: "Stock Management",
-        reports: "Reports",
+        reports: "Reports & Analytics",
         branches: "Branches",
         projects: "Project Management",
         projects_time: "Time Entries",

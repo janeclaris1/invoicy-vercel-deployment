@@ -229,7 +229,7 @@ export const NAVIGATION_MENU = [
     { id: "categories", name: "Categories", icon: FolderOpen, responsibility: "categories" },
     { id: "items", name: "Items", icon: Package, responsibility: "items" },
     { id: "stock", name: "Stock Management", icon: Boxes, responsibility: "items" },
-    { id: "reports", name: "Reports", icon: FileCheck, responsibility: "reports" },
+    { id: "reports", name: "Reports & Analytics", icon: FileCheck, responsibility: "reports" },
     { id: "branches", name: "Branches", icon: Building2, responsibility: "settings" },
     {
         id: "projects",

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FileText, Download, Printer, Calendar, TrendingUp, DollarSign, FileCheck, Building2, Filter } from "lucide-react";
 import Button from "../../components/ui/Button";
 import moment from "moment";
@@ -19,10 +20,25 @@ import {
 } from "../../utils/invoiceReportExport";
 // html2pdf will be loaded dynamically
 
+const REPORT_TYPE_OPTIONS = [
+  { id: "invoice-report", name: "Invoice Report", icon: FileText, description: "Detailed invoice and tax breakdown" },
+  { id: "sales", name: "Sales Summary", icon: TrendingUp, description: "Overview of all sales" },
+  { id: "tax", name: "Tax Report (GRA)", icon: FileCheck, description: "GRA compliance report" },
+  { id: "customer", name: "Customer Report", icon: Building2, description: "Customer analysis" },
+  { id: "payment", name: "Payment Report", icon: DollarSign, description: "Payment tracking" },
+  { id: "zd-daily", name: "ZD Daily Report", icon: Calendar, description: "Daily sales and stamping summary" },
+];
+
+const isValidReportType = (type) => REPORT_TYPE_OPTIONS.some((option) => option.id === type);
+
 const Reports = () => {
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
-  const [reportType, setReportType] = useState("sales");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [reportType, setReportType] = useState(() => {
+    const typeFromUrl = new URLSearchParams(window.location.search).get("type");
+    return isValidReportType(typeFromUrl) ? typeFromUrl : "invoice-report";
+  });
   const [dateRange, setDateRange] = useState({
     startDate: moment().startOf('month').format('YYYY-MM-DD'),
     endDate: moment().format('YYYY-MM-DD')
@@ -310,14 +326,23 @@ const Reports = () => {
     [invoiceReportGroups, dateRange.startDate, dateRange.endDate, user?.businessName, user?.companyName]
   );
 
-  const reportTypes = [
-    { id: "sales", name: "Sales Summary", icon: TrendingUp, description: "Overview of all sales" },
-    { id: "invoice-report", name: "Invoice Report", icon: FileText, description: "Detailed invoice and tax breakdown" },
-    { id: "tax", name: "Tax Report (GRA)", icon: FileCheck, description: "GRA compliance report" },
-    { id: "customer", name: "Customer Report", icon: Building2, description: "Customer analysis" },
-    { id: "payment", name: "Payment Report", icon: DollarSign, description: "Payment tracking" },
-    { id: "zd-daily", name: "ZD Daily Report", icon: Calendar, description: "Daily sales and stamping summary" }
-  ];
+  const reportTypes = REPORT_TYPE_OPTIONS;
+
+  useEffect(() => {
+    const typeFromUrl = searchParams.get("type");
+    if (isValidReportType(typeFromUrl) && typeFromUrl !== reportType) {
+      setReportType(typeFromUrl);
+      return;
+    }
+    if (!typeFromUrl && reportType) {
+      setSearchParams({ type: reportType }, { replace: true });
+    }
+  }, [searchParams, reportType, setSearchParams]);
+
+  const handleSelectReportType = (typeId) => {
+    setReportType(typeId);
+    setSearchParams({ type: typeId }, { replace: true });
+  };
 
   const handlePrint = () => {
     window.print();
@@ -626,19 +651,21 @@ const Reports = () => {
       {/* Header */}
       <div className="mb-7 print:hidden no-print">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports & Analytics</h1>
-        <p className="text-gray-600 dark:text-white mt-2">Generate and print sales activity reports</p>
+        <p className="text-gray-600 dark:text-white mt-2">
+          Generate invoice, sales, tax, and payment reports with PDF, Word, CSV, and Excel export
+        </p>
       </div>
 
       {/* Report Type Selection */}
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 p-6 mb-6 print:hidden no-print">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Report Type</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {reportTypes.map((type) => {
             const Icon = type.icon;
             return (
               <button
                 key={type.id}
-                onClick={() => setReportType(type.id)}
+                onClick={() => handleSelectReportType(type.id)}
                 className={`p-4 rounded-lg border-2 transition-all text-left dark:bg-slate-900 ${
                   reportType === type.id
                     ? "border-blue-600 bg-blue-50 dark:bg-slate-800 dark:border-blue-500"

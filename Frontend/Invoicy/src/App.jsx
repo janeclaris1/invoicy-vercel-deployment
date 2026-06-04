@@ -253,7 +253,7 @@ const App = () => {
               <Route path="meetings" element={<MeetingsPage />} />
               <Route path="reports" element={<CRMReportsPage />} />
             </Route>
-            <Route path="analytics" element={<ComingSoonPage section="analytics" />} />
+            <Route path="analytics" element={<Navigate to="/reports?type=invoice-report" replace />} />
             <Route path="integrations" element={<IntegrationsLayout />}>
               <Route index element={<Navigate to="connected" replace />} />
               <Route path="connected" element={<IntegrationsConnectedPage />} />
