@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import { FileText, Download, Printer, Calendar, TrendingUp, DollarSign, FileCheck, Building2, Filter } from "lucide-react";
 import Button from "../../components/ui/Button";
 import moment from "moment";
@@ -7,6 +7,16 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
+import {
+  INVOICE_REPORT_COLUMNS,
+  buildInvoiceReportFilename,
+  downloadInvoiceReportCsv,
+  downloadInvoiceReportExcel,
+  downloadInvoiceReportWord,
+  formatReportAmount,
+  formatReportDate,
+  groupInvoiceReportRows,
+} from "../../utils/invoiceReportExport";
 // html2pdf will be loaded dynamically
 
 const Reports = () => {
@@ -282,8 +292,27 @@ const Reports = () => {
     };
   }, [invoices, dateRange.endDate]);
 
+  const invoiceReportGroups = useMemo(() => {
+    const invoicesForReport = filteredInvoices.filter(
+      (inv) => (inv.type || "invoice") !== "proforma" && (inv.type || "invoice") !== "quotation"
+    );
+    return groupInvoiceReportRows(invoicesForReport, getCustomerName);
+  }, [filteredInvoices]);
+
+  const invoiceReportExportMeta = useMemo(
+    () => ({
+      groups: invoiceReportGroups,
+      title: "Invoice Report",
+      periodLabel: `${moment(dateRange.startDate).format("MMM DD, YYYY")} - ${moment(dateRange.endDate).format("MMM DD, YYYY")}`,
+      generatedAt: moment().format("MMM DD, YYYY HH:mm"),
+      businessName: user?.businessName || user?.companyName || "",
+    }),
+    [invoiceReportGroups, dateRange.startDate, dateRange.endDate, user?.businessName, user?.companyName]
+  );
+
   const reportTypes = [
     { id: "sales", name: "Sales Summary", icon: TrendingUp, description: "Overview of all sales" },
+    { id: "invoice-report", name: "Invoice Report", icon: FileText, description: "Detailed invoice and tax breakdown" },
     { id: "tax", name: "Tax Report (GRA)", icon: FileCheck, description: "GRA compliance report" },
     { id: "customer", name: "Customer Report", icon: Building2, description: "Customer analysis" },
     { id: "payment", name: "Payment Report", icon: DollarSign, description: "Payment tracking" },
@@ -292,6 +321,30 @@ const Reports = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportInvoiceCsv = () => {
+    downloadInvoiceReportCsv({
+      ...invoiceReportExportMeta,
+      filename: buildInvoiceReportFilename(dateRange.startDate, dateRange.endDate, "csv"),
+    });
+    toast.success("CSV downloaded");
+  };
+
+  const handleExportInvoiceExcel = () => {
+    downloadInvoiceReportExcel({
+      ...invoiceReportExportMeta,
+      filename: buildInvoiceReportFilename(dateRange.startDate, dateRange.endDate, "xlsx"),
+    });
+    toast.success("Excel file downloaded");
+  };
+
+  const handleExportInvoiceWord = () => {
+    downloadInvoiceReportWord({
+      ...invoiceReportExportMeta,
+      filename: buildInvoiceReportFilename(dateRange.startDate, dateRange.endDate, "doc"),
+    });
+    toast.success("Word document downloaded");
   };
 
   // Helper function to convert oklch colors in cloned document
@@ -476,7 +529,7 @@ const Reports = () => {
         jsPDF: { 
           unit: "in", 
           format: "a4", 
-          orientation: "portrait" 
+          orientation: reportType === "invoice-report" ? "landscape" : "portrait"
         },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] }
       };
@@ -1088,6 +1141,99 @@ const Reports = () => {
           </div>
         )}
 
+        {/* Invoice Report */}
+        {reportType === "invoice-report" && (
+          <div>
+            {invoiceReportGroups.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No invoices found for the selected period and filters.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1400px] border border-gray-300 text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      {INVOICE_REPORT_COLUMNS.map((column) => (
+                        <th
+                          key={column}
+                          className={`py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300 whitespace-nowrap ${
+                            column.includes("@") || column.includes("Amount") || column.includes("Levy") || column.includes("Taxable")
+                              ? "text-right"
+                              : "text-left"
+                          }`}
+                        >
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoiceReportGroups.map((group) => (
+                      <Fragment key={`group-${group.vsdcId}-${group.branchName}`}>
+                        <tr className="bg-gray-200">
+                          <td
+                            colSpan={INVOICE_REPORT_COLUMNS.length}
+                            className="py-2 px-3 font-semibold text-gray-900 border border-gray-300"
+                          >
+                            VSDC #: {group.vsdcId} AT {group.branchName}
+                          </td>
+                        </tr>
+                        {group.rows.map((row) => (
+                          <tr key={row.invoiceId}>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                              {formatReportDate(row.createdDate)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                              {formatReportDate(row.invoiceDate)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                              {row.invoiceNumber}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                              {row.receiptNumber}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                              {row.vsdcSignature}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200">
+                              {row.customerName}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.exclusiveAmount)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.getFund)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.nhil)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.covid)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.cst)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.tourism)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.vatTaxable)}
+                            </td>
+                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                              {formatReportAmount(row.vat)}
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ZD Daily Report */}
         {reportType === "zd-daily" && (
           <div>
@@ -1201,7 +1347,7 @@ const Reports = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 no-print">
+      <div className="flex flex-wrap gap-3 no-print">
         <Button
           onClick={handlePrint}
           className="px-2 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white"
@@ -1211,11 +1357,36 @@ const Reports = () => {
         </Button>
         <Button
           onClick={handleDownloadPDF}
-          className="px-2 py- 2 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition"
+          className="px-2 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition"
         >
           <Download className="w-5 h-4 mr-2" />
           Download PDF
         </Button>
+        {reportType === "invoice-report" && (
+          <>
+            <Button
+              onClick={handleExportInvoiceWord}
+              className="px-2 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition"
+            >
+              <Download className="w-5 h-4 mr-2" />
+              Download Word
+            </Button>
+            <Button
+              onClick={handleExportInvoiceCsv}
+              className="px-2 py-2 rounded bg-slate-600 hover:bg-slate-700 text-white transition"
+            >
+              <Download className="w-5 h-4 mr-2" />
+              Download CSV
+            </Button>
+            <Button
+              onClick={handleExportInvoiceExcel}
+              className="px-2 py-2 rounded bg-teal-600 hover:bg-teal-700 text-white transition"
+            >
+              <Download className="w-5 h-4 mr-2" />
+              Download Excel
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Print Styles */}
