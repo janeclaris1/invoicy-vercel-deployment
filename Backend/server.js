@@ -55,6 +55,8 @@ const { jsonBodyParser, urlencodedBodyParser } = require("./middlewares/bodyPars
 const { webhook: subscriptionWebhook } = require("./controller/subscriptionController");
 
 const app = express();
+const isServerless = Boolean(process.env.VERCEL);
+let server = null;
 
 // Render / other reverse proxies (needed for correct client IP and secure cookies behind HTTPS)
 app.set("trust proxy", 1);
@@ -127,8 +129,8 @@ const connectDatabase = async () => {
     await connectDB();
   } catch (err) {
     logger.error('Database connection error:', err);
-    // In production, exit if database connection fails
-    if (process.env.NODE_ENV === 'production') {
+    // In production, exit if database connection fails (except serverless runtime)
+    if (process.env.NODE_ENV === 'production' && !isServerless && require.main === module) {
       logger.error('Exiting due to database connection failure in production');
       process.exit(1);
     }
@@ -139,7 +141,7 @@ connectDatabase();
 // Production secrets and CORS configuration
 if (isProduction) {
   const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret || String(jwtSecret).length < 32) {
+  if ((!jwtSecret || String(jwtSecret).length < 32) && !isServerless && require.main === module) {
     logger.error("FATAL: JWT_SECRET must be set and at least 32 characters in production.");
     process.exit(1);
   }
@@ -262,7 +264,7 @@ app.use(errorHandler);
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   logger.error('UNHANDLED REJECTION! Shutting down...', err);
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && server && typeof server.close === "function") {
     // Close server gracefully
     server.close(() => {
       process.exit(1);
@@ -276,8 +278,12 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-// Start server
-const PORT = process.env.PORT || 8000;
-const server = app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-});
+// Start local server (Vercel imports app without starting a listener)
+if (require.main === module) {
+  const PORT = process.env.PORT || 8000;
+  server = app.listen(PORT, () => {
+    logger.info(`Server is running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  });
+}
+
+module.exports = app;
