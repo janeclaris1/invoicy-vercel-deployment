@@ -1,15 +1,11 @@
 const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const { getWritableDir } = require('../utils/runtimePaths');
 
-const UPLOAD_DIR = path.join(__dirname, '../uploads/profiles');
+const UPLOAD_DIR = getWritableDir('uploads/profiles');
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),

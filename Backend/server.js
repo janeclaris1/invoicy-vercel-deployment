@@ -178,10 +178,18 @@ app.use(attachAudit);
 
 // Health check endpoint (no internal details in production)
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const dbReadyState = mongoose.connection?.readyState ?? 0;
+
   const payload = {
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
+    database: {
+      status: dbStates[dbReadyState] || 'unknown',
+      connected: dbReadyState === 1,
+    },
   };
   if (!isProduction) {
     payload.environment = process.env.NODE_ENV || 'development';

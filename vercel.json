@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --prefix Backend && npm install --prefix Frontend/Invoicy --include=dev",
+  "installCommand": "npm install && npm install --prefix Frontend/Invoicy --include=dev",
   "buildCommand": "cd Frontend/Invoicy && npm run build",
   "outputDirectory": "Frontend/Invoicy/dist",
   "rewrites": [

@@ -1,9 +1,9 @@
 const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const { getWritableDir } = require('../utils/runtimePaths');
 
-const UPLOAD_DIR = path.join(__dirname, '../uploads/messages');
+const UPLOAD_DIR = getWritableDir('uploads/messages');
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5;
 
@@ -18,10 +18,6 @@ const allowedDocTypes = [
   'text/csv',
 ];
 const allowedTypes = [...allowedImageTypes, ...allowedDocTypes];
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
