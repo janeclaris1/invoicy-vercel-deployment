@@ -5,6 +5,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
+const mongoose = require("mongoose");
 const errorHandler = require("./middlewares/errorHandler");
 const { apiLimiter, authLimiter, aiLimiter, messagingLimiter } = require("./middlewares/rateLimiter");
 const logger = require("./utils/logger");
@@ -123,20 +124,42 @@ if (process.env.NODE_ENV === 'development') {
 // Rate Limiting
 app.use('/api/', apiLimiter);
 
-// Connect to Database
+// Connect to Database (lazy; also warmed per-request below on serverless)
 const connectDatabase = async () => {
   try {
     await connectDB();
   } catch (err) {
-    logger.error('Database connection error:', err);
-    // In production, exit if database connection fails (except serverless runtime)
-    if (process.env.NODE_ENV === 'production' && !isServerless && require.main === module) {
-      logger.error('Exiting due to database connection failure in production');
+    logger.error("Database connection error:", err);
+    if (process.env.NODE_ENV === "production" && !isServerless && require.main === module) {
+      logger.error("Exiting due to database connection failure in production");
       process.exit(1);
     }
   }
 };
 connectDatabase();
+
+// Ensure DB connection before API handlers (important on Vercel cold starts)
+app.use(async (req, res, next) => {
+  if (req.path === "/api/health") {
+    return next();
+  }
+  try {
+    await connectDB();
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: "Database unavailable. Check MONGO_URI is set in Vercel and MongoDB Atlas allows connections.",
+      });
+    }
+    next();
+  } catch (err) {
+    logger.error("Database middleware error:", err);
+    return res.status(503).json({
+      success: false,
+      message: "Service temporarily unavailable. Please try again later.",
+    });
+  }
+});
 
 // Production secrets and CORS configuration
 if (isProduction) {
@@ -177,8 +200,13 @@ app.use(cookieParser());
 app.use(attachAudit);
 
 // Health check endpoint (no internal details in production)
-app.get('/api/health', (req, res) => {
-  const mongoose = require('mongoose');
+app.get('/api/health', async (req, res) => {
+  try {
+    await connectDB();
+  } catch (_) {
+    /* report status below */
+  }
+
   const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
   const dbReadyState = mongoose.connection?.readyState ?? 0;
 
@@ -189,6 +217,7 @@ app.get('/api/health', (req, res) => {
     database: {
       status: dbStates[dbReadyState] || 'unknown',
       connected: dbReadyState === 1,
+      configured: Boolean(process.env.MONGO_URI),
     },
   };
   if (!isProduction) {

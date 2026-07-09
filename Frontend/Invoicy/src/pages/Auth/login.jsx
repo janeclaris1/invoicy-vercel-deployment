@@ -190,7 +190,10 @@ const Login = () => {
       if (err.response?.status === 429) {
         setError(err.response?.data?.message || "Too many login attempts. Please try again in 15 minutes.");
       } else if (err.response?.status === 503) {
-        setError("Service unavailable. The backend is not responding. Make sure the server is running (e.g. run the Backend with npm run dev).");
+        setError(
+          err.response?.data?.message ||
+            "Database unavailable. Add MONGO_URI in Vercel environment variables and allow MongoDB Atlas access from 0.0.0.0/0."
+        );
       } else if (err.response?.status === 401) {
         setError(err.response?.data?.message || "Invalid email or password. If you just signed up, make sure you're using the same account.");
       } else if (err.response?.status === 403) {
