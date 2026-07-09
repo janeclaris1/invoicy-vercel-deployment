@@ -275,7 +275,9 @@ process.on('unhandledRejection', (err) => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   logger.error('UNCAUGHT EXCEPTION! Shutting down...', err);
-  process.exit(1);
+  if (!isServerless) {
+    process.exit(1);
+  }
 });
 
 // Start local server (Vercel imports app without starting a listener)

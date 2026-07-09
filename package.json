@@ -1,0 +1,8 @@
+{
+  "name": "aiinvoice",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix Frontend/Invoicy",
+    "install:all": "npm install --prefix Backend && npm install --prefix Frontend/Invoicy"
+  }
+}

@@ -1,12 +1,15 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
+const isServerless = Boolean(process.env.VERCEL);
+const isDirectServerStart = require.main === module;
+
 const connectDB = async () => {
     try {
         if (!process.env.MONGO_URI) {
             const errorMsg = "MONGO_URI not found in environment variables";
             logger.error(errorMsg);
-            if (process.env.NODE_ENV === 'production') {
+            if (process.env.NODE_ENV === 'production' && !isServerless && isDirectServerStart) {
                 throw new Error(errorMsg);
             }
             logger.warn("Server will start but database operations will fail");
@@ -26,11 +29,11 @@ const connectDB = async () => {
         logger.error("   3) Network connection is working");
         logger.error("   4) MongoDB Atlas cluster is running (not paused)");
         
-        // In production, throw error to prevent server start
-        if (process.env.NODE_ENV === 'production') {
+        // In production, throw only when running a long-lived local server
+        if (process.env.NODE_ENV === 'production' && !isServerless && isDirectServerStart) {
             throw error;
         }
-        
+
         logger.warn("Server will continue but database operations will fail");
     }
 }
