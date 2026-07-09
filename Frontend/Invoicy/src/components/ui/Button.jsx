@@ -11,12 +11,12 @@ const Button = ({
     ...Props
 }) => {
 
-    const baseClasses = "inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    const baseClasses = "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow";
     
     const variantClasses = {
-        primary:'bg-blue-900 hover:bg-blue-800 text-white',
-        secondary:'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200',
-        ghost: 'bg-transparent hover:bg-slate-100 text-slate-700',
+        primary:'bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white',
+        secondary:'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300',
+        ghost: 'bg-transparent hover:bg-slate-100 text-slate-700 shadow-none hover:shadow-none',
         whiteOutline: 'bg-transparent hover:bg-white/10 text-white border border-white rounded-lg',
     };
 

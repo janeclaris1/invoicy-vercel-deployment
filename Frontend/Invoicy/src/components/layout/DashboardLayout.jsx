@@ -115,7 +115,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeNavItem, setActiveNavItem] = useState(activeMenu || "dashboard");
-    const [expandedNavIds, setExpandedNavIds] = useState({ hr: false, invoices: false, sales: false });
+    const [expandedNavIds, setExpandedNavIds] = useState({ hr: false, invoices: false });
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -193,8 +193,6 @@ const DashboardLayout = ({ children, activeMenu }) => {
     };
 
     const navLabelKey = (id) => {
-        if (id === "sales") return "nav.sales";
-        if (id === "sales/pos") return "nav.sales_pos";
         if (id === "invoices/new") return "nav.create_invoice";
         if (id === "quotations") return "nav.quotations";
         if (id === "stock") return "nav.stock";
@@ -234,9 +232,8 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
     const sidebarCollapsed = !isMobile && false; // Set to true to collapse sidebar on desktop
 
-    const hideSidebar =
-        location.pathname === "/pos" || location.pathname === "/choose-mode";
-    const isPosPage = location.pathname === "/pos";
+    const hideSidebar = location.pathname === "/choose-mode";
+    const isPosPage = false;
 
     const plan = (user?.subscription?.plan || "basic").toLowerCase();
     const isTrialActive =
@@ -277,7 +274,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                         : "translate-x-0"
                 } ${
                     sidebarCollapsed ? "w-20" : "w-64"
-                } bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden`}
+                } bg-gradient-to-b from-white to-slate-50 dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden shadow-sm`}
             >
                 {/* App Logo - fixed at top */}
                 <div className="flex-shrink-0 flex items-center h-16 border-b border-gray-200 dark:border-slate-800 px-4">
@@ -348,7 +345,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
             {/* Main Content — min-w-0 lets flex child shrink so inner content cannot widen the page */}
             <div className={`flex-1 flex flex-col min-w-0 w-full max-w-full transition-all duration-300 ${mainOffsetClass}`}>
                 {/* Top Navbar */}
-                <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 min-h-14 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 pt-[max(0px,env(safe-area-inset-top))] pb-2 sm:pb-0 sm:h-16 sm:min-h-0 sticky top-0 z-30 min-w-0 w-full max-w-full">
+                <header className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 min-h-14 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 pt-[max(0px,env(safe-area-inset-top))] pb-2 sm:pb-0 sm:h-16 sm:min-h-0 sticky top-0 z-30 min-w-0 w-full max-w-full shadow-sm">
                     <div className="flex items-center gap-2 sm:space-x-4 min-w-0 flex-1">
                         {!hideSidebar && isMobile && (
                             <button

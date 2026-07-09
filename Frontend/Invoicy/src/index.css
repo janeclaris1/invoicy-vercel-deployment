@@ -10,6 +10,16 @@
 @layer base {
   html {
     font-family: var(--font-display);
+    --brand-900: #0f2f6b;
+    --brand-800: #1c3f84;
+    --brand-700: #2852a2;
+    --surface-bg: #f4f7fb;
+    --surface-card: #ffffff;
+    --surface-muted: #f8fafc;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-soft: #dbe4ef;
+    --ring-focus: rgba(37, 99, 235, 0.28);
     --dashboard-stat-label: #334155;
     --dashboard-stat-value: #0f172a;
     -webkit-tap-highlight-color: transparent;
@@ -19,12 +29,13 @@
   }
 
   body {
-    background-color: #fcfbfc;
-    color: #111827;
+    background-color: var(--surface-bg);
+    color: var(--text-primary);
     overflow-x: hidden;
     width: 100%;
     max-width: 100%;
     position: relative;
+    line-height: 1.5;
   }
 
   #root {
@@ -296,6 +307,51 @@
       border: 1px solid #d1d5db !important;
       box-shadow: none !important;
     }
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  p,
+  span,
+  label {
+    color: var(--text-secondary);
+  }
+
+  input,
+  textarea,
+  select {
+    border-color: var(--border-soft);
+    background-color: #fff;
+    color: var(--text-primary);
+    border-radius: 0.65rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px var(--ring-focus);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  /* Give most cards and panels a cleaner professional surface */
+  .bg-white {
+    background-color: var(--surface-card) !important;
+  }
+
+  .border-gray-200 {
+    border-color: var(--border-soft) !important;
   }
 }
 

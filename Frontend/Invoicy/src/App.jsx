@@ -112,8 +112,6 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ModeChooser from "./pages/Auth/ModeChooser";
-import PosDashboard from "./pages/POS/PosDashboard";
-import PosSalesPage from "./pages/Sales/PosSalesPage";
 
 
 
@@ -131,6 +129,8 @@ const App = () => {
 
           {/*Public Routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/pos" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/sales/pos" element={<Navigate to="/dashboard" replace />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -142,7 +142,6 @@ const App = () => {
           {/*Protected Routes*/}
           <Route element={<ProtectedRoute />}>
             <Route path="/choose-mode" element={<ModeChooser />} />
-            <Route path="/pos" element={<PosDashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="clients" element={<Clients />} />
             <Route path="checkout" element={<Checkout />} />
@@ -153,7 +152,6 @@ const App = () => {
             <Route path="purchases/returns" element={<InvoicePurchases />} />
             <Route path="purchases/return-cancellations" element={<InvoicePurchases />} />
             <Route path="quotations" element={<AllInvoices typeFilter="quotation" />} />
-            <Route path="sales/pos" element={<PosSalesPage />} />
             <Route path="invoices/new" element={<CreateInvoice />} />
             <Route path="invoices/:id" element={<InvoiceDetail />} />
             <Route path="customers" element={<Customers />} />
