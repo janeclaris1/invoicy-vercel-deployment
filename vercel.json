@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm install --prefix Backend && npm install --prefix Frontend/Invoicy",
-  "buildCommand": "npm run build --prefix Frontend/Invoicy",
+  "installCommand": "npm install --prefix Backend && npm install --prefix Frontend/Invoicy --include=dev",
+  "buildCommand": "cd Frontend/Invoicy && npm run build",
   "outputDirectory": "Frontend/Invoicy/dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
