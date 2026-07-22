@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"; 
 import axiosinstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText, MessageCircle } from "lucide-react";
+import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText, MessageCircle, CheckCircle2 } from "lucide-react";
 import moment from "moment";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Button from "../../components/ui/Button";
 import CreateWithAiModal from "../../components/invoices/CreateWithAiModal";
 import ReminderModal from "../../components/invoices/ReminderModal";
 import WhatsAppReminderModal from "../../components/invoices/WhatsAppReminderModal";
@@ -22,6 +21,34 @@ function invoiceStatusBadgeClass(status) {
 function hasRefundedEvent(invoice) {
   const events = Array.isArray(invoice?.refundEvents) ? invoice.refundEvents : [];
   return events.some((ev) => !ev?.cancelled);
+}
+
+function invoiceTypeLabel(type) {
+  const t = (type || "invoice").toLowerCase();
+  if (t === "quotation") return "Quotation";
+  if (t === "proforma") return "Proforma";
+  return "Invoice";
+}
+
+function invoiceTypeBadgeClass(type) {
+  const t = (type || "invoice").toLowerCase();
+  if (t === "quotation") return "bg-blue-50 text-blue-800 border-blue-100";
+  if (t === "proforma") return "bg-amber-50 text-amber-800 border-amber-100";
+  return "bg-slate-100 text-slate-700 border-slate-200";
+}
+
+function ActionIconButton({ title, onClick, className = "", children }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      className={`h-8 w-8 inline-flex items-center justify-center rounded-lg border bg-white transition-colors shrink-0 ${className}`}
+    >
+      {children}
+    </button>
+  );
 }
 
 const AllInvoices = ({ typeFilter }) => {
@@ -236,7 +263,7 @@ const AllInvoices = ({ typeFilter }) => {
   }
 
   return (
-    <div className="space-y-6 bg-white dark:bg-slate-900 min-h-0">
+    <div className="space-y-6 min-h-0">
       <CreateWithAiModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
       <ReminderModal
         invoiceId={selectedInvoice?._id}
@@ -248,28 +275,58 @@ const AllInvoices = ({ typeFilter }) => {
         isOpen={isWhatsAppModalOpen}
         onClose={() => setIsWhatsAppModalOpen(false)}
       />
-      <div className="flex flex-col gap-4 py-2">
-        <div className="min-w-0 bg-white dark:bg-transparent rounded-md">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-tight">{isQuotationsView ? "Quotations" : "All Invoices"}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-snug">{isQuotationsView ? "Manage your price estimates and quotations" : "Manage all your invoices in one place"}</p>
-        </div>
-        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto sm:ml-auto sm:justify-end">
-          {!isQuotationsView && (
-            <Button variant="secondary" onClick={() => setIsAiModalOpen(true)} Icon={Sparkles} className="w-full min-h-[44px] sm:min-h-0 sm:w-auto justify-center">
-              <span className="sm:inline">Create with AI</span>
-            </Button>
-          )}
-          <Button variant="secondary" onClick={() => navigate("/invoices/new", { state: { type: "quotation" } })} Icon={FileText} className="w-full min-h-[44px] sm:min-h-0 sm:w-auto justify-center">
-            Quotation
-          </Button>
-          <Button onClick={() => navigate("/invoices/new")} Icon={Plus} className="w-full min-h-[44px] sm:min-h-0 sm:w-auto justify-center">
-            New invoice
-          </Button>
+
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white shadow-sm overflow-hidden">
+        <div className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-11 w-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                {isQuotationsView ? "Quotations" : "All Invoices"}
+              </h1>
+              <p className="text-sm text-slate-300 mt-1">
+                {isQuotationsView
+                  ? "Manage your price estimates and quotations"
+                  : "Manage all your invoices in one place"}
+                {` · ${filteredInvoices.length} shown`}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isQuotationsView && (
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(true)}
+                className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                Create with AI
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate("/invoices/new", { state: { type: "quotation" } })}
+              className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              Quotation
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/invoices/new")}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-white text-slate-900 text-sm font-semibold hover:bg-slate-100 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              New invoice
+            </button>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200">
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-4" />
             <div className="flex-1">
@@ -279,39 +336,38 @@ const AllInvoices = ({ typeFilter }) => {
           </div>
         </div>
       )}
-      
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
-        <div className="p-4 sm:p-6 border-b border-slate-200">
-          <div className="flex flex-col sm:flex-row gap-4">
+
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-200 bg-white/80">
+          <div className="flex flex-col lg:flex-row gap-3">
             <div className="relative flex-grow">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
-                <Search className="h-5 w-5 text-slate-400" /> 
-              </div>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
-                type="text"
+                type="search"
                 placeholder="Search by invoice number or client name"
-                className="w-full h-10 pl-10 pr-4 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 pl-10 pr-4 border border-slate-200 rounded-xl bg-white text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {canFilterByBranch && branches.length > 0 && (
-              <div className="flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {canFilterByBranch && branches.length > 0 && (
                 <select
-                  className="w-full sm:w-auto h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={branchFilter}
                   onChange={(e) => setBranchFilter(e.target.value)}
                 >
                   <option value="">All Branches</option>
                   {branches.map((b) => (
-                    <option key={b._id} value={b._id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                      {b.isDefault ? " (Default)" : ""}
+                    </option>
                   ))}
                 </select>
-              </div>
-            )}
-            <div className="flex-shrink-0">
-              <select 
-                className="w-full sm:w-auto h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              )}
+              <select
+                className="h-11 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -324,12 +380,13 @@ const AllInvoices = ({ typeFilter }) => {
             </div>
           </div>
         </div>
+
         {/* Mobile: stacked cards */}
         <div className="md:hidden p-4 space-y-3">
           {filteredInvoices.map((invoice) => (
             <div
               key={invoice._id}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm active:bg-slate-50/80"
+              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
             >
               <button
                 type="button"
@@ -339,25 +396,15 @@ const AllInvoices = ({ typeFilter }) => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                        (invoice.type || "invoice") === "quotation"
-                          ? "bg-blue-100 text-blue-800"
-                          : (invoice.type || "invoice") === "proforma"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-slate-100 text-slate-700"
-                      }`}
+                      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide border ${invoiceTypeBadgeClass(invoice.type)}`}
                     >
-                      {(invoice.type || "invoice") === "quotation"
-                        ? "Quotation"
-                        : (invoice.type || "invoice") === "proforma"
-                          ? "Proforma"
-                          : "Invoice"}
+                      {invoiceTypeLabel(invoice.type)}
                     </span>
                     {invoice.convertedTo &&
                       ((invoice.type || "") === "proforma" || (invoice.type || "") === "quotation") && (
-                        <span className="ml-1 text-xs text-slate-500">Converted</span>
+                        <span className="ml-1.5 text-xs text-slate-500">Converted</span>
                       )}
-                    <p className="mt-1 font-semibold text-gray-900 truncate">{invoice.invoiceNumber}</p>
+                    <p className="mt-1.5 font-semibold text-slate-900 truncate">{invoice.invoiceNumber}</p>
                     <p className="text-sm text-slate-600 truncate">{invoice.billTo?.clientName || "N/A"}</p>
                     <p className="text-xs text-slate-500 mt-1">
                       Due {invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}
@@ -373,205 +420,221 @@ const AllInvoices = ({ typeFilter }) => {
                   <span className="text-xs text-slate-500">
                     {typeof invoice.user === "object" && invoice.user?.name ? invoice.user.name : "—"}
                   </span>
-                  <span className="text-base font-semibold text-gray-900 tabular-nums">
+                  <span className="text-base font-semibold text-slate-900 tabular-nums">
                     {formatCurrency(Number(invoice.grandTotal || 0), userCurrency)}
                   </span>
                 </div>
               </button>
-              <div className="mt-3 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-3 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-1.5">
+                  {(invoice.status !== "Paid" && invoice.status !== "Fully Paid") && (
+                    <ActionIconButton
+                      title="Mark paid"
+                      onClick={() => handleStatusChange(invoice)}
+                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                    >
+                      {statusChangeLoading === invoice._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                    </ActionIconButton>
+                  )}
+                  <ActionIconButton
+                    title="Open"
+                    onClick={() => navigate(`/invoices/${invoice._id}`)}
+                    className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </ActionIconButton>
+                  <ActionIconButton
+                    title="Email reminder"
+                    onClick={() => handleOpenReminderModal(invoice)}
+                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Mail className="w-4 h-4" />
+                  </ActionIconButton>
+                  <ActionIconButton
+                    title="WhatsApp"
+                    onClick={() => handleOpenWhatsAppModal(invoice)}
+                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </ActionIconButton>
+                  <ActionIconButton
+                    title="Delete"
+                    onClick={() => handleDelete(invoice._id)}
+                    className="border-red-200 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </ActionIconButton>
+                </div>
                 {((invoice.type || "invoice") === "proforma" || (invoice.type || "invoice") === "quotation") &&
                   !invoice.convertedTo &&
                   (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
-                  <Button
-                    size="medium"
-                    variant="secondary"
-                    className="min-h-[44px] w-full justify-center"
+                  <button
+                    type="button"
+                    className="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
                     onClick={() => handleConvertToInvoice(invoice)}
                     disabled={convertLoading === invoice._id}
                   >
                     {convertLoading === invoice._id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Convert to invoice
-                      </>
+                      "Convert"
                     )}
-                  </Button>
+                  </button>
                 )}
-                <div className="grid grid-cols-2 gap-2">
-                  {(invoice.status !== "Paid" && invoice.status !== "Fully Paid") && (
-                    <Button
-                      size="medium"
-                      variant="secondary"
-                      className="min-h-[44px] justify-center"
-                      onClick={() => handleStatusChange(invoice)}
-                      disabled={statusChangeLoading === invoice._id}
-                    >
-                      {statusChangeLoading === invoice._id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        "Mark paid"
-                      )}
-                    </Button>
-                  )}
-                  <Button
-                    size="medium"
-                    variant="secondary"
-                    className="min-h-[44px] justify-center"
-                    onClick={() => navigate(`/invoices/${invoice._id}`)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Open
-                  </Button>
-                </div>
-                <div className="flex justify-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-blue-600"
-                    onClick={() => handleOpenReminderModal(invoice)}
-                    title="Email reminder"
-                  >
-                    <Mail className="w-5 h-5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-red-600"
-                    onClick={() => handleDelete(invoice._id)}
-                    title="Delete"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-600"
-                    onClick={() => handleOpenWhatsAppModal(invoice)}
-                    title="Send WhatsApp message"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                  </button>
-                </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Desktop: wide table + horizontal scroll on narrow tablets */}
+        {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full min-w-[880px] divide-y divide-gray-200 table-auto">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Invoice Number</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Client</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Created by</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Due Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Actions</th>
+          <table className="w-full min-w-[820px]">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/80">
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Invoice
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-5 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Due
+                </th>
+                <th className="px-5 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
-
-            <tbody className="bg-white">
+            <tbody>
               {filteredInvoices.map((invoice) => (
                 <tr
                   key={invoice._id}
-                  className="group cursor-pointer"
+                  className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/80 cursor-pointer transition-colors"
                   onClick={() => navigate(`/invoices/${invoice._id}`)}
                 >
-                  <td className="px-4 py-2.5 text-sm" onClick={(e) => e.stopPropagation()}>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                        (invoice.type || "invoice") === "quotation"
-                          ? "bg-blue-100 text-blue-800"
-                          : (invoice.type || "invoice") === "proforma"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {(invoice.type || "invoice") === "quotation"
-                        ? "Quotation"
-                        : (invoice.type || "invoice") === "proforma"
-                          ? "Proforma"
-                          : "Invoice"}
-                    </span>
-                    {invoice.convertedTo &&
-                      ((invoice.type || "") === "proforma" || (invoice.type || "") === "quotation") && (
-                        <span className="ml-1 text-xs text-slate-500">Converted</span>
-                      )}
+                  <td className="px-5 py-3.5 align-middle">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide border shrink-0 ${invoiceTypeBadgeClass(invoice.type)}`}
+                      >
+                        {invoiceTypeLabel(invoice.type)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {invoice.invoiceNumber}
+                        </p>
+                        {invoice.convertedTo &&
+                          ((invoice.type || "") === "proforma" || (invoice.type || "") === "quotation") && (
+                            <p className="text-[11px] text-slate-500">Converted</p>
+                          )}
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50 rounded-l-lg">{invoice.invoiceNumber}</td>
-                  <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50">{invoice.billTo?.clientName || "N/A"}</td>
-                  <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50">
-                    {typeof invoice.user === "object" && invoice.user?.name ? invoice.user.name : "—"}
+                  <td className="px-5 py-3.5 align-middle min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {invoice.billTo?.clientName || "N/A"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                      {typeof invoice.user === "object" && invoice.user?.name
+                        ? `Created by ${invoice.user.name}`
+                        : "Created by —"}
+                    </p>
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50 tabular-nums">
-                    {formatCurrency(Number(invoice.grandTotal || 0), userCurrency)}
+                  <td className="px-5 py-3.5 align-middle text-right">
+                    <p className="text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                      {formatCurrency(Number(invoice.grandTotal || 0), userCurrency)}
+                    </p>
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-black">
+                  <td className="px-5 py-3.5 align-middle">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${invoiceStatusBadgeClass(invoice.status)} group-hover:opacity-90`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${invoiceStatusBadgeClass(invoice.status)}`}
                       >
                         {invoice.status || "Unpaid"}
                       </span>
                       {hasRefundedEvent(invoice) && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           Refunded
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-black group-hover:bg-slate-50 rounded-r-lg">
+                  <td className="px-5 py-3.5 align-middle text-sm text-slate-600 whitespace-nowrap">
                     {invoice.dueDate ? moment(invoice.dueDate).format("MMM DD, YYYY") : "N/A"}
                   </td>
-                  <td className="px-4 py-2.5 text-sm text-black">
-                    <div className="flex items-center justify-end gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-5 py-3.5 align-middle">
+                    <div
+                      className="flex items-center justify-end gap-1.5 flex-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {((invoice.type || "invoice") === "proforma" || (invoice.type || "invoice") === "quotation") &&
                         !invoice.convertedTo &&
                         (invoice.status === "Fully Paid" || invoice.status === "Paid") && (
-                          <Button
-                            size="small"
-                            variant="secondary"
+                          <button
+                            type="button"
+                            title="Convert to invoice"
                             onClick={() => handleConvertToInvoice(invoice)}
                             disabled={convertLoading === invoice._id}
-                            title="Convert to invoice for VAT reporting"
+                            className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shrink-0 disabled:opacity-60"
                           >
                             {convertLoading === invoice._id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
-                              <FileText className="w-4 h-4" />
+                              "Convert"
                             )}
-                            Convert
-                          </Button>
+                          </button>
                         )}
                       {(invoice.status !== "Paid" && invoice.status !== "Fully Paid") && (
-                        <Button
-                          size="small"
-                          variant="secondary"
+                        <ActionIconButton
+                          title="Mark paid"
                           onClick={() => handleStatusChange(invoice)}
-                          disabled={statusChangeLoading === invoice._id}
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                         >
                           {statusChangeLoading === invoice._id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            "Mark Paid"
+                            <CheckCircle2 className="w-4 h-4" />
                           )}
-                        </Button>
+                        </ActionIconButton>
                       )}
-
-                      <Button size="small" variant="secondary" onClick={() => navigate(`/invoices/${invoice._id}`)}>
+                      <ActionIconButton
+                        title="Open"
+                        onClick={() => navigate(`/invoices/${invoice._id}`)}
+                        className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                      >
                         <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button size="small" variant="secondary" onClick={() => handleDelete(invoice._id)}>
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                      <Button size="small" variant="ghost" onClick={() => handleOpenReminderModal(invoice)} title="Send Email Reminder">
-                        <Mail className="w-4 h-4 text-blue-500" />
-                      </Button>
-                      <Button size="small" variant="ghost" onClick={() => handleOpenWhatsAppModal(invoice)} title="Send WhatsApp message">
-                        <MessageCircle className="w-4 h-4 text-emerald-600" />
-                      </Button>
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title="Email reminder"
+                        onClick={() => handleOpenReminderModal(invoice)}
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title="WhatsApp"
+                        onClick={() => handleOpenWhatsAppModal(invoice)}
+                        className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title="Delete"
+                        onClick={() => handleDelete(invoice._id)}
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </ActionIconButton>
                     </div>
                   </td>
                 </tr>
@@ -579,11 +642,18 @@ const AllInvoices = ({ typeFilter }) => {
             </tbody>
           </table>
         </div>
+
         {filteredInvoices.length === 0 && !loading && (
-          <div className="text-center py-12 text-gray-500 dark:text-slate-400 px-4">
-            {invoices.length === 0
-              ? "No invoices yet. Create your first invoice to get started."
-              : "No invoices match your search criteria."}
+          <div className="text-center py-14 px-4">
+            <FileText className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-medium text-slate-700">
+              {invoices.length === 0 ? "No invoices yet" : "No invoices match your filters"}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {invoices.length === 0
+                ? "Create your first invoice to get started."
+                : "Try another search or status filter."}
+            </p>
           </div>
         )}
       </div>
