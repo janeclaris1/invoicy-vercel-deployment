@@ -1237,7 +1237,6 @@ const CreateInvoice = () => {
                           onClick={() => {
                             setSelectedItemId(String(item.id));
                             handleAddCatalogItem(item.id);
-                            setProductDropdownOpen(false);
                           }}
                           className="w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
                         >

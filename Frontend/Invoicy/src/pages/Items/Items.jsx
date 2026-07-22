@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins, ImageIcon, Save, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins, ImageIcon, Save, X, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -101,7 +101,21 @@ const Items = () => {
   const fileInputRef = React.useRef(null);
   const priceFileInputRef = React.useRef(null);
   const itemImageInputRef = React.useRef(null);
+  const importMenuRef = useRef(null);
+  const [importMenuOpen, setImportMenuOpen] = useState(false);
   const activeCategories = categories.filter((cat) => cat?.isActive !== false);
+
+  useEffect(() => {
+    if (!importMenuOpen) return;
+    const handleOutsideClick = (event) => {
+      if (!importMenuRef.current) return;
+      if (!importMenuRef.current.contains(event.target)) {
+        setImportMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [importMenuOpen]);
 
   useEffect(() => {
     const loadItems = async () => {
@@ -744,137 +758,198 @@ const Items = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Items</h1>
-          <p className="text-gray-600 dark:text-white">Manage your products and services</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={downloadTemplate}
-            className="flex items-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            <FileSpreadsheet className="w-5 h-5" />
-            <span>Download template</span>
-          </button>
-          <button
-            type="button"
-            onClick={downloadPriceUpdateTemplate}
-            className="flex items-center space-x-2 px-4 py-3 border border-blue-300 text-blue-900 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            <FileSpreadsheet className="w-5 h-5" />
-            <span>Download Price Template</span>
-          </button>
-          <label className="flex items-center space-x-2 px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="hidden"
-              onChange={handleImportFile}
-              disabled={importing}
-            />
-            {importing ? (
-              <span className="animate-pulse">Importing…</span>
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-11 w-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Items</h1>
+              <p className="text-sm text-slate-300 mt-1">
+                Manage your products and services
+                {!itemsLoading ? ` · ${items.length} in catalog` : ""}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {(bulkEditMode || bulkDeleteMode) ? (
+              <>
+                {bulkEditMode && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleBulkSavePrices}
+                      disabled={bulkSaving}
+                      className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors disabled:opacity-60"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{bulkSaving ? "Saving..." : "Save Price Changes"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelBulkEditMode}
+                      disabled={bulkSaving}
+                      className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition-colors disabled:opacity-60"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Cancel</span>
+                    </button>
+                  </>
+                )}
+                {bulkDeleteMode && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleBulkDeleteItems}
+                      disabled={bulkDeleting || selectedItemIds.length === 0}
+                      className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors disabled:opacity-60"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>
+                        {bulkDeleting
+                          ? "Deleting..."
+                          : `Delete Selected${selectedItemIds.length ? ` (${selectedItemIds.length})` : ""}`}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelBulkDeleteMode}
+                      disabled={bulkDeleting}
+                      className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition-colors disabled:opacity-60"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Cancel</span>
+                    </button>
+                  </>
+                )}
+              </>
             ) : (
               <>
-                <Upload className="w-5 h-5" />
-                <span>Import from Excel/CSV</span>
+                <div className="relative" ref={importMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setImportMenuOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition-colors"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Import / Export</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${importMenuOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {importMenuOpen && (
+                    <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-slate-900">
+                      <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Templates & imports
+                        </p>
+                      </div>
+                      <div className="p-1.5 space-y-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadTemplate();
+                            setImportMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50"
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-slate-500 shrink-0" />
+                          <span>
+                            <span className="block font-medium text-slate-900">Download template</span>
+                            <span className="block text-xs text-slate-500">Blank Excel/CSV for new items</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadPriceUpdateTemplate();
+                            setImportMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50"
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-slate-500 shrink-0" />
+                          <span>
+                            <span className="block font-medium text-slate-900">Download price template</span>
+                            <span className="block text-xs text-slate-500">Update prices in bulk</span>
+                          </span>
+                        </button>
+                        <div className="my-1 border-t border-slate-100" />
+                        <label className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer ${importing ? "opacity-60 pointer-events-none" : ""}`}>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            className="hidden"
+                            onChange={(e) => {
+                              handleImportFile(e);
+                              setImportMenuOpen(false);
+                            }}
+                            disabled={importing}
+                          />
+                          <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>
+                            <span className="block font-medium text-slate-900">
+                              {importing ? "Importing…" : "Import from Excel/CSV"}
+                            </span>
+                            <span className="block text-xs text-slate-500">Add items from a spreadsheet</span>
+                          </span>
+                        </label>
+                        <label className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-slate-50 cursor-pointer ${priceImporting ? "opacity-60 pointer-events-none" : ""}`}>
+                          <input
+                            ref={priceFileInputRef}
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            className="hidden"
+                            onChange={(e) => {
+                              handlePriceImportFile(e);
+                              setImportMenuOpen(false);
+                            }}
+                            disabled={priceImporting}
+                          />
+                          <Upload className="w-4 h-4 text-blue-700 shrink-0" />
+                          <span>
+                            <span className="block font-medium text-slate-900">
+                              {priceImporting ? "Updating prices…" : "Import price updates"}
+                            </span>
+                            <span className="block text-xs text-slate-500">Apply new prices from a file</span>
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={enterBulkEditMode}
+                  className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition-colors"
+                >
+                  <Coins className="w-4 h-4" />
+                  <span className="hidden sm:inline">Bulk Edit Prices</span>
+                  <span className="sm:hidden">Prices</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={enterBulkDeleteMode}
+                  className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-red-300/40 bg-red-500/10 text-red-100 text-sm font-semibold hover:bg-red-500/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Bulk Delete</span>
+                  <span className="sm:hidden">Delete</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openAddItem}
+                  className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-white text-slate-900 text-sm font-semibold hover:bg-slate-100 transition-colors shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Item</span>
+                </button>
               </>
             )}
-          </label>
-          <label className="flex items-center space-x-2 px-4 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors cursor-pointer disabled:opacity-50">
-            <input
-              ref={priceFileInputRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="hidden"
-              onChange={handlePriceImportFile}
-              disabled={priceImporting}
-            />
-            {priceImporting ? (
-              <span className="animate-pulse">Updating prices…</span>
-            ) : (
-              <>
-                <Upload className="w-5 h-5" />
-                <span>Import Price Updates</span>
-              </>
-            )}
-          </label>
-          <button
-            onClick={openAddItem}
-            className="flex items-center space-x-2 px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add Item</span>
-          </button>
-          {!bulkEditMode ? (
-            <button
-              type="button"
-              onClick={enterBulkEditMode}
-              className="flex items-center space-x-2 px-4 py-3 border border-blue-200 text-blue-900 rounded-lg hover:bg-blue-50 transition-colors"
-            >
-              <Coins className="w-5 h-5" />
-              <span>Bulk Edit Prices</span>
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleBulkSavePrices}
-                disabled={bulkSaving}
-                className="flex items-center space-x-2 px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-60"
-              >
-                <Save className="w-5 h-5" />
-                <span>{bulkSaving ? "Saving..." : "Save Price Changes"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={cancelBulkEditMode}
-                disabled={bulkSaving}
-                className="flex items-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                <X className="w-5 h-5" />
-                <span>Cancel</span>
-              </button>
-            </>
-          )}
-          {!bulkDeleteMode ? (
-            <button
-              type="button"
-              onClick={enterBulkDeleteMode}
-              className="flex items-center space-x-2 px-4 py-3 border border-red-200 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <Trash2 className="w-5 h-5" />
-              <span>Bulk Delete</span>
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleBulkDeleteItems}
-                disabled={bulkDeleting || selectedItemIds.length === 0}
-                className="flex items-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60"
-              >
-                <Trash2 className="w-5 h-5" />
-                <span>
-                  {bulkDeleting
-                    ? "Deleting..."
-                    : `Delete Selected${selectedItemIds.length ? ` (${selectedItemIds.length})` : ""}`}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={cancelBulkDeleteMode}
-                disabled={bulkDeleting}
-                className="flex items-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                <X className="w-5 h-5" />
-                <span>Cancel</span>
-              </button>
-            </>
-          )}
+          </div>
         </div>
       </div>
       {importMessage && (
