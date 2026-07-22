@@ -5,7 +5,6 @@ import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
 import { Building2, Check, Mail, MapPin, Package, Phone, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import QRCode from "react-qr-code";
 import toast from "react-hot-toast";
 
 import InputField from "../../components/ui/InputField";
@@ -639,12 +638,6 @@ const CreateInvoice = () => {
       : amountPaidValue + 0.005 < grandTotal
         ? "Partially Paid"
         : "Fully Paid";
-
-  const graQrValue =
-    formData.graQrCode ||
-    formData.graVerificationUrl ||
-    formData.graVerificationCode ||
-    "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1448,69 +1441,6 @@ const CreateInvoice = () => {
                 onChange={(e) => handleInputChange(e)}
                 placeholder="Additional notes or terms"
               />
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-semibold mb-2">Stamp & Signature</h3>
-                <label className="flex items-center gap-2 text-sm text-white dark:text-black cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={String(formData.companySignature || "").trim() !== ""}
-                    onChange={(e) => {
-                      const next = e.target.checked;
-                      const defaultSignature =
-                        (existingInvoice?.companySignature || user?.companySignature || "").toString();
-                      setFormData((prev) => ({ ...prev, companySignature: next ? defaultSignature : "" }));
-                    }}
-                    className="rounded border-gray-300"
-                  />
-                  Include company signature
-                </label>
-                <label className="flex items-center gap-2 text-sm text-white dark:text-black cursor-pointer mt-2">
-                  <input
-                    type="checkbox"
-                    checked={String(formData.companyStamp || "").trim() !== ""}
-                    onChange={(e) => {
-                      const next = e.target.checked;
-                      const defaultStamp =
-                        (existingInvoice?.companyStamp || user?.companyStamp || "").toString();
-                      setFormData((prev) => ({ ...prev, companyStamp: next ? defaultStamp : "" }));
-                    }}
-                    className="rounded border-gray-300"
-                  />
-                  Include company stamp
-                </label>
-                {String(formData.companySignature || "").trim() !== "" && (
-                  <img
-                    src={formData.companySignature}
-                    alt="Company signature"
-                    className="mt-3 h-14 w-auto object-contain rounded border border-gray-200 bg-white p-1"
-                  />
-                )}
-                {String(formData.companyStamp || "").trim() !== "" && (
-                  <img
-                    src={formData.companyStamp}
-                    alt="Company stamp"
-                    className="mt-3 h-14 w-auto object-contain rounded border border-gray-200 bg-white p-1"
-                  />
-                )}
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm font-medium">GRA Verification QR</div>
-                {graQrValue ? (
-                  String(graQrValue).startsWith("data:image") ? (
-                    <img
-                      src={graQrValue}
-                      alt="GRA QR"
-                      className="w-40 h-40 object-contain border border-gray-200 rounded-xl bg-white p-2"
-                    />
-                  ) : (
-                    <div className="w-40 h-40 border border-gray-200 rounded-xl bg-white p-2">
-                      <QRCode value={String(graQrValue)} size={144} />
-                    </div>
-                  )
-                ) : (
-                  <div className="text-xs">QR will appear after GRA verification.</div>
-                )}
-              </div>
             </div>
           </div>
         </div>
