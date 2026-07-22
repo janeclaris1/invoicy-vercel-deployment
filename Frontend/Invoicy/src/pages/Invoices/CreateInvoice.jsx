@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
-import { Building2, Check, Mail, MapPin, Package, Phone, Plus, Search, Trash2, UserRound, X } from "lucide-react";
+import { Building2, Check, FileText, Mail, MapPin, Package, Phone, Plus, Search, Trash2, UserRound, Wallet, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
@@ -1379,83 +1379,151 @@ const CreateInvoice = () => {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="p-4 sm:p-6 border-t border-slate-200 bg-white">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-black">Totals</h3>
-              <p className="text-xs text-gray-500">
-                {vatScenario === "exclusive" ? "Prices entered are exclusive of VAT; tax is added on top." : "Prices entered include VAT (GRA inclusive)."}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200 bg-white/80 flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Totals</h3>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {vatScenario === "exclusive"
+                  ? "Prices are exclusive of VAT; tax is added on top."
+                  : "Prices include VAT (GRA inclusive)."}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InputField
-                  label="Discount (%)"
-                  name="discountPercent"
-                  type="text"
-                  inputMode="decimal"
-                  value={formData.discountPercent}
-                  onChange={(e) => handleInputChange(e)}
-                  placeholder="0"
-                />
-                <InputField
-                  label={`Discount Amount (${userCurrency})`}
-                  name="discountAmount"
-                  type="text"
-                  inputMode="decimal"
-                  value={formData.discountAmount}
-                  onChange={(e) => handleInputChange(e)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2 text-sm text-black">
-                <div className="flex items-center justify-between">
+            </div>
+          </div>
+
+          <div className="p-5 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <InputField
+                label="Discount (%)"
+                name="discountPercent"
+                type="text"
+                inputMode="decimal"
+                value={formData.discountPercent}
+                onChange={(e) => handleInputChange(e)}
+                placeholder="0"
+              />
+              <InputField
+                label={`Discount Amount (${userCurrency})`}
+                name="discountAmount"
+                type="text"
+                inputMode="decimal"
+                value={formData.discountAmount}
+                onChange={(e) => handleInputChange(e)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="divide-y divide-slate-100 text-sm">
+                <div className="flex items-center justify-between px-4 py-3 text-slate-600">
                   <span>Subtotal (Tax Exclusive)</span>
-                  <span className="font-medium">{formatCurrency(subtotal, userCurrency)}</span>
+                  <span className="font-semibold text-slate-900 tabular-nums">
+                    {formatCurrency(subtotal, userCurrency)}
+                  </span>
                 </div>
                 {totalDiscount > 0 && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between px-4 py-3 text-slate-600">
                     <span>Discount</span>
-                    <span className="font-medium">- {formatCurrency(totalDiscount, userCurrency)}</span>
+                    <span className="font-semibold text-emerald-700 tabular-nums">
+                      − {formatCurrency(totalDiscount, userCurrency)}
+                    </span>
                   </div>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between px-4 py-3 text-slate-600">
                   <span>VAT (15%)</span>
-                  <span className="font-medium">{formatCurrency(totalVat, userCurrency)}</span>
+                  <span className="font-medium text-slate-900 tabular-nums">
+                    {formatCurrency(totalVat, userCurrency)}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between px-4 py-3 text-slate-600">
                   <span>NHIL (2.5%)</span>
-                  <span className="font-medium">{formatCurrency(totalNhil, userCurrency)}</span>
+                  <span className="font-medium text-slate-900 tabular-nums">
+                    {formatCurrency(totalNhil, userCurrency)}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between px-4 py-3 text-slate-600">
                   <span>GETFUND (2.5%)</span>
-                  <span className="font-medium">{formatCurrency(totalGetFund, userCurrency)}</span>
+                  <span className="font-medium text-slate-900 tabular-nums">
+                    {formatCurrency(totalGetFund, userCurrency)}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Total Tax</span>
-                  <span className="font-medium">{formatCurrency(taxTotal, userCurrency)}</span>
+                <div className="flex items-center justify-between px-4 py-3 text-slate-600 bg-slate-50/80">
+                  <span className="font-medium">Total Tax</span>
+                  <span className="font-semibold text-slate-900 tabular-nums">
+                    {formatCurrency(taxTotal, userCurrency)}
+                  </span>
                 </div>
-                <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
-                  <span className="text-base font-semibold text-black">Grand Total</span>
-                  <span className="text-base font-semibold text-black">{formatCurrency(grandTotal, userCurrency)}</span>
+              </div>
+
+              <div className="border-t border-slate-200 bg-slate-900 px-4 py-4 text-white">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+                      Grand Total
+                    </p>
+                    <p className="text-2xl font-semibold tracking-tight mt-0.5 tabular-nums">
+                      {formatCurrency(grandTotal, userCurrency)}
+                    </p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p className="text-slate-300">Amount due</p>
+                    <p className="font-semibold tabular-nums mt-0.5">
+                      {formatCurrency(balanceDueValue, userCurrency)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
+              </div>
+
+              <div className="px-4 py-3 bg-white border-t border-slate-100 space-y-2 text-sm">
+                <div className="flex items-center justify-between text-slate-600">
                   <span>Amount Paid</span>
-                  <span className="font-medium">{formatCurrency(amountPaidValue, userCurrency)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Amount Due</span>
-                  <span className="font-medium">{formatCurrency(balanceDueValue, userCurrency)}</span>
+                  <span className="font-medium text-slate-900 tabular-nums">
+                    {formatCurrency(amountPaidValue, userCurrency)}
+                  </span>
                 </div>
                 {overpaidValue > 0 && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between text-emerald-700">
                     <span>Customer Balance (Overpaid)</span>
-                    <span className="font-medium">{formatCurrency(overpaidValue, userCurrency)}</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatCurrency(overpaidValue, userCurrency)}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
-            <div className="space-y-4 bg-slate-800 dark:bg-transparent text-white dark:text-black rounded-xl p-4 dark:p-0">
-              <h3 className="text-lg font-semibold">Notes</h3>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200 bg-white/80 flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-blue-900 text-white flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-slate-900">Payment & Notes</h3>
+              <p className="text-sm text-slate-500 mt-0.5">Record payment and add invoice notes</p>
+            </div>
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide border ${
+                derivedPaymentStatus === "Fully Paid"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-100"
+                  : derivedPaymentStatus === "Partially Paid"
+                    ? "bg-amber-50 text-amber-800 border-amber-100"
+                    : "bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+            >
+              {derivedPaymentStatus}
+            </span>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div>
               <InputField
                 label="Amount Paid"
                 name="amountPaid"
@@ -1465,35 +1533,42 @@ const CreateInvoice = () => {
                 onChange={(e) => handleInputChange(e)}
                 placeholder="0.00"
               />
-              <div className="text-sm">
-                {overpaidValue > 0
-                  ? `Customer Balance: ${formatCurrency(overpaidValue, userCurrency)}`
-                  : `Balance Due: ${formatCurrency(balanceDueValue, userCurrency)}`}
+              <div
+                className={`mt-2 rounded-xl border px-3 py-2.5 text-sm ${
+                  overpaidValue > 0
+                    ? "border-emerald-100 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-slate-50 text-slate-700"
+                }`}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                  {overpaidValue > 0 ? "Customer Balance" : "Balance Due"}
+                </span>
+                <p className="font-semibold tabular-nums mt-0.5">
+                  {formatCurrency(overpaidValue > 0 ? overpaidValue : balanceDueValue, userCurrency)}
+                </p>
               </div>
-              <InputField
-                label="Payment Status"
-                name="status"
-                value={derivedPaymentStatus}
-                readOnly
-              />
-              <InputField
-                label="Payment Terms"
-                name="paymentTerms"
-                value={formData.paymentTerms || ""}
-                onChange={(e) => handleInputChange(e)}
-                placeholder="e.g., Due on receipt, Net 15, Net 30"
-              />
-              <TextareaField
-                label="Notes"
-                name="notes"
-                value={formData.notes}
-                onChange={(e) => handleInputChange(e)}
-                placeholder="Additional notes or terms"
-              />
             </div>
+
+            <InputField
+              label="Payment Terms"
+              name="paymentTerms"
+              value={formData.paymentTerms || ""}
+              onChange={(e) => handleInputChange(e)}
+              placeholder="e.g., Due on receipt, Net 15, Net 30"
+            />
+
+            <TextareaField
+              label="Notes"
+              name="notes"
+              value={formData.notes}
+              onChange={(e) => handleInputChange(e)}
+              placeholder="Additional notes or terms"
+              rows={5}
+            />
           </div>
         </div>
       </div>
+
       <div className="flex justify-end pt-6 pb-8">
         <Button type="submit" isLoading={loading || isGeneratingNumber}>
           {existingInvoice ? "Save Changes" : "Save Invoice"}
