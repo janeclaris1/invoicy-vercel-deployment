@@ -30,6 +30,53 @@ function decimalStringFromStored(v) {
   return Number.isFinite(n) ? String(n) : "0";
 }
 
+function parseMixedNumber(token) {
+  const t = String(token || "").trim();
+  const mixed = t.match(/^(\d+)\s*-\s*(\d+)\s*\/\s*(\d+)$/);
+  if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
+  const frac = t.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (frac) return Number(frac[1]) / Number(frac[2]);
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Prefer inch size from names like `1/2"`, `3/4"`, `40mm (1-1/4")`. */
+function extractProductSizeInches(name) {
+  const s = String(name || "");
+  const inch = s.match(/(\d+\s*-\s*\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:\.\d+)?)\s*(?:["”]|in\b|inch)/i);
+  if (inch) {
+    const value = parseMixedNumber(inch[1]);
+    if (value != null) return value;
+  }
+  const mm = s.match(/(\d+(?:\.\d+)?)\s*mm\b/i);
+  if (mm) {
+    const value = Number(mm[1]);
+    if (Number.isFinite(value)) return value / 25.4;
+  }
+  const lead = s.match(/^(\d+\s*-\s*\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:\.\d+)?)/);
+  if (lead) return parseMixedNumber(lead[1]);
+  return null;
+}
+
+function skuNumericKey(sku) {
+  const match = String(sku || "").match(/(\d+)/);
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+}
+
+function compareCatalogItems(a, b) {
+  const sizeA = extractProductSizeInches(a?.name);
+  const sizeB = extractProductSizeInches(b?.name);
+  if (sizeA != null && sizeB != null && sizeA !== sizeB) return sizeA - sizeB;
+  if (sizeA != null && sizeB == null) return -1;
+  if (sizeA == null && sizeB != null) return 1;
+  const skuDiff = skuNumericKey(a?.sku) - skuNumericKey(b?.sku);
+  if (skuDiff !== 0) return skuDiff;
+  return String(a?.name || "").localeCompare(String(b?.name || ""), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 const CreateInvoice = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -125,7 +172,9 @@ const CreateInvoice = () => {
     .filter((item) => (selectedCategory ? item.category === selectedCategory : true))
     .filter((item) =>
       itemSearch ? `${item.name} ${item.sku || ""}`.toLowerCase().includes(itemSearch.toLowerCase()) : true
-    );
+    )
+    .slice()
+    .sort(compareCatalogItems);
 
   const partyOptions = [
     ...customers.map((c) => ({
