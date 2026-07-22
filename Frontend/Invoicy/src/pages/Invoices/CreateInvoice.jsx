@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
-import { Building2, Check, Search, Trash2, UserRound, X } from "lucide-react";
+import { Building2, Check, Mail, MapPin, Package, Phone, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import QRCode from "react-qr-code";
 import toast from "react-hot-toast";
@@ -535,7 +535,6 @@ const CreateInvoice = () => {
         {
           sn: prev.items.length + 1,
           catalogId: selected.id,
-          catalogImage: selected.image || "",
           itemDescription: selected.name || "",
           quantity: 1,
           itemPrice: numericPrice,
@@ -566,14 +565,6 @@ const CreateInvoice = () => {
       }));
     };
     reader.readAsDataURL(file);
-  };
-
-  const catalogImageForLine = (line) => {
-    if (line?.catalogImage) return line.catalogImage;
-    const cid = line.catalogId || line.itemId;
-    if (!cid || !itemsCatalog.length) return null;
-    const c = itemsCatalog.find((x) => String(x.id) === String(cid));
-    return c?.image || null;
   };
 
   const vatScenario = user?.graVatScenario || "inclusive";
@@ -937,285 +928,417 @@ const CreateInvoice = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
-          <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 space-y-2">
-            <h3 className="text-lg font-semibold text-black mb-1">Bill From</h3>
-            {canSelectBillFromBranch && branches.length > 0 && (
-              <SelectField
-                label="Branch"
-                name="billFromBranch"
-                value={billFromBranch}
-                onChange={(e) => setBillFromBranch(e.target.value)}
-                options={[
-                  { label: "Main office", value: "" },
-                  ...branches.map((b) => ({
-                    label: b.name + (b.isDefault ? " (Default)" : ""),
-                    value: b._id,
-                  })),
-                ]}
-              />
-            )}
-            {!canSelectBillFromBranch && (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Branch</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {branches.find((b) => String(b._id) === String(branchUserId))?.name ||
-                    branchUserId ||
-                    "Your branch"}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Billing is fixed to this branch. Only the main account can choose a different branch.
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 bg-white/80 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+                <Building2 className="h-5 w-5" />
               </div>
-            )}
-            <InputField
-              label="Business Name"
-              name="businessName"
-              value={formData.billFrom.businessName}
-              onChange={(e) => handleInputChange(e, "billFrom")}
-              readOnly={!!branchUserId}
-              required
-            />
-            <InputField
-              label="Email"
-              name="email"
-              value={formData.billFrom.email}
-              onChange={(e) => handleInputChange(e, "billFrom")}
-              readOnly={!!branchUserId}
-              required
-            />
-            <InputField
-              label="Address"
-              name="address"
-              value={formData.billFrom.address}
-              onChange={(e) => handleInputChange(e, "billFrom")}
-              readOnly={!!branchUserId}
-              required
-            />
-            <InputField
-              label="Your Company TIN (from Settings)"
-              name="tin"
-              value={formData.billFrom.tin}
-              onChange={(e) => handleInputChange(e, "billFrom")}
-              readOnly
-            />
-            <InputField
-              label="Phone"
-              name="phone"
-              value={formData.billFrom.phone}
-              onChange={(e) => handleInputChange(e, "billFrom")}
-              readOnly={!!branchUserId}
-              required
-            />
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Bill From</h3>
+                <p className="text-sm text-slate-500 mt-0.5">Your business details on this invoice</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {canSelectBillFromBranch && branches.length > 0 && (
+                <SelectField
+                  label="Branch"
+                  name="billFromBranch"
+                  value={billFromBranch}
+                  onChange={(e) => setBillFromBranch(e.target.value)}
+                  options={[
+                    { label: "Main office", value: "" },
+                    ...branches.map((b) => ({
+                      label: b.name + (b.isDefault ? " (Default)" : ""),
+                      value: b._id,
+                    })),
+                  ]}
+                />
+              )}
+              {!canSelectBillFromBranch && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Branch</p>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">
+                    {branches.find((b) => String(b._id) === String(branchUserId))?.name ||
+                      branchUserId ||
+                      "Your branch"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Billing is fixed to this branch. Only the main account can choose a different branch.
+                  </p>
+                </div>
+              )}
+
+              <InputField
+                label="Business Name"
+                name="businessName"
+                value={formData.billFrom.businessName}
+                onChange={(e) => handleInputChange(e, "billFrom")}
+                readOnly={!!branchUserId}
+                required
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField
+                  icon={Mail}
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.billFrom.email}
+                  onChange={(e) => handleInputChange(e, "billFrom")}
+                  readOnly={!!branchUserId}
+                  required
+                />
+                <InputField
+                  icon={Phone}
+                  label="Phone"
+                  name="phone"
+                  value={formData.billFrom.phone}
+                  onChange={(e) => handleInputChange(e, "billFrom")}
+                  readOnly={!!branchUserId}
+                  required
+                />
+              </div>
+
+              <InputField
+                icon={MapPin}
+                label="Address"
+                name="address"
+                value={formData.billFrom.address}
+                onChange={(e) => handleInputChange(e, "billFrom")}
+                readOnly={!!branchUserId}
+                required
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Company TIN
+                </label>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <p className="text-sm font-semibold text-slate-900 tracking-wide">
+                    {formData.billFrom.tin || "Not set in Settings"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Pulled from company settings</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 space-y-2">
-            <h3 className="text-lg font-semibold text-black mb-1">Bill To</h3>
-            <InputField
-              label="Client Name"
-              name="clientName"
-              value={formData.billTo.clientName}
-              onChange={(e) => handleInputChange(e, "billTo")}
-              required
-            />
-            <InputField
-              label="Customer TIN (Buyer TIN)"
-              name="tin"
-              value={formData.billTo.tin}
-              onChange={(e) => handleInputChange(e, "billTo")}
-            />
-            <InputField
-              label="Email"
-              name="email"
-              value={formData.billTo.email}
-              onChange={(e) => handleInputChange(e, "billTo")}
-            />
-            <TextareaField
-              label="Address"
-              name="address"
-              value={formData.billTo.address}
-              onChange={(e) => handleInputChange(e, "billTo")}
-              required
-            />
-            <InputField
-              label="Customer TIN"
-              name="tin"
-              value={formData.billTo.tin}
-              onChange={(e) => handleInputChange(e, "billTo")}
-            />
-            <InputField
-              label="Phone"
-              name="phone"
-              value={formData.billTo.phone}
-              onChange={(e) => handleInputChange(e, "billTo")}
-              required
-            />
+          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 bg-white/80 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-blue-900 text-white flex items-center justify-center shrink-0">
+                <UserRound className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-semibold text-slate-900">Bill To</h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {selectedParty
+                    ? `Filled from ${selectedParty.type}: ${selectedParty.name}`
+                    : "Select a customer above, or enter details manually"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <InputField
+                label="Client Name"
+                name="clientName"
+                value={formData.billTo.clientName}
+                onChange={(e) => handleInputChange(e, "billTo")}
+                placeholder="Customer or company name"
+                required
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InputField
+                  icon={Mail}
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.billTo.email}
+                  onChange={(e) => handleInputChange(e, "billTo")}
+                  placeholder="client@email.com"
+                />
+                <InputField
+                  icon={Phone}
+                  label="Phone"
+                  name="phone"
+                  value={formData.billTo.phone}
+                  onChange={(e) => handleInputChange(e, "billTo")}
+                  placeholder="Phone number"
+                  required
+                />
+              </div>
+
+              <TextareaField
+                icon={MapPin}
+                label="Address"
+                name="address"
+                value={formData.billTo.address}
+                onChange={(e) => handleInputChange(e, "billTo")}
+                placeholder="Billing address"
+                rows={3}
+                required
+              />
+
+              <InputField
+                label="Customer TIN (Buyer TIN)"
+                name="tin"
+                value={formData.billTo.tin}
+                onChange={(e) => handleInputChange(e, "billTo")}
+                placeholder="Optional buyer TIN"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-200 bg-white rounded-t-xl">
-          <h3 className="text-lg font-semibold text-black">Items</h3>
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden mt-6">
+        <div className="px-5 py-4 border-b border-slate-200 bg-white/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-slate-900">Line Items</h3>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {formData.items.length} item{formData.items.length === 1 ? "" : "s"} on this invoice
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className="inline-flex items-center gap-1.5 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Blank line
+          </button>
         </div>
-        <div className="flex justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 mb-6 items-center w-full max-w-5xl">
+
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectField
               label="Category"
               name="categoryFilter"
-              labelClassName="text-center"
               value={selectedCategory}
               onChange={(e) => {
                 setSelectedCategory(e.target.value);
                 setSelectedItemId("");
+                setProductDropdownOpen(true);
               }}
               options={[
                 { label: "All Categories", value: "" },
                 ...categories.map((cat) => ({ label: cat.name, value: cat.name })),
               ]}
             />
-            <InputField
-              label="Search Items"
-              name="itemSearch"
-              labelClassName="text-center"
-              value={itemSearch}
-              onChange={(e) => setItemSearch(e.target.value)}
-              placeholder="Search by name or SKU"
-            />
+            <div>
+              <label htmlFor="itemSearch" className="block text-sm font-medium text-black mb-2">
+                Search products
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  id="itemSearch"
+                  name="itemSearch"
+                  type="search"
+                  value={itemSearch}
+                  onChange={(e) => {
+                    setItemSearch(e.target.value);
+                    setProductDropdownOpen(true);
+                  }}
+                  onFocus={() => setProductDropdownOpen(true)}
+                  placeholder="Search by name or SKU"
+                  className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg bg-white text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="px-4 sm:px-6 pb-6">
-          <div className="mb-2 text-sm font-medium text-gray-700">Products</div>
+
           <div className="relative" ref={productDropdownRef}>
             <button
               type="button"
               onClick={() => setProductDropdownOpen((prev) => !prev)}
-              className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-left text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-sm text-left text-slate-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between gap-3"
             >
-              {productDropdownOpen
-                ? "Close product list"
-                : `Select product (${filteredCatalogItems.length} found)`}
+              <span className="truncate">
+                {productDropdownOpen
+                  ? "Close product list"
+                  : `Browse products · ${filteredCatalogItems.length} available`}
+              </span>
+              <Package className="h-4 w-4 text-slate-400 shrink-0" />
             </button>
+
             {productDropdownOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-[34rem] max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 bg-white shadow-lg p-3">
+              <div className="absolute left-0 right-0 z-20 mt-2 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <p className="text-xs font-medium text-slate-500">
+                    {filteredCatalogItems.length} product{filteredCatalogItems.length === 1 ? "" : "s"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setProductDropdownOpen(false)}
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                  >
+                    Close
+                  </button>
+                </div>
                 {filteredCatalogItems.length > 0 ? (
-                  <div className="max-h-80 overflow-y-auto">
-                    <div className="grid grid-cols-5 gap-2">
-                      {filteredCatalogItems.map((item) => (
+                  <div className="max-h-72 overflow-y-auto">
+                    {filteredCatalogItems.map((item) => {
+                      const price = Number(String(item.price).replace(/[^0-9.]/g, "")) || 0;
+                      return (
                         <button
                           key={item.id}
                           type="button"
                           onClick={() => {
                             setSelectedItemId(String(item.id));
                             handleAddCatalogItem(item.id);
+                            setProductDropdownOpen(false);
                           }}
-                          className="w-full aspect-square rounded-lg border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors p-2 text-left flex flex-col"
-                          title={`Add ${item.name}`}
+                          className="w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
                         >
-                          <div className="h-10 w-full rounded bg-gray-100 border border-gray-200 overflow-hidden mb-1 flex items-center justify-center">
-                            {item.image ? (
-                              <img src={item.image} alt={item.name || "Product"} className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-[9px] text-gray-400">No img</span>
-                            )}
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                              <Package className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-900 truncate">
+                                {item.name || "Item"}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                {[item.sku ? `SKU ${item.sku}` : null, item.category]
+                                  .filter(Boolean)
+                                  .join(" · ") || "No SKU"}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {formatCurrency(price, userCurrency)}
+                              </p>
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-800">
+                                Add
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-[10px] font-semibold text-black truncate">{item.name || "Item"}</div>
-                          <div className="text-[9px] text-gray-500 truncate">{item.sku || "-"}</div>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500">
-                    No products match your filter.
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-medium text-slate-700">No products match</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Try another search, or add a blank line manually.
+                    </p>
                   </div>
                 )}
               </div>
             )}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-slate-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider w-14">Photo</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">#</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Description</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Quantity</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Price</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">Total</th>
-                <th className="px-4 sm:px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {formData.items.map((item, index) => {
-                const lineImg = catalogImageForLine(item);
-                return (
-                <tr key={index} className="hover:bg-blue-50 transition-colors duration-150">
-                  <td className="px-4 sm:px-6 py-4 align-middle">
-                    {lineImg ? (
-                      <img
-                        src={lineImg}
-                        alt=""
-                        className="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-gray-50"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 border-dashed" title="No photo" />
-                    )}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-left">{index + 1}</td>
-                  <td className="px-4 sm:px-6 py-3 text-left">
-                    <input
-                      type="text"
-                      name="itemDescription"
-                      value={item.itemDescription}
-                      onChange={(e) => handleInputChange(e, "items", index)}
-                      className="w-full h-10 px-3 py-2 border border-gray-300 rounded-xl bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Item description"
-                    />
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-left">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      name="quantity"
-                      value={item.quantity}
-                      onChange={(e) => handleInputChange(e, "items", index)}
-                      className="w-full h-10 px-3 py-2 border border-gray-300 rounded-xl bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="1"
-                    />
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-left">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      name="itemPrice"
-                      value={item.itemPrice}
-                      onChange={(e) => handleInputChange(e, "items", index)}
-                      className="w-full h-10 px-3 py-2 border border-gray-300 rounded-xl bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.00"
-                    />
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-left text-sm text-black">
-                    {formatCurrency((item.quantity || 0) * (item.itemPrice || 0), userCurrency)}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-left">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="small"
-                      onClick={() => handleRemoveItem(index)}
-                    >
-                      Remove
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </td>
-                </tr>
-              );})}
-            </tbody>
-          </table>
+
+        <div className="px-5 pb-5">
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/80">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-12">
+                      #
+                    </th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-28">
+                      Qty
+                    </th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-36">
+                      Price
+                    </th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-36">
+                      Total
+                    </th>
+                    <th className="px-3 py-3 w-12" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.items.length > 0 ? (
+                    formData.items.map((item, index) => (
+                      <tr
+                        key={index}
+                        className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-sm font-medium text-slate-500 align-middle">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-2.5 align-middle">
+                          <input
+                            type="text"
+                            name="itemDescription"
+                            value={item.itemDescription}
+                            onChange={(e) => handleInputChange(e, "items", index)}
+                            className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Item description"
+                          />
+                        </td>
+                        <td className="px-4 py-2.5 align-middle">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            name="quantity"
+                            value={item.quantity}
+                            onChange={(e) => handleInputChange(e, "items", index)}
+                            className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="1"
+                          />
+                        </td>
+                        <td className="px-4 py-2.5 align-middle">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            name="itemPrice"
+                            value={item.itemPrice}
+                            onChange={(e) => handleInputChange(e, "items", index)}
+                            className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900 align-middle whitespace-nowrap">
+                          {formatCurrency((item.quantity || 0) * (item.itemPrice || 0), userCurrency)}
+                        </td>
+                        <td className="px-3 py-2.5 align-middle">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(index)}
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Remove item"
+                            aria-label={`Remove item ${index + 1}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <Package className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-slate-700">No line items yet</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Browse products above or add a blank line.
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-        <div className="p-4 sm:p-6 border-t border-gray-200">
+
+        <div className="p-4 sm:p-6 border-t border-slate-200 bg-white">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-black">Totals</h3>
