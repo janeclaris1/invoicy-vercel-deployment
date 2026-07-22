@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
-import { Trash2 } from "lucide-react";
+import { Building2, Check, Search, Trash2, UserRound, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import QRCode from "react-qr-code";
 import toast from "react-hot-toast";
@@ -115,14 +115,92 @@ const CreateInvoice = () => {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
   const [billToSelection, setBillToSelection] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [customerFilterType, setCustomerFilterType] = useState("all");
   const [branches, setBranches] = useState([]);
   const [billFromBranch, setBillFromBranch] = useState("");
   const productDropdownRef = useRef(null);
+  const customerPickerRef = useRef(null);
   const filteredCatalogItems = itemsCatalog
     .filter((item) => (selectedCategory ? item.category === selectedCategory : true))
     .filter((item) =>
       itemSearch ? `${item.name} ${item.sku || ""}`.toLowerCase().includes(itemSearch.toLowerCase()) : true
     );
+
+  const partyOptions = [
+    ...customers.map((c) => ({
+      key: `customer:${c._id || c.id || c.name}`,
+      type: "customer",
+      id: String(c._id || c.id || c.name || ""),
+      name: c.name || c.company || "Unnamed customer",
+      email: c.email || "",
+      phone: c.phone || "",
+      address: c.address || "",
+      tin: c.taxId || c.tin || "",
+      company: c.company || "",
+      raw: c,
+    })),
+    ...suppliers.map((s) => ({
+      key: `supplier:${s._id || s.id || s.name || s.company}`,
+      type: "supplier",
+      id: String(s._id || s.id || s.name || s.company || ""),
+      name: s.name || s.company || "Unnamed supplier",
+      email: s.email || "",
+      phone: s.phone || "",
+      address: s.address || "",
+      tin: s.taxId || s.tin || "",
+      company: s.company || "",
+      raw: s,
+    })),
+  ];
+
+  const filteredPartyOptions = partyOptions
+    .filter((party) => (customerFilterType === "all" ? true : party.type === customerFilterType))
+    .filter((party) => {
+      if (!customerSearch.trim()) return true;
+      const q = customerSearch.trim().toLowerCase();
+      return [party.name, party.company, party.email, party.phone, party.tin]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(q));
+    });
+
+  const selectedParty = partyOptions.find((party) => party.key === billToSelection) || null;
+
+  const applyPartySelection = (party) => {
+    if (!party) return;
+    setBillToSelection(party.key);
+    setCustomerSearch(party.name);
+    setCustomerPickerOpen(false);
+    setFormData((prev) => ({
+      ...prev,
+      billTo: {
+        customerId: party.type === "customer" ? party.id : "",
+        clientName: party.name || "",
+        email: party.email || "",
+        address: party.address || "",
+        phone: party.phone || "",
+        tin: party.tin || "",
+      },
+    }));
+  };
+
+  const clearPartySelection = () => {
+    setBillToSelection("");
+    setCustomerSearch("");
+    setFormData((prev) => ({
+      ...prev,
+      billTo: {
+        ...prev.billTo,
+        customerId: "",
+        clientName: "",
+        email: "",
+        address: "",
+        phone: "",
+        tin: "",
+      },
+    }));
+  };
 
   useEffect(() => {
     const loadCustomers = async () => {
@@ -207,6 +285,32 @@ const CreateInvoice = () => {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [productDropdownOpen]);
+
+  useEffect(() => {
+    if (!customerPickerOpen) return;
+    const handleOutsideClick = (event) => {
+      if (!customerPickerRef.current) return;
+      if (!customerPickerRef.current.contains(event.target)) {
+        setCustomerPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [customerPickerOpen]);
+
+  useEffect(() => {
+    if (billToSelection || partyOptions.length === 0) return;
+    const customerId = formData.billTo?.customerId;
+    const clientName = (formData.billTo?.clientName || "").trim().toLowerCase();
+    const match =
+      (customerId &&
+        partyOptions.find((party) => party.type === "customer" && party.id === String(customerId))) ||
+      (clientName &&
+        partyOptions.find((party) => party.name.trim().toLowerCase() === clientName));
+    if (!match) return;
+    setBillToSelection(match.key);
+    setCustomerSearch(match.name);
+  }, [customers, suppliers, formData.billTo?.customerId, formData.billTo?.clientName]);
 
   useEffect(() => {
     if (!existingInvoice && canSelectBillFromBranch) {
@@ -656,45 +760,181 @@ const CreateInvoice = () => {
           />
         </div>
 
-        <div className="mt-6">
-          <SelectField
-            label="Select Customer or Supplier"
-            name="billToSelect"
-            value={billToSelection}
-            onChange={(e) => {
-              const value = e.target.value;
-              setBillToSelection(value);
-              if (!value) return;
-              const [type, id] = value.split(":");
-              const list = type === "supplier" ? suppliers : customers;
-              const selected = list.find(
-                (item) => String(item._id || item.id) === id || String(item.name) === id
-              );
-              if (!selected) return;
-              setFormData((prev) => ({
-                ...prev,
-                billTo: {
-                  customerId: type === "customer" ? String(selected._id || selected.id || "") : "",
-                  clientName: selected.name || selected.company || "",
-                  email: selected.email || "",
-                  address: selected.address || "",
-                  phone: selected.phone || "",
-                  tin: selected.taxId || selected.tin || "",
-                },
-              }));
-            }}
-            options={[
-              { label: "Select a customer or supplier", value: "" },
-              ...customers.map((c) => ({
-                label: `Customer: ${c.name}`,
-                value: `customer:${c._id || c.id || c.name}`,
-              })),
-              ...suppliers.map((s) => ({
-                label: `Supplier: ${s.name || s.company || "(Unnamed)"}`,
-                value: `supplier:${s._id || s.id || s.name || s.company}`,
-              })),
-            ]}
-          />
+        <div className="mt-6" ref={customerPickerRef}>
+          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 bg-white/80">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Select Customer</h3>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Search by name, company, email, phone, or TIN
+                  </p>
+                </div>
+                {selectedParty && (
+                  <button
+                    type="button"
+                    onClick={clearPartySelection}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: "all", label: "All" },
+                  { id: "customer", label: "Customers" },
+                  { id: "supplier", label: "Suppliers" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomerFilterType(tab.id);
+                      setCustomerPickerOpen(true);
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      customerFilterType === tab.id
+                        ? "bg-blue-900 text-white"
+                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="search"
+                  value={customerSearch}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCustomerSearch(value);
+                    setCustomerPickerOpen(true);
+                    if (billToSelection) {
+                      setBillToSelection("");
+                      setFormData((prev) => ({
+                        ...prev,
+                        billTo: {
+                          ...prev.billTo,
+                          customerId: "",
+                          clientName: "",
+                          email: "",
+                          address: "",
+                          phone: "",
+                          tin: "",
+                        },
+                      }));
+                    }
+                  }}
+                  onFocus={() => setCustomerPickerOpen(true)}
+                  placeholder="Type a customer name..."
+                  className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {selectedParty && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 flex items-start gap-3">
+                  <div className="mt-0.5 h-9 w-9 rounded-lg bg-blue-900 text-white flex items-center justify-center shrink-0">
+                    {selectedParty.type === "supplier" ? (
+                      <Building2 className="h-4 w-4" />
+                    ) : (
+                      <UserRound className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{selectedParty.name}</p>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-900 border border-blue-100">
+                        {selectedParty.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1 truncate">
+                      {[selectedParty.email, selectedParty.phone, selectedParty.tin ? `TIN: ${selectedParty.tin}` : ""]
+                        .filter(Boolean)
+                        .join(" · ") || "No contact details"}
+                    </p>
+                  </div>
+                  <Check className="h-4 w-4 text-blue-700 shrink-0 mt-1" />
+                </div>
+              )}
+
+              {customerPickerOpen && (
+                <div className="rounded-xl border border-slate-200 bg-white shadow-inner overflow-hidden">
+                  <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <p className="text-xs font-medium text-slate-500">
+                      {filteredPartyOptions.length} result{filteredPartyOptions.length === 1 ? "" : "s"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerPickerOpen(false)}
+                      className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {filteredPartyOptions.length > 0 ? (
+                      filteredPartyOptions.map((party) => {
+                        const isActive = billToSelection === party.key;
+                        return (
+                          <button
+                            key={party.key}
+                            type="button"
+                            onClick={() => applyPartySelection(party)}
+                            className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 transition-colors ${
+                              isActive ? "bg-blue-50" : "hover:bg-slate-50"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  party.type === "supplier"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}
+                              >
+                                {party.type === "supplier" ? (
+                                  <Building2 className="h-4 w-4" />
+                                ) : (
+                                  <UserRound className="h-4 w-4" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-slate-900 truncate">{party.name}</p>
+                                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                    {party.type}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                  {[party.email, party.phone].filter(Boolean).join(" · ") || "No email or phone"}
+                                </p>
+                              </div>
+                              {isActive && <Check className="h-4 w-4 text-blue-700 shrink-0 mt-1" />}
+                            </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="px-4 py-8 text-center">
+                        <p className="text-sm font-medium text-slate-700">No matches found</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Try another name, or enter Bill To details manually below.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
