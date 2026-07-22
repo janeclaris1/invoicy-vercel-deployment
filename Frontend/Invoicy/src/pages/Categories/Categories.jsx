@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, FolderOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Edit, Trash2, FolderOpen, Package } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 
 const Categories = () => {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState(null);
@@ -13,7 +15,6 @@ const Categories = () => {
     color: "#3B82F6",
   });
 
-  // Sample category data
   const defaultCategories = [
     {
       id: 1,
@@ -28,7 +29,7 @@ const Categories = () => {
       description: "Professional services and consultancy",
       color: "#10B981",
       itemCount: 15,
-    },  
+    },
     {
       id: 3,
       name: "Software",
@@ -154,13 +155,21 @@ const Categories = () => {
     });
   };
 
-  const filteredCategories = categories.filter((category) => {
-    const term = (searchTerm || "").toLowerCase();
-    return (
-      (category.name || "").toLowerCase().includes(term) ||
-      (category.description || "").toLowerCase().includes(term)
+  const filteredCategories = categories
+    .filter((category) => {
+      const term = (searchTerm || "").toLowerCase();
+      return (
+        (category.name || "").toLowerCase().includes(term) ||
+        (category.description || "").toLowerCase().includes(term)
+      );
+    })
+    .slice()
+    .sort((a, b) =>
+      String(a.name || "").localeCompare(String(b.name || ""), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      })
     );
-  });
 
   const colorOptions = [
     { name: "Blue", value: "#3B82F6" },
@@ -174,106 +183,163 @@ const Categories = () => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Categories</h1>
-          <p className="text-gray-600 dark:text-white">Organize your items into categories</p>
-        </div>
-        <button
-          onClick={openAddCategory}
-          className="flex items-center space-x-2 px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Category</span>
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search categories..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
-      {/* Categories Grid */}
-      {categoriesLoading ? (
-        <div className="text-center py-12 text-gray-500">Loading categories...</div>
-      ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {filteredCategories.map((category) => (
-          <div
-            key={category.id}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${category.color}20` }}
-                >
-                  <FolderOpen className="w-6 h-6" style={{ color: category.color }} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                  <p className="text-sm text-gray-600">{category.itemCount} items</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => openEditCategory(category)}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteCategory(category.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+    <div className="p-6 space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white shadow-sm overflow-hidden">
+        <div className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-11 w-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
+              <FolderOpen className="h-5 w-5 text-white" />
             </div>
-
-            <p className="text-sm text-gray-600 mb-4">{category.description}</p>
-
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="flex items-center space-x-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: category.color }}
-                ></div>
-                <span className="text-xs text-gray-500">Color</span>
-              </div>
-              <button className="text-sm text-blue-900 hover:text-blue-800 font-medium">
-                View Items
-              </button>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Categories</h1>
+              <p className="text-sm text-slate-300 mt-1">
+                Organize your items into categories
+                {!categoriesLoading ? ` · ${filteredCategories.length} shown` : ""}
+              </p>
             </div>
           </div>
-        ))}
+          <button
+            type="button"
+            onClick={openAddCategory}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-white text-slate-900 text-sm font-semibold hover:bg-slate-100 transition-colors shadow-sm self-start"
+          >
+            <Plus className="w-4 h-4" />
+            Add Category
+          </button>
+        </div>
       </div>
-      )}
 
-      {/* Add Category Modal */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-200 bg-white/80">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Search categories..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-11 pl-10 pr-4 border border-slate-200 rounded-xl bg-white text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5">
+          {categoriesLoading ? (
+            <div className="text-center py-14 text-sm text-slate-500">Loading categories...</div>
+          ) : filteredCategories.length === 0 ? (
+            <div className="text-center py-14 px-4">
+              <FolderOpen className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-medium text-slate-700">
+                {categories.length === 0 ? "No categories yet" : "No categories match your search"}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {categories.length === 0
+                  ? "Create a category to organize your catalog."
+                  : "Try another name or description."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+              {filteredCategories.map((category) => {
+                const count = Number(category.itemCount) || 0;
+                return (
+                  <div
+                    key={category.id || category._id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border border-slate-100"
+                        style={{ backgroundColor: `${category.color || "#3B82F6"}18` }}
+                      >
+                        <FolderOpen
+                          className="h-5 w-5"
+                          style={{ color: category.color || "#3B82F6" }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3
+                          className="text-sm font-semibold text-slate-900 leading-snug break-words"
+                          title={category.name}
+                        >
+                          {category.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {count} item{count === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openEditCategory(category)}
+                          title="Edit category"
+                          aria-label={`Edit ${category.name}`}
+                          className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(category.id || category._id)}
+                          title="Delete category"
+                          aria-label={`Delete ${category.name}`}
+                          className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {category.description ? (
+                      <p className="mt-3 text-xs text-slate-500 line-clamp-2">
+                        {category.description}
+                      </p>
+                    ) : null}
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-white shadow-sm"
+                          style={{ backgroundColor: category.color || "#3B82F6" }}
+                        />
+                        <span className="text-[11px] font-medium text-slate-500 truncate">
+                          {colorOptions.find((c) => c.value === category.color)?.name || "Custom"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(`/items?q=${encodeURIComponent(category.name || "")}`)
+                        }
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-900 hover:text-blue-800"
+                      >
+                        <Package className="w-3.5 h-3.5" />
+                        View Items
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/80">
+              <h2 className="text-lg font-semibold text-slate-900">
                 {editingCategoryId ? "Edit Category" : "Add New Category"}
               </h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Categories help group products on invoices and inventory.
+              </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Category Name *
                 </label>
                 <input
@@ -281,63 +347,63 @@ const Categories = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Products, Services"
+                  className="w-full h-11 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Bend, Air Valve"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Description
                 </label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows="3"
-                  placeholder="Describe this category..."
+                  placeholder="Optional description..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Color
-                </label>
-                <div className="grid grid-cols-4 gap-3">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Color</label>
+                <div className="grid grid-cols-4 gap-2.5">
                   {colorOptions.map((color) => (
                     <button
                       key={color.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, color: color.value })}
-                      className={`p-3 rounded-lg border-2 transition-all ${
+                      className={`p-2.5 rounded-xl border-2 transition-all ${
                         formData.color === color.value
-                          ? "border-gray-900 scale-105"
-                          : "border-gray-200 hover:border-gray-300"
+                          ? "border-slate-900 scale-[1.02]"
+                          : "border-slate-200 hover:border-slate-300"
                       }`}
                     >
                       <div
-                        className="w-full h-8 rounded"
+                        className="w-full h-7 rounded-lg"
                         style={{ backgroundColor: color.value }}
-                      ></div>
-                      <p className="text-xs text-gray-600 mt-1 text-center">{color.name}</p>
+                      />
+                      <p className="text-[10px] font-medium text-slate-600 mt-1.5 text-center">
+                        {color.name}
+                      </p>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-4 pt-4">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="h-10 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"
+                  className="h-10 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
                 >
                   {editingCategoryId ? "Save Changes" : "Add Category"}
                 </button>

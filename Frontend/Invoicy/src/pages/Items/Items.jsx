@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, Package, FileSpreadsheet, Upload, Coins, ImageIcon, Save, X, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
@@ -12,11 +13,12 @@ const normalizeUnitValue = (value) => String(value || "").trim().toLowerCase();
 
 const Items = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const userCurrency = user?.currency || 'GHS';
   const [showModal, setShowModal] = useState(false);
   const [unitMode, setUnitMode] = useState("preset");
   const [customUnitDraft, setCustomUnitDraft] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") || "");
   const [editingItemId, setEditingItemId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -116,6 +118,11 @@ const Items = () => {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [importMenuOpen]);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q != null) setSearchTerm(q);
+  }, [searchParams]);
 
   useEffect(() => {
     const loadItems = async () => {
