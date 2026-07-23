@@ -44,6 +44,7 @@ const Dashboard = () => {
     topCustomers: [],
     revenueByMonth: [],
     documentTypeData: [],
+    currentMonthLabel: "",
   });
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,28 +88,55 @@ const Dashboard = () => {
         if (raw === "pending" || raw === "overdue") return "unpaid";
         return raw;
       };
-      const totalInvoices = invoices.length;
-      const totalPaid = invoices
-        .filter((inv) => normalizeStatus(inv.status) === "fully paid")
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const invoiceDate = (inv) => {
+        const d = inv.invoiceDate ? new Date(inv.invoiceDate) : new Date(inv.createdAt);
+        return Number.isNaN(d.getTime()) ? null : d;
+      };
+      const isCurrentMonth = (inv) => {
+        const d = invoiceDate(inv);
+        return d && d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      };
+
+      // Dashboard cards and summary charts: current calendar month only
+      const monthInvoices = invoices.filter(isCurrentMonth);
+
+      const totalInvoices = monthInvoices.filter(
+        (inv) => (inv.type || "invoice").toLowerCase() === "invoice"
+      ).length;
+      const totalPaid = monthInvoices
+        .filter((inv) => {
+          if ((inv.type || "invoice").toLowerCase() !== "invoice") return false;
+          return normalizeStatus(inv.status) === "fully paid";
+        })
         .reduce((acc, inv) => acc + (inv.grandTotal || 0), 0);
-      const totalPartial = invoices
-        .filter((inv) => normalizeStatus(inv.status) === "partially paid")
+      const totalPartial = monthInvoices
+        .filter((inv) => {
+          if ((inv.type || "invoice").toLowerCase() !== "invoice") return false;
+          return normalizeStatus(inv.status) === "partially paid";
+        })
         .reduce((acc, inv) => acc + (inv.grandTotal || 0), 0);
       // Total unpaid includes both unpaid and partially paid invoices (matching reports page)
-      const totalUnpaid = invoices
+      const totalUnpaid = monthInvoices
         .filter((inv) => {
+          if ((inv.type || "invoice").toLowerCase() !== "invoice") return false;
           const status = normalizeStatus(inv.status);
           return status !== "fully paid";
         })
         .reduce((acc, inv) => acc + (inv.grandTotal || 0), 0);
 
-      const totalVat = invoices.reduce((acc, inv) => acc + (inv.totalVat || 0), 0);
-      const totalNhil = invoices.reduce((acc, inv) => acc + (inv.totalNhil || 0), 0);
-      const totalGetFund = invoices.reduce((acc, inv) => acc + (inv.totalGetFund || 0), 0);
-      const totalQuotations = invoices.filter((inv) => (inv.type || "").toLowerCase() === "quotation").length;
+      const totalVat = monthInvoices.reduce((acc, inv) => acc + (inv.totalVat || 0), 0);
+      const totalNhil = monthInvoices.reduce((acc, inv) => acc + (inv.totalNhil || 0), 0);
+      const totalGetFund = monthInvoices.reduce((acc, inv) => acc + (inv.totalGetFund || 0), 0);
+      const totalQuotations = monthInvoices.filter(
+        (inv) => (inv.type || "").toLowerCase() === "quotation"
+      ).length;
 
       const customerMap = new Map();
-      invoices.forEach((inv) => {
+      monthInvoices.forEach((inv) => {
         const customerName = inv.billTo?.clientName || "Unknown";
         const entry = customerMap.get(customerName) || { name: customerName, count: 0, total: 0 };
         entry.count += 1;
@@ -125,8 +153,7 @@ const Dashboard = () => {
           total: Number(c.total.toFixed(2)),
         }));
 
-      // Revenue by month (last 6 months)
-      const now = new Date();
+      // Revenue by month (last 6 months) — trend chart uses all invoices
       const monthKeys = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -138,16 +165,17 @@ const Dashboard = () => {
           .filter((inv) => {
             const status = normalizeStatus(inv.status);
             if (status !== "fully paid") return false;
-            const d = inv.invoiceDate ? new Date(inv.invoiceDate) : new Date(inv.createdAt);
-            return d.getFullYear() === y && d.getMonth() + 1 === m;
+            if ((inv.type || "invoice").toLowerCase() !== "invoice") return false;
+            const d = invoiceDate(inv);
+            return d && d.getFullYear() === y && d.getMonth() + 1 === m;
           })
           .reduce((acc, inv) => acc + (inv.grandTotal || 0), 0);
         return { month: label, revenue: Number(total.toFixed(2)), key };
       });
 
-      // Document type breakdown (invoice, quotation, proforma)
+      // Document type breakdown (invoice, quotation, proforma) — current month
       const typeCounts = { invoice: 0, quotation: 0, proforma: 0 };
-      invoices.forEach((inv) => {
+      monthInvoices.forEach((inv) => {
         const t = (inv.type || "invoice").toLowerCase();
         if (t in typeCounts) typeCounts[t]++;
         else typeCounts.invoice++;
@@ -161,7 +189,7 @@ const Dashboard = () => {
       // Gross profit: fully paid formal invoices only (matches "Total Revenue" semantics)
       const productProfitMap = new Map();
       let totalProductProfit = 0;
-      invoices.forEach((inv) => {
+      monthInvoices.forEach((inv) => {
         const docType = (inv.type || "invoice").toLowerCase();
         if (docType !== "invoice") return;
         if (normalizeStatus(inv.status) !== "fully paid") return;
@@ -232,11 +260,12 @@ const Dashboard = () => {
         topCustomers,
         revenueByMonth,
         documentTypeData,
+        currentMonthLabel: now.toLocaleString("default", { month: "long", year: "numeric" }),
       });
 
       setRecentInvoices(
-        invoices
-          .sort((a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate))
+        monthInvoices
+          .sort((a, b) => new Date(b.invoiceDate || b.createdAt) - new Date(a.invoiceDate || a.createdAt))
           .slice(0, 5)
       );
     } catch (error) {
@@ -353,7 +382,9 @@ const Dashboard = () => {
       {/* Debug output for API errors */}
       {stats.totalInvoices === 0 && recentInvoices.length === 0 && (
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg mb-4">
-          <div className="text-slate-600 dark:text-slate-300 text-sm font-medium">No invoices yet.</div>
+          <div className="text-slate-600 dark:text-slate-300 text-sm font-medium">
+            No invoices for {stats.currentMonthLabel || "this month"} yet.
+          </div>
         </div>
       )}
       <div>
@@ -361,7 +392,9 @@ const Dashboard = () => {
           {t("dashboard.title") || "Dashboard"}
         </h2>
         <p className="text-sm text-slate-600 dark:text-white mt-1">
-          {t("dashboard.subtitle") || "View your invoice and revenue summary"}
+          {stats.currentMonthLabel
+            ? `This month · ${stats.currentMonthLabel}`
+            : t("dashboard.subtitle") || "Quick overview of your business finances."}
         </p>
       </div>
 
