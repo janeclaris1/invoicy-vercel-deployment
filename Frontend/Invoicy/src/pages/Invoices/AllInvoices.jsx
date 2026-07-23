@@ -163,11 +163,21 @@ const AllInvoices = ({ typeFilter }) => {
     };
   }, [fetchInvoices]);
 
-  const handleDelete = async (id) => {
-    if(window.confirm('Are you sure you want to delete this invoice?')) {
+  const handleDelete = async (invoiceOrId) => {
+    const invoice =
+      typeof invoiceOrId === "object" && invoiceOrId
+        ? invoiceOrId
+        : invoices.find((inv) => inv._id === invoiceOrId);
+    const id = invoice?._id || invoiceOrId;
+    if (!id) return;
+    if (isInvoiceGraLocked(invoice)) {
+      toast.error("This invoice was submitted to GRA and cannot be deleted.");
+      return;
+    }
+    if (window.confirm("Are you sure you want to delete this invoice?")) {
       try {
         await axiosinstance.delete(API_PATHS.INVOICES.DELETE_INVOICE(id));
-        setInvoices((prev) => prev.filter((invoice) => invoice._id !== id));
+        setInvoices((prev) => prev.filter((inv) => inv._id !== id));
         toast.success("Invoice deleted");
       } catch (error) {
         const msg = error.response?.data?.message || "Error deleting invoice";
@@ -498,9 +508,17 @@ const AllInvoices = ({ typeFilter }) => {
                     <MessageCircle className="w-4 h-4" />
                   </ActionIconButton>
                   <ActionIconButton
-                    title="Delete"
-                    onClick={() => handleDelete(invoice._id)}
-                    className="border-red-200 text-red-600 hover:bg-red-50"
+                    title={
+                      isInvoiceGraLocked(invoice)
+                        ? "Cannot delete — submitted to GRA"
+                        : "Delete"
+                    }
+                    onClick={() => handleDelete(invoice)}
+                    className={
+                      isInvoiceGraLocked(invoice)
+                        ? "border-slate-200 text-slate-300 cursor-not-allowed"
+                        : "border-red-200 text-red-600 hover:bg-red-50"
+                    }
                   >
                     <Trash2 className="w-4 h-4" />
                   </ActionIconButton>
@@ -676,9 +694,17 @@ const AllInvoices = ({ typeFilter }) => {
                         <MessageCircle className="w-4 h-4" />
                       </ActionIconButton>
                       <ActionIconButton
-                        title="Delete"
-                        onClick={() => handleDelete(invoice._id)}
-                        className="border-red-200 text-red-600 hover:bg-red-50"
+                        title={
+                          isInvoiceGraLocked(invoice)
+                            ? "Cannot delete — submitted to GRA"
+                            : "Delete"
+                        }
+                        onClick={() => handleDelete(invoice)}
+                        className={
+                          isInvoiceGraLocked(invoice)
+                            ? "border-slate-200 text-slate-300 cursor-not-allowed"
+                            : "border-red-200 text-red-600 hover:bg-red-50"
+                        }
                       >
                         <Trash2 className="w-4 h-4" />
                       </ActionIconButton>

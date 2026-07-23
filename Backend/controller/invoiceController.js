@@ -758,6 +758,22 @@ exports.deleteInvoice = async (req, res) => {
         if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
             return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
         }
+
+        const graLocked = (() => {
+            const statusValue = String(invoice.graStatus || '').trim().toUpperCase();
+            if (statusValue === 'SUCCESS' || statusValue === 'APPROVED') return true;
+            return Boolean(
+                invoice.graReceiptNumber ||
+                invoice.graSdcId ||
+                invoice.graVerificationCode ||
+                (invoice.graQrCode && String(invoice.graQrCode).trim())
+            );
+        })();
+        if (graLocked) {
+            return res.status(400).json({
+                message: 'This invoice was submitted to GRA and cannot be deleted.',
+            });
+        }
         
         await Invoice.findByIdAndDelete(req.params.id);
         
