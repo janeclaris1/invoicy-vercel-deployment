@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText, MessageCircle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import moment from "moment";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CreateWithAiModal from "../../components/invoices/CreateWithAiModal";
@@ -52,6 +52,8 @@ function ActionIconButton({ title, onClick, className = "", children }) {
   );
 }
 
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 500, 1000];
+
 const AllInvoices = ({ typeFilter }) => {
   const { user } = useAuth();
   const userCurrency = user?.currency || "GHS";
@@ -70,6 +72,8 @@ const AllInvoices = ({ typeFilter }) => {
   const [convertLoading, setConvertLoading] = useState(null);
   const [branches, setBranches] = useState([]);
   const [branchFilter, setBranchFilter] = useState("");
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -289,6 +293,26 @@ const AllInvoices = ({ typeFilter }) => {
       .filter((invoice) => !typeFilter || (invoice.type || "invoice").toLowerCase() === typeFilter.toLowerCase());
   }, [invoices, statusFilter, searchTerm, typeFilter]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, branchFilter, typeFilter, pageSize]);
+
+  const totalFiltered = filteredInvoices.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize) || 1);
+  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+
+  const displayedInvoices = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredInvoices.slice(start, start + pageSize);
+  }, [filteredInvoices, safePage, pageSize]);
+
+  const rangeStart = totalFiltered === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(safePage * pageSize, totalFiltered);
+
+  useEffect(() => {
+    if (currentPage !== safePage) setCurrentPage(safePage);
+  }, [currentPage, safePage]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -325,7 +349,9 @@ const AllInvoices = ({ typeFilter }) => {
                 {isQuotationsView
                   ? "Manage your price estimates and quotations"
                   : "Manage all your invoices in one place"}
-                {` · ${filteredInvoices.length} shown`}
+                {totalFiltered > 0
+                  ? ` · Showing ${rangeStart}–${rangeEnd} of ${totalFiltered}`
+                  : " · 0 shown"}
               </p>
             </div>
           </div>
@@ -412,13 +438,28 @@ const AllInvoices = ({ typeFilter }) => {
                 <option value="Unpaid">Unpaid</option>
                 <option value="Pending">Pending</option>
               </select>
+              <label className="inline-flex items-center gap-2 h-11 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-700">
+                <span className="whitespace-nowrap text-slate-500">Show</span>
+                <select
+                  className="bg-transparent font-semibold text-slate-900 focus:outline-none"
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  aria-label="Number of invoices to display"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
         </div>
 
         {/* Mobile: stacked cards */}
         <div className="md:hidden p-4 space-y-3">
-          {filteredInvoices.map((invoice) => (
+          {displayedInvoices.map((invoice) => (
             <div
               key={invoice._id}
               className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -570,7 +611,7 @@ const AllInvoices = ({ typeFilter }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredInvoices.map((invoice) => (
+              {displayedInvoices.map((invoice) => (
                 <tr
                   key={invoice._id}
                   className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/80 cursor-pointer transition-colors"
@@ -727,6 +768,39 @@ const AllInvoices = ({ typeFilter }) => {
                 ? "Create your first invoice to get started."
                 : "Try another search or status filter."}
             </p>
+          </div>
+        )}
+
+        {totalFiltered > 0 && (
+          <div className="px-4 sm:px-5 py-3 border-t border-slate-200 bg-white/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-slate-600">
+              Showing <span className="font-semibold text-slate-900">{rangeStart}–{rangeEnd}</span> of{" "}
+              <span className="font-semibold text-slate-900">{totalFiltered}</span>
+              <span className="text-slate-400"> · {pageSize} per page</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, Math.min(p, totalPages) - 1))}
+                disabled={safePage <= 1}
+                className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Prev
+              </button>
+              <span className="text-sm font-medium text-slate-700 tabular-nums px-2">
+                Page {safePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, Math.max(1, p) + 1))}
+                disabled={safePage >= totalPages}
+                className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
