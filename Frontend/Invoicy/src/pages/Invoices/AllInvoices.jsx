@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react"; 
-import axiosinstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Loader2, Plus, AlertCircle, Sparkles, Search, Mail, Edit, Trash2, FileText, MessageCircle, CheckCircle2 } from "lucide-react";
 import moment from "moment";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -10,6 +8,9 @@ import WhatsAppReminderModal from "../../components/invoices/WhatsAppReminderMod
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { formatCurrency } from "../../utils/helper";
+import { isInvoiceGraLocked } from "../../utils/invoiceEdit";
+import axiosinstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
 
 function invoiceStatusBadgeClass(status) {
   const s = (status || "").toLowerCase();
@@ -71,6 +72,30 @@ const AllInvoices = ({ typeFilter }) => {
   const [branchFilter, setBranchFilter] = useState("");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const openEditInvoice = useCallback(
+    async (invoice) => {
+      if (!invoice?._id) return;
+      if (isInvoiceGraLocked(invoice)) {
+        toast.error("This invoice was submitted to GRA and can no longer be edited.");
+        navigate(`/invoices/${invoice._id}`);
+        return;
+      }
+      try {
+        const res = await axiosinstance.get(API_PATHS.INVOICES.GET_INVOICE_BY_ID(invoice._id));
+        const full = res.data || invoice;
+        if (isInvoiceGraLocked(full)) {
+          toast.error("This invoice was submitted to GRA and can no longer be edited.");
+          navigate(`/invoices/${invoice._id}`);
+          return;
+        }
+        navigate("/invoices/new", { state: { invoice: full } });
+      } catch {
+        navigate("/invoices/new", { state: { invoice } });
+      }
+    },
+    [navigate]
+  );
 
   useEffect(() => {
     if (!canFilterByBranch) return;
@@ -441,11 +466,22 @@ const AllInvoices = ({ typeFilter }) => {
                     </ActionIconButton>
                   )}
                   <ActionIconButton
-                    title="Open"
-                    onClick={() => navigate(`/invoices/${invoice._id}`)}
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                    title={isInvoiceGraLocked(invoice) ? "View (GRA locked)" : "Edit invoice"}
+                    onClick={() => openEditInvoice(invoice)}
+                    className={
+                      isInvoiceGraLocked(invoice)
+                        ? "border-slate-200 text-slate-400 hover:bg-slate-50"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }
                   >
                     <Edit className="w-4 h-4" />
+                  </ActionIconButton>
+                  <ActionIconButton
+                    title="Open"
+                    onClick={() => navigate(`/invoices/${invoice._id}`)}
+                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                  >
+                    <FileText className="w-4 h-4" />
                   </ActionIconButton>
                   <ActionIconButton
                     title="Email reminder"
@@ -608,11 +644,22 @@ const AllInvoices = ({ typeFilter }) => {
                         </ActionIconButton>
                       )}
                       <ActionIconButton
-                        title="Open"
-                        onClick={() => navigate(`/invoices/${invoice._id}`)}
-                        className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                        title={isInvoiceGraLocked(invoice) ? "View (GRA locked)" : "Edit invoice"}
+                        onClick={() => openEditInvoice(invoice)}
+                        className={
+                          isInvoiceGraLocked(invoice)
+                            ? "border-slate-200 text-slate-400 hover:bg-slate-50"
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }
                       >
                         <Edit className="w-4 h-4" />
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title="Open"
+                        onClick={() => navigate(`/invoices/${invoice._id}`)}
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                      >
+                        <FileText className="w-4 h-4" />
                       </ActionIconButton>
                       <ActionIconButton
                         title="Email reminder"

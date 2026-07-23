@@ -10,6 +10,7 @@ import Button from "../../components/ui/Button";
 import { formatCurrency } from "../../utils/helper";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
+import { isInvoiceGraLocked } from "../../utils/invoiceEdit";
 
 /** Values align vertically: fixed label column. One line; no wrap/scroll — smaller type + truncate if still too long (full text in title). */
 function EvatInfoRow({ label, value }) {
@@ -582,15 +583,30 @@ const InvoiceDetail = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {!isInvoiceGraLocked(invoice) && (
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/invoices/new", { state: { invoice } })}
+                className="flex items-center gap-2 text-black dark:text-black"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Invoice
+              </Button>
+            )}
             {(invoice.type || "invoice") === "invoice" && (
               <Button
                 variant="secondary"
                 onClick={handleSubmitToGRA}
-                disabled={graSubmitting}
+                disabled={graSubmitting || isInvoiceGraLocked(invoice)}
                 className="flex items-center gap-2 text-black dark:text-black"
+                title={
+                  isInvoiceGraLocked(invoice)
+                    ? "Already submitted to GRA"
+                    : "Submit this invoice to GRA"
+                }
               >
                 {graSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
-                Submit to GRA
+                {isInvoiceGraLocked(invoice) ? "Submitted to GRA" : "Submit to GRA"}
               </Button>
             )}
             {((invoice.type || "invoice") === "proforma" || (invoice.type || "invoice") === "quotation") && !invoice.convertedTo && (invoice.status === "Fully Paid" || invoice.status === "Paid") && (

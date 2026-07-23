@@ -12,6 +12,10 @@ import TextareaField from "../../components/ui/TextareaField";
 import Button from "../../components/ui/Button";
 import SelectField from "../../components/ui/SelectField";
 import { formatCurrency } from "../../utils/helper";
+import {
+  buildFormDataFromExistingInvoice,
+  isInvoiceGraLocked,
+} from "../../utils/invoiceEdit";
 
 function parseDecimalInput(raw) {
   const s = String(raw ?? "").trim().replace(",", ".");
@@ -122,19 +126,9 @@ const CreateInvoice = () => {
       : [];
 
   const [formData, setFormData] = useState(
-    existingInvoice ? {
-      ...existingInvoice,
-      amountPaid:
-        existingInvoice.amountPaid != null && existingInvoice.amountPaid !== ""
-          ? String(Number(existingInvoice.amountPaid))
-          : "0",
-      discountPercent: decimalStringFromStored(existingInvoice.discountPercent),
-      discountAmount: decimalStringFromStored(existingInvoice.discountAmount),
-      // Always use company settings from user profile, even when editing
-      companyLogo: existingInvoice.companyLogo || user?.companyLogo || "",
-      companySignature: existingInvoice.companySignature || user?.companySignature || "",
-      companyStamp: existingInvoice.companyStamp || user?.companyStamp || "",
-    } : {
+    existingInvoice
+      ? buildFormDataFromExistingInvoice(existingInvoice, user)
+      : {
       invoiceNumber: "",
       invoiceDate: new Date().toISOString().split("T")[0],
       dueDate: "",
@@ -467,20 +461,22 @@ const CreateInvoice = () => {
     }
 
     if (existingInvoice) {
+      if (isInvoiceGraLocked(existingInvoice)) {
+        toast.error("This invoice was submitted to GRA and can no longer be edited.");
+        navigate(`/invoices/${existingInvoice._id || existingInvoice.id}`, { replace: true });
+        return;
+      }
+      const mapped = buildFormDataFromExistingInvoice(existingInvoice, user);
       setFormData({
-        ...existingInvoice,
-        invoiceDate: moment(existingInvoice.invoiceDate).format("YYYY-MM-DD"),
-        dueDate: moment(existingInvoice.dueDate).format("YYYY-MM-DD"),
-        amountPaid:
-          existingInvoice.amountPaid != null && existingInvoice.amountPaid !== ""
-            ? String(Number(existingInvoice.amountPaid))
-            : "0",
-        discountPercent: decimalStringFromStored(existingInvoice.discountPercent),
-        discountAmount: decimalStringFromStored(existingInvoice.discountAmount),
-        // Always use company settings from user profile as fallback
-        companyLogo: existingInvoice.companyLogo || user?.companyLogo || "",
-        companySignature: existingInvoice.companySignature || user?.companySignature || "",
-        companyStamp: existingInvoice.companyStamp || user?.companyStamp || "",
+        ...mapped,
+        invoiceDate: existingInvoice.invoiceDate
+          ? moment(existingInvoice.invoiceDate).format("YYYY-MM-DD")
+          : mapped.invoiceDate,
+        dueDate: existingInvoice.dueDate
+          ? moment(existingInvoice.dueDate).format("YYYY-MM-DD")
+          : "",
+        discountPercent: decimalStringFromStored(mapped.discountPercent),
+        discountAmount: decimalStringFromStored(mapped.discountAmount),
       });
       setIsGeneratingNumber(false);
       return;
@@ -707,6 +703,15 @@ const CreateInvoice = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!(formData.items || []).length) {
+      toast.error("Add at least one line item before saving.");
+      return;
+    }
+    if (existingInvoice && isInvoiceGraLocked(existingInvoice)) {
+      toast.error("This invoice was submitted to GRA and can no longer be edited.");
+      navigate(`/invoices/${existingInvoice._id}`);
+      return;
+    }
     setLoading(true);
     try {
       // Map items to API shape: backend expects description, unitPrice, and optional itemId for stock deduction
@@ -735,11 +740,20 @@ const CreateInvoice = () => {
       };
       if (existingInvoice?._id) {
         await axiosInstance.put(API_PATHS.INVOICES.UPDATE_INVOICE(existingInvoice._id), payload);
+        window.dispatchEvent(new CustomEvent("invoicesUpdated"));
+        toast.success("Invoice updated. You can submit it to GRA when ready.");
+        navigate(`/invoices/${existingInvoice._id}`);
       } else {
-        await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, payload);
+        const response = await axiosInstance.post(API_PATHS.INVOICES.GET_ALL_INVOICES, payload);
+        const created = response?.data?.invoice || response?.data;
+        window.dispatchEvent(new CustomEvent("invoicesUpdated"));
+        toast.success("Invoice saved. Review and submit to GRA when ready.");
+        if (created?._id) {
+          navigate(`/invoices/${created._id}`);
+        } else {
+          navigate("/invoices");
+        }
       }
-      window.dispatchEvent(new CustomEvent("invoicesUpdated"));
-      navigate("/dashboard");
     } catch (error) {
       console.error("Failed to create invoice:", error);
       const msg =
@@ -759,6 +773,11 @@ const CreateInvoice = () => {
         <h2 className="text-xl font-semibold text-black">
           {existingInvoice ? "Edit Invoice" : "Create New Invoice"}
         </h2>
+        {existingInvoice ? (
+          <p className="text-sm text-slate-500 mt-1">
+            Add or remove items, then save. Submit to GRA from the invoice page when ready.
+          </p>
+        ) : null}
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">

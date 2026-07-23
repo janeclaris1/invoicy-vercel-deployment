@@ -472,6 +472,39 @@ exports.updateInvoice = async (req, res) => {
             refundEvents,
         } = req.body;
 
+        const graLocked = (() => {
+            const statusValue = String(invoice.graStatus || '').trim().toUpperCase();
+            if (statusValue === 'SUCCESS' || statusValue === 'APPROVED') return true;
+            return Boolean(
+                invoice.graReceiptNumber ||
+                invoice.graSdcId ||
+                invoice.graVerificationCode ||
+                (invoice.graQrCode && String(invoice.graQrCode).trim())
+            );
+        })();
+
+        const tryingToEditInvoiceContent =
+            items !== undefined ||
+            billTo !== undefined ||
+            billFrom !== undefined ||
+            invoiceNumber !== undefined ||
+            invoiceDate !== undefined ||
+            dueDate !== undefined ||
+            notes !== undefined ||
+            paymentTerms !== undefined ||
+            bodyDiscountPercent !== undefined ||
+            bodyDiscountAmount !== undefined ||
+            companyLogo !== undefined ||
+            companySignature !== undefined ||
+            companyStamp !== undefined ||
+            bodyGrandTotal !== undefined;
+
+        if (graLocked && tryingToEditInvoiceContent) {
+            return res.status(400).json({
+                message: 'This invoice was submitted to GRA and can no longer be edited. Payment updates are still allowed.',
+            });
+        }
+
         // Merge billFrom with company settings from user profile when updating
         const userProfile = await User.findById(invoice.user);
         const mergedBillFrom = billFrom ? {
