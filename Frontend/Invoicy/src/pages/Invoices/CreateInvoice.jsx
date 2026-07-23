@@ -77,6 +77,23 @@ function compareCatalogItems(a, b) {
   });
 }
 
+function normalizeProductSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchesProductSearch(item, rawQuery) {
+  const query = normalizeProductSearchText(rawQuery);
+  if (!query) return true;
+  const haystack = normalizeProductSearchText(
+    [item?.name, item?.sku, item?.category, item?.description].filter(Boolean).join(" ")
+  );
+  return query.split(" ").every((token) => haystack.includes(token));
+}
+
 const CreateInvoice = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,9 +187,7 @@ const CreateInvoice = () => {
   const customerPickerRef = useRef(null);
   const filteredCatalogItems = itemsCatalog
     .filter((item) => (selectedCategory ? item.category === selectedCategory : true))
-    .filter((item) =>
-      itemSearch ? `${item.name} ${item.sku || ""}`.toLowerCase().includes(itemSearch.toLowerCase()) : true
-    )
+    .filter((item) => matchesProductSearch(item, itemSearch))
     .slice()
     .sort(compareCatalogItems);
 
@@ -320,6 +335,8 @@ const CreateInvoice = () => {
     };
     loadItems();
     loadCategories();
+    window.addEventListener("itemsUpdated", loadItems);
+    return () => window.removeEventListener("itemsUpdated", loadItems);
   }, []);
 
   useEffect(() => {
@@ -572,7 +589,7 @@ const CreateInvoice = () => {
         return { ...prev, items: nextItems };
       });
       setSelectedItemId("");
-      setItemSearch("");
+      setProductDropdownOpen(true);
       return;
     }
 
@@ -592,7 +609,7 @@ const CreateInvoice = () => {
     }));
 
     setSelectedItemId("");
-    setItemSearch("");
+    setProductDropdownOpen(true);
   };
 
   const handleRemoveItem = (index) => {
@@ -1159,7 +1176,7 @@ const CreateInvoice = () => {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4" ref={productDropdownRef}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectField
               label="Category"
@@ -1177,7 +1194,7 @@ const CreateInvoice = () => {
             />
             <div>
               <label htmlFor="itemSearch" className="block text-sm font-medium text-black mb-2">
-                Search products
+                Search products by name
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1185,20 +1202,35 @@ const CreateInvoice = () => {
                   id="itemSearch"
                   name="itemSearch"
                   type="search"
+                  autoComplete="off"
                   value={itemSearch}
                   onChange={(e) => {
                     setItemSearch(e.target.value);
                     setProductDropdownOpen(true);
                   }}
                   onFocus={() => setProductDropdownOpen(true)}
-                  placeholder="Search by name or SKU"
-                  className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-lg bg-white text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Type a product name or SKU..."
+                  className="w-full h-10 pl-10 pr-10 border border-gray-300 rounded-lg bg-white text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {itemSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemSearch("");
+                      setProductDropdownOpen(true);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    title="Clear search"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
 
-          <div className="relative" ref={productDropdownRef}>
+          <div className="relative">
             <button
               type="button"
               onClick={() => setProductDropdownOpen((prev) => !prev)}
@@ -1206,22 +1238,26 @@ const CreateInvoice = () => {
             >
               <span className="truncate">
                 {productDropdownOpen
-                  ? "Close product list"
-                  : `Browse products · ${filteredCatalogItems.length} available`}
+                  ? "Hide product list"
+                  : itemSearch.trim()
+                    ? `Show matches · ${filteredCatalogItems.length} found`
+                    : `Browse products · ${filteredCatalogItems.length} available`}
               </span>
               <Package className="h-4 w-4 text-slate-400 shrink-0" />
             </button>
 
             {productDropdownOpen && (
               <div className="absolute left-0 right-0 z-20 mt-2 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                  <p className="text-xs font-medium text-slate-500">
-                    {filteredCatalogItems.length} product{filteredCatalogItems.length === 1 ? "" : "s"}
+                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-slate-500 truncate">
+                    {itemSearch.trim()
+                      ? `${filteredCatalogItems.length} match${filteredCatalogItems.length === 1 ? "" : "es"} for “${itemSearch.trim()}”`
+                      : `${filteredCatalogItems.length} product${filteredCatalogItems.length === 1 ? "" : "s"}${selectedCategory ? ` in ${selectedCategory}` : ""}`}
                   </p>
                   <button
                     type="button"
                     onClick={() => setProductDropdownOpen(false)}
-                    className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700 shrink-0"
                   >
                     Close
                   </button>
@@ -1269,9 +1305,13 @@ const CreateInvoice = () => {
                   </div>
                 ) : (
                   <div className="px-4 py-8 text-center">
-                    <p className="text-sm font-medium text-slate-700">No products match</p>
+                    <p className="text-sm font-medium text-slate-700">
+                      {itemsCatalog.length === 0 ? "No products loaded" : "No products match"}
+                    </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Try another search, or add a blank line manually.
+                      {itemsCatalog.length === 0
+                        ? "Add products under Items, then refresh this page."
+                        : "Try another name, clear the category filter, or add a blank line."}
                     </p>
                   </div>
                 )}
