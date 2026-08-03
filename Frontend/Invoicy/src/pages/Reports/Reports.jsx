@@ -357,6 +357,11 @@ const Reports = () => {
     }
   }, [searchParams, reportType, setSearchParams]);
 
+  useEffect(() => {
+    document.body.classList.add("report-print-page");
+    return () => document.body.classList.remove("report-print-page");
+  }, []);
+
   const handleSelectReportType = (typeId) => {
     setReportType(typeId);
     setSearchParams({ type: typeId }, { replace: true });
@@ -549,7 +554,7 @@ const Reports = () => {
       const fileName = `${reportTypeName}_${moment(dateRange.startDate).format("YYYY-MM-DD")}_to_${moment(dateRange.endDate).format("YYYY-MM-DD")}.pdf`;
 
       const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5],
+        margin: [8, 8, 8, 8],
         filename: fileName,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { 
@@ -557,7 +562,7 @@ const Reports = () => {
           useCORS: true,
           logging: false,
           backgroundColor: "#ffffff",
-          windowWidth: reportElement.scrollWidth,
+          windowWidth: Math.max(reportElement.scrollWidth, 1400),
           windowHeight: reportElement.scrollHeight,
           allowTaint: true,
           onclone: (clonedDoc) => {
@@ -570,11 +575,11 @@ const Reports = () => {
           }
         },
         jsPDF: { 
-          unit: "in", 
+          unit: "mm", 
           format: "a4", 
           orientation: "landscape"
         },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+        pagebreak: { mode: ["css", "legacy"] }
       };
 
       try {
@@ -794,7 +799,7 @@ const Reports = () => {
       </div>
 
       {/* Report Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6" id="report-content">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 overflow-x-auto report-landscape-preview" id="report-content">
         {loading && (
           <div className="text-sm text-gray-500 mb-4">Loading live data...</div>
         )}
@@ -1510,6 +1515,14 @@ const Reports = () => {
 
       {/* Print Styles */}
       <style>{`
+        .report-landscape-preview {
+          min-width: min(100%, 1100px);
+        }
+
+        .report-landscape-preview table {
+          min-width: 1000px;
+        }
+
         @media print {
           /* Hide everything except report content */
           * {
@@ -1530,10 +1543,14 @@ const Reports = () => {
             visibility: hidden !important;
           }
           
-          /* Reset body and page */
+          /* Reset body and page — landscape for all report exports/prints */
           @page {
-            size: landscape;
-            margin: 0.5in;
+            size: A4 landscape !important;
+            margin: 0.4in;
+          }
+
+          body.report-print-page {
+            width: 100% !important;
           }
           
           body {
@@ -1567,12 +1584,18 @@ const Reports = () => {
             top: 0;
             width: 100% !important;
             max-width: 100% !important;
+            min-width: 0 !important;
             margin: 0 !important;
             padding: 1rem !important;
             box-shadow: none !important;
             border: none !important;
             background: white !important;
             page-break-inside: avoid;
+            overflow: visible !important;
+          }
+
+          #report-content table {
+            min-width: 0 !important;
           }
 
           /* Spreadsheet-style print look */

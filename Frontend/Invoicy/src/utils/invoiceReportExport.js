@@ -238,20 +238,55 @@ export const buildInvoiceReportHtml = ({
   const grandTotalRow = buildTotalsRowHtml(grandTotals, "GRAND TOTAL", "#fde68a");
 
   return `<!DOCTYPE html>
-<html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
 <head>
   <meta charset="utf-8" />
   <title>${title}</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    @page WordSection1 {
+      size: 841.95pt 595.35pt;
+      mso-page-orientation: landscape;
+      margin: 36pt 36pt 36pt 36pt;
+    }
+    div.WordSection1 {
+      page: WordSection1;
+    }
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 0.4in;
+      }
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+    }
+  </style>
 </head>
 <body>
+  <div class="WordSection1">
   ${buildCompanyDetailsHtml(companyDetails)}
   <h2 style="margin:8px 0 8px;font-family:Arial,sans-serif;">${title}</h2>
   <p style="margin:0 0 4px;font-family:Arial,sans-serif;">Period: ${periodLabel}</p>
   <p style="margin:0 0 16px;font-family:Arial,sans-serif;">Generated: ${generatedAt}</p>
-  <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11px;">
+  <table>
     <thead><tr>${headerCells}</tr></thead>
     <tbody>${body}${grandTotalRow}</tbody>
   </table>
+  </div>
 </body>
 </html>`;
 };

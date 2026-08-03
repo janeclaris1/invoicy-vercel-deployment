@@ -181,10 +181,9 @@
       overflow: visible !important;
     }
     
-    /* Page margins */
+    /* Page margins — page size is set by print context (invoice portrait, reports landscape) */
     @page {
       margin: 0.5in;
-      size: A4;
     }
     
     /* Ensure tables don't break awkwardly */
