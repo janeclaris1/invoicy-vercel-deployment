@@ -1,0 +1,39 @@
+/* Soft list styles for non-journal report tables */
+#report-content table.report-table {
+  border-collapse: collapse !important;
+  border: none !important;
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+  color: #334155 !important;
+}
+
+#report-content table.report-table thead th {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #cfd8e3 !important;
+  color: #64748b !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  padding: 3px 4px !important;
+  vertical-align: middle !important;
+}
+
+#report-content table.report-table tbody td {
+  border: none !important;
+  border-bottom: 1px solid #eef2f7 !important;
+  padding: 1px 4px !important;
+  font-size: 10px !important;
+  color: #334155 !important;
+  vertical-align: middle !important;
+  line-height: 1.15 !important;
+}
+
+#report-content table.report-table tbody tr:nth-child(even) {
+  background: #f0f7fc !important;
+}
+
+#report-content .report-link {
+  color: #1d4ed8 !important;
+  text-decoration: underline;
+  font-weight: 500;
+}

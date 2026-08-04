@@ -25,6 +25,36 @@ function EvatInfoRow({ label, value }) {
   );
 }
 
+function resolveItemCode(item) {
+  if (!item) return "";
+  if (item.itemCode) return String(item.itemCode).trim();
+  if (item.sku) return String(item.sku).trim();
+  if (item.itemId && typeof item.itemId === "object" && item.itemId.sku) {
+    return String(item.itemId.sku).trim();
+  }
+  return "";
+}
+
+function formatLineQty(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0.00";
+  return n.toFixed(2);
+}
+
+function formatLinePrice(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0";
+  const rounded = Math.round(n * 100) / 100;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return String(rounded);
+}
+
+function formatLineAmount(qty, unitPrice) {
+  const amount = Number(qty || 0) * Number(unitPrice || 0);
+  if (!Number.isFinite(amount)) return "0.00";
+  return (Math.round(amount * 100) / 100).toFixed(2);
+}
+
 const InvoiceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -430,48 +460,31 @@ const InvoiceDetail = () => {
 
           {/* Items Table */}
           <div className="mt-10 w-full">
-            <table className="w-full border-separate border-spacing-0">
+            <table className="invoice-line-items-table w-full border-collapse">
               <thead>
-                <tr className="bg-[#4A9B8E] text-white font-bold text-sm">
-                  <th className="px-4 py-3 text-left">
-                    <span className="flex-1">Item Description</span>
-                  </th>
-                  <th className="px-4 py-3 text-left w-16">Qty.</th>
-                  <th className="px-4 py-3 text-left w-36">Unit Price</th>
-                  <th className="px-4 py-3 text-left">Amount</th>
+                <tr>
+                  <th className="invoice-line-items-th px-3 py-2 text-left">#</th>
+                  <th className="invoice-line-items-th px-3 py-2 text-left">Item Code</th>
+                  <th className="invoice-line-items-th px-3 py-2 text-left">Item Description</th>
+                  <th className="invoice-line-items-th px-3 py-2 text-right">Quantity</th>
+                  <th className="invoice-line-items-th px-3 py-2 text-right">Item Price</th>
+                  <th className="invoice-line-items-th px-3 py-2 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {lineItems.slice(0, 3).map((item, index) => (
-                  <tr
-                    key={index}
-                    className={
-                      index === 1 ? "bg-[#F9F9F9]" : "bg-white"
-                    }
-                  >
-                    <td className="px-4 py-3 text-sm border-b border-gray-100">
-                      {item.description || item.itemDescription || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-100">
-                      {item.quantity || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-100">
-                      {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
-                    </td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-100">
-                      {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
-                    </td>
-                  </tr>
-                ))}
-
-                <tr className="bg-[#F0F0F0] font-bold text-sm">
-                  <td className="px-4 py-3">Total Payment</td>
-                  <td className="px-4 py-3">-</td>
-                  <td className="px-4 py-3">-</td>
-                  <td className="px-4 py-3">
-                    {formatCurrency(invoice.subtotal || 0, userCurrency)}
-                  </td>
-                </tr>
+                {lineItems.map((item, index) => {
+                  const unitPrice = item.unitPrice ?? item.itemPrice ?? 0;
+                  return (
+                    <tr key={`${item.itemId || item._id || item.description || "line"}-${index}`}>
+                      <td className="invoice-line-items-td px-3 py-2 text-left tabular-nums">{item.sn || index + 1}</td>
+                      <td className="invoice-line-items-td px-3 py-2 text-left">{resolveItemCode(item) || "-"}</td>
+                      <td className="invoice-line-items-td px-3 py-2 text-left">{item.description || item.itemDescription || "-"}</td>
+                      <td className="invoice-line-items-td px-3 py-2 text-right tabular-nums">{formatLineQty(item.quantity)}</td>
+                      <td className="invoice-line-items-td px-3 py-2 text-right tabular-nums">{formatLinePrice(unitPrice)}</td>
+                      <td className="invoice-line-items-td px-3 py-2 text-right tabular-nums">{formatLineAmount(item.quantity, unitPrice)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -719,16 +732,18 @@ const InvoiceDetail = () => {
         </div>
 
         <div className="mt-4 overflow-x-auto -mx-1 px-1">
-          <table className="invoice-line-items-table w-full min-w-[480px] table-fixed border-collapse text-[11px] sm:text-[12px]">
+          <table className="invoice-line-items-table w-full min-w-[640px] table-fixed border-collapse text-[11px] sm:text-[12px]">
             <colgroup>
+              <col style={{ width: "2.5rem" }} />
+              <col style={{ width: "8.5rem" }} />
               <col />
-              <col style={{ width: "4.5rem" }} />
-              <col style={{ width: "6.5rem" }} />
+              <col style={{ width: "5.5rem" }} />
+              <col style={{ width: "6rem" }} />
               <col style={{ width: "6.5rem" }} />
             </colgroup>
-            <thead className="bg-[#1A3263]">
+            <thead>
               <tr className="invoice-print-repeat-row">
-                <th colSpan={4} className="invoice-print-repeat-cell px-0 py-0 border-b-0">
+                <th colSpan={6} className="invoice-print-repeat-cell px-0 py-0 border-b-0">
                   <div className="text-center py-2">
                     <div className="text-base font-black tracking-widest text-center text-black">
                       {displayBillFrom.businessName}
@@ -744,7 +759,7 @@ const InvoiceDetail = () => {
                 </th>
               </tr>
               <tr className="invoice-print-repeat-row">
-                <th colSpan={4} className="invoice-print-repeat-cell px-2 py-2 border-b border-gray-200">
+                <th colSpan={6} className="invoice-print-repeat-cell px-2 py-2 border-b border-gray-200">
                   <div className="invoice-bill-from-to text-left border-0 rounded-xl overflow-hidden">
                     <table className="w-full text-[11px] leading-[1.25] text-black table-fixed">
                       <colgroup>
@@ -810,29 +825,47 @@ const InvoiceDetail = () => {
                 </th>
               </tr>
               <tr>
-                <th className="invoice-line-items-th px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wide">Description</th>
-                <th className="invoice-line-items-th px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wide">Qty</th>
-                <th className="invoice-line-items-th px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wide">Price</th>
-                <th className="invoice-line-items-th px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wide">Total</th>
+                <th className="invoice-line-items-th px-2 py-2 text-left text-xs font-bold text-black">#</th>
+                <th className="invoice-line-items-th px-2 py-2 text-left text-xs font-bold text-black">Item Code</th>
+                <th className="invoice-line-items-th px-2 py-2 text-left text-xs font-bold text-black">Item Description</th>
+                <th className="invoice-line-items-th px-2 py-2 text-right text-xs font-bold text-black">Quantity</th>
+                <th className="invoice-line-items-th px-2 py-2 text-right text-xs font-bold text-black">Item Price</th>
+                <th className="invoice-line-items-th px-2 py-2 text-right text-xs font-bold text-black">Amount</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
-              {lineItems.map((item, index) => (
-                <tr key={index}>
-                  <td className="invoice-line-items-td px-4 py-3 align-middle text-left text-gray-500 dark:text-gray-500 break-words min-w-0">
-                    {item.description || item.itemDescription || "-"}
-                  </td>
-                  <td className="invoice-line-items-td px-4 py-3 align-middle text-center tabular-nums text-gray-500 dark:text-gray-500">
-                    {item.quantity ?? "-"}
-                  </td>
-                  <td className="invoice-line-items-td px-4 py-3 align-middle text-center tabular-nums text-gray-500 dark:text-gray-500">
-                    {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
-                  </td>
-                  <td className="invoice-line-items-td px-4 py-3 align-middle text-center tabular-nums text-gray-500 dark:text-gray-500">
-                    {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
+              {lineItems.map((item, index) => {
+                const unitPrice = item.unitPrice ?? item.itemPrice ?? 0;
+                return (
+                  <tr key={`${item.itemId || item._id || item.description || "line"}-${index}`}>
+                    <td className="invoice-line-items-td px-2 py-2 align-middle text-left tabular-nums text-black">
+                      {item.sn || index + 1}
+                    </td>
+                    <td className="invoice-line-items-td px-2 py-2 align-middle text-left text-black break-words">
+                      {resolveItemCode(item) || "-"}
+                    </td>
+                    <td className="invoice-line-items-td px-2 py-2 align-middle text-left text-black break-words min-w-0">
+                      {item.description || item.itemDescription || "-"}
+                    </td>
+                    <td className="invoice-line-items-td px-2 py-2 align-middle text-right tabular-nums text-black">
+                      {formatLineQty(item.quantity)}
+                    </td>
+                    <td className="invoice-line-items-td px-2 py-2 align-middle text-right tabular-nums text-black">
+                      {formatLinePrice(unitPrice)}
+                    </td>
+                    <td className="invoice-line-items-td px-2 py-2 align-middle text-right tabular-nums text-black">
+                      {formatLineAmount(item.quantity, unitPrice)}
+                    </td>
+                  </tr>
+                );
+              })}
+              {lineItems.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="invoice-line-items-td px-4 py-6 text-center text-gray-500">
+                    No line items on this invoice.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -1016,7 +1049,13 @@ const InvoiceDetail = () => {
                   />
                   <EvatInfoRow
                     label="LINE‑ITEM COUNT:"
-                    value={invoice.graLineItemCount != null ? invoice.graLineItemCount : null}
+                    value={
+                      invoice.graLineItemCount != null
+                        ? invoice.graLineItemCount
+                        : lineItems.length > 0
+                          ? lineItems.length
+                          : null
+                    }
                   />
                 </div>
               </div>

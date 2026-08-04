@@ -25,7 +25,8 @@ export function mapDbItemsToFormItems(invoice) {
     const itemPrice = Number(line.itemPrice ?? line.unitPrice ?? 0) || 0;
     return {
       sn: line.sn || i + 1,
-      catalogId: line.catalogId || line.itemId || null,
+      catalogId: line.catalogId || line.itemId?._id || line.itemId || null,
+      itemCode: line.itemCode || line.sku || line.itemId?.sku || "",
       itemDescription: line.itemDescription || line.description || "",
       quantity,
       itemPrice,

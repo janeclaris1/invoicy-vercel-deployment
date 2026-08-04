@@ -18,7 +18,24 @@ export const INVOICE_REPORT_COLUMNS = [
   "Total Invoice Amount",
 ];
 
-/** Compact headers so all columns fit on screen / landscape print */
+/** Journal report columns (matches Invoice Journal Report reference; excludes Total for layout). */
+export const INVOICE_JOURNAL_COLUMNS = [
+  "Created Date",
+  "Invoice Date",
+  "Invoice #",
+  "Receipt #",
+  "VSDC Signature",
+  "Customer Name",
+  "Exclusive Amount",
+  "GET FUND Levy @ 2.5%",
+  "NHIL @ 2.5%",
+  "COVID 19 Levy @ 1%",
+  "CST 5%",
+  "Tourism Levy",
+  "VAT Taxable",
+  "VAT @ 15%",
+];
+
 export const INVOICE_REPORT_COLUMN_SHORT = [
   "Created",
   "Inv Date",
@@ -56,14 +73,27 @@ export const formatReportDate = (date) => {
   return moment(date).format("DD-MMM-YY");
 };
 
+export const formatJournalPeriod = (startDate, endDate) =>
+  `${moment(startDate).format("D MMM YYYY")} - ${moment(endDate).format("D MMM YYYY")}`;
+
 export const formatReportAmount = (amount) =>
   round2(amount).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
+export const truncateReportText = (value, maxLen = 18) => {
+  const text = value == null || value === "" ? "-" : String(value);
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, Math.max(1, maxLen - 1))}…`;
+};
+
 const sumLineField = (invoice, field) => {
-  const items = Array.isArray(invoice?.items) ? invoice.items : [];
+  const items = Array.isArray(invoice?.items)
+    ? invoice.items
+    : Array.isArray(invoice?.item)
+      ? invoice.item
+      : [];
   return round2(items.reduce((sum, line) => sum + Number(line?.[field] || 0), 0));
 };
 
@@ -163,6 +193,8 @@ const rowToValues = (row) => [
   formatReportAmount(row.grandTotal),
 ];
 
+const journalRowToValues = (row) => rowToValues(row).slice(0, 14);
+
 const totalsToValues = (totals, label = "TOTAL") => [
   label,
   "",
@@ -181,6 +213,8 @@ const totalsToValues = (totals, label = "TOTAL") => [
   formatReportAmount(totals.grandTotal),
 ];
 
+const journalTotalsToValues = (totals, label = "TOTAL") => totalsToValues(totals, label).slice(0, 14);
+
 export const csvEscape = (value) => {
   const text = String(value ?? "");
   if (/[",\n\r]/.test(text)) {
@@ -198,63 +232,219 @@ const triggerDownload = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-export const buildCompanyDetailsHtml = (companyDetails = {}) => {
-  const lines = [
-    companyDetails.name ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">${companyDetails.name}</p>` : "",
-    companyDetails.tin ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">TIN: ${companyDetails.tin}</p>` : "",
-    companyDetails.address ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">${companyDetails.address}</p>` : "",
-    companyDetails.phone ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">Tel: ${companyDetails.phone}</p>` : "",
-    companyDetails.email ? `<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;">Email: ${companyDetails.email}</p>` : "",
-  ].filter(Boolean);
+export const isInvoiceNumericColumn = (column) =>
+  column.includes("@") ||
+  column.includes("Amount") ||
+  column.includes("Levy") ||
+  column.includes("Taxable");
 
-  return lines.join("");
-};
+/** Shared CSS for Invoice Journal Report — screen, PDF, Word, Excel, print */
+export const INVOICE_JOURNAL_CSS = `
+  .invoice-journal {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #111827;
+    background: #ffffff;
+    width: 1100px;
+    max-width: 1100px;
+    box-sizing: border-box;
+    padding: 8px 4px 12px;
+  }
+  .invoice-journal * {
+    box-sizing: border-box;
+  }
+  .invoice-journal-header {
+    text-align: right;
+    margin: 0 0 14px;
+    color: #1a3263;
+  }
+  .invoice-journal-header .company {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .invoice-journal-header .title {
+    margin: 2px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1a3263;
+  }
+  .invoice-journal-header .meta {
+    margin: 1px 0 0;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.25;
+    color: #1a3263;
+  }
+  .invoice-journal-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 9.5px;
+    line-height: 1.35;
+  }
+  .invoice-journal-table thead th {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #111827;
+    text-align: left;
+    vertical-align: bottom;
+    padding: 6px 4px 8px;
+    border: none;
+    border-bottom: 1.5px solid #111827;
+    background: #ffffff;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .invoice-journal-table thead th.num {
+    text-align: right;
+  }
+  .invoice-journal-table tbody td {
+    font-size: 9.5px;
+    color: #111827;
+    padding: 7px 4px;
+    border: none;
+    border-bottom: 0.5px solid #d1d5db;
+    vertical-align: middle;
+    min-height: 28px;
+    line-height: 1.35;
+    background: #ffffff;
+  }
+  .invoice-journal-table tbody td.num {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .invoice-journal-table tbody td.text {
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .invoice-journal-table tbody tr.group-row td {
+    font-weight: 700;
+    font-size: 9.5px;
+    padding: 10px 4px 8px;
+    border-bottom: 0.5px solid #9ca3af;
+    background: #ffffff;
+  }
+  .invoice-journal-table tbody tr.subtotal-row td,
+  .invoice-journal-table tbody tr.grand-row td {
+    font-weight: 700;
+    border-top: 1px solid #111827;
+    border-bottom: 1.5px solid #111827;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .invoice-journal-table col.c-date { width: 62px; }
+  .invoice-journal-table col.c-inv { width: 120px; }
+  .invoice-journal-table col.c-receipt { width: 95px; }
+  .invoice-journal-table col.c-vsdc { width: 112px; }
+  .invoice-journal-table col.c-customer { width: 140px; }
+  .invoice-journal-table col.c-amt { width: 56px; }
+`;
 
-const buildTotalsRowHtml = (totals, label, background = "#fef3c7") => {
-  const cells = totalsToValues(totals, label)
-    .map((value, index) => {
-      const align = index >= 6 ? "right" : "left";
-      const weight = index === 0 ? "font-weight:bold;" : "";
-      return `<td style="border:1px solid #333;padding:6px 8px;text-align:${align};${weight}">${value}</td>`;
-    })
-    .join("");
-  return `<tr style="background:${background};">${cells}</tr>`;
-};
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
-export const buildInvoiceReportHtml = ({
-  groups,
-  title,
-  periodLabel,
-  generatedAt,
-  companyDetails,
+/**
+ * Inner markup for Invoice Journal Report (same for screen + all downloads).
+ */
+export const buildInvoiceJournalMarkup = ({
+  groups = [],
+  companyName = "",
+  periodLabel = "",
+  currency = "GHS",
 }) => {
-  const headerCells = INVOICE_REPORT_COLUMNS.map(
-    (col) => `<th style="border:1px solid #333;padding:6px 8px;text-align:left;font-weight:bold;background:#f3f4f6;">${col}</th>`
-  ).join("");
-
   const grandTotals = computeInvoiceReportGrandTotals(groups);
+  const colCount = INVOICE_JOURNAL_COLUMNS.length;
+
+  const headerCells = INVOICE_JOURNAL_COLUMNS.map((col, index) => {
+    const num = index >= 6;
+    return `<th class="${num ? "num" : ""}">${escapeHtml(col)}</th>`;
+  }).join("");
 
   const body = groups
     .map((group) => {
-      const groupLabel = `VSDC #: ${group.vsdcId} AT ${group.branchName}`;
-      const groupRow = `<tr><td colspan="${INVOICE_REPORT_COLUMNS.length}" style="border:1px solid #333;padding:6px 8px;font-weight:bold;background:#e5e7eb;">${groupLabel}</td></tr>`;
+      const groupRow = `<tr class="group-row"><td colspan="${colCount}">VSDC #: ${escapeHtml(
+        group.vsdcId
+      )} AT ${escapeHtml(group.branchName)}</td></tr>`;
+
       const dataRows = group.rows
         .map((row) => {
-          const cells = rowToValues(row)
+          const values = journalRowToValues(row);
+          const cells = values
             .map((value, index) => {
-              const align = index >= 6 ? "right" : "left";
-              return `<td style="border:1px solid #333;padding:6px 8px;text-align:${align};">${value}</td>`;
+              const num = index >= 6;
+              return `<td class="${num ? "num" : "text"}">${escapeHtml(value)}</td>`;
             })
             .join("");
           return `<tr>${cells}</tr>`;
         })
         .join("");
-      const subtotalRow = buildTotalsRowHtml(group.totals, "Subtotal", "#f3f4f6");
+
+      const subtotalValues = journalTotalsToValues(group.totals, "Subtotal");
+      const subtotalCells = subtotalValues
+        .map((value, index) => {
+          const num = index >= 6;
+          return `<td class="${num ? "num" : "text"}">${escapeHtml(value)}</td>`;
+        })
+        .join("");
+      const subtotalRow = `<tr class="subtotal-row">${subtotalCells}</tr>`;
+
       return groupRow + dataRows + subtotalRow;
     })
     .join("");
 
-  const grandTotalRow = buildTotalsRowHtml(grandTotals, "GRAND TOTAL", "#fde68a");
+  const grandValues = journalTotalsToValues(grandTotals, "GRAND TOTAL");
+  const grandCells = grandValues
+    .map((value, index) => {
+      const num = index >= 6;
+      return `<td class="${num ? "num" : "text"}">${escapeHtml(value)}</td>`;
+    })
+    .join("");
+
+  return `
+<div class="invoice-journal" id="invoice-journal-report">
+  <div class="invoice-journal-header">
+    <p class="company">${escapeHtml(companyName || "Company")}</p>
+    <p class="title">Invoice Journal Report</p>
+    <p class="meta">Period: ${escapeHtml(periodLabel)}</p>
+    <p class="meta">Currency: ${escapeHtml((currency || "GHS").toUpperCase())}</p>
+  </div>
+  <table class="invoice-journal-table">
+    <colgroup>
+      <col class="c-date" /><col class="c-date" />
+      <col class="c-inv" /><col class="c-receipt" /><col class="c-vsdc" /><col class="c-customer" />
+      <col class="c-amt" /><col class="c-amt" /><col class="c-amt" /><col class="c-amt" />
+      <col class="c-amt" /><col class="c-amt" /><col class="c-amt" /><col class="c-amt" />
+    </colgroup>
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>${body}<tr class="grand-row">${grandCells}</tr></tbody>
+  </table>
+</div>`.trim();
+};
+
+export const buildInvoiceReportHtml = ({
+  groups,
+  companyDetails,
+  periodLabel,
+  currency = "GHS",
+  title = "Invoice Journal Report",
+}) => {
+  const markup = buildInvoiceJournalMarkup({
+    groups,
+    companyName: companyDetails?.name || "",
+    periodLabel,
+    currency,
+  });
 
   return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -262,7 +452,7 @@ export const buildInvoiceReportHtml = ({
       xmlns="http://www.w3.org/TR/REC-html40">
 <head>
   <meta charset="utf-8" />
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <!--[if gte mso 9]>
   <xml>
     <w:WordDocument>
@@ -276,35 +466,19 @@ export const buildInvoiceReportHtml = ({
     @page WordSection1 {
       size: 841.95pt 595.35pt;
       mso-page-orientation: landscape;
-      margin: 36pt 36pt 36pt 36pt;
+      margin: 28pt 28pt 28pt 28pt;
     }
-    div.WordSection1 {
-      page: WordSection1;
-    }
+    div.WordSection1 { page: WordSection1; }
     @media print {
-      @page {
-        size: A4 landscape;
-        margin: 0.4in;
-      }
+      @page { size: A4 landscape; margin: 0.35in; }
     }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-    }
+    body { margin: 0; padding: 0; background: #fff; }
+    ${INVOICE_JOURNAL_CSS}
   </style>
 </head>
 <body>
   <div class="WordSection1">
-  ${buildCompanyDetailsHtml(companyDetails)}
-  <h2 style="margin:8px 0 8px;font-family:Arial,sans-serif;">${title}</h2>
-  <p style="margin:0 0 4px;font-family:Arial,sans-serif;">Period: ${periodLabel}</p>
-  <p style="margin:0 0 16px;font-family:Arial,sans-serif;">Generated: ${generatedAt}</p>
-  <table>
-    <thead><tr>${headerCells}</tr></thead>
-    <tbody>${body}${grandTotalRow}</tbody>
-  </table>
+    ${markup}
   </div>
 </body>
 </html>`;
@@ -327,7 +501,7 @@ export const downloadInvoiceReportCsv = ({
   companyDetails,
 }) => {
   const lines = [];
-  lines.push([title].map(csvEscape).join(","));
+  lines.push([title || "Invoice Journal Report"].map(csvEscape).join(","));
   pushCompanyLines(lines, companyDetails);
   lines.push([`Period: ${periodLabel}`].map(csvEscape).join(","));
   lines.push([`Generated: ${generatedAt}`].map(csvEscape).join(","));
@@ -368,11 +542,37 @@ export const downloadInvoiceReportWord = (options) => {
 
 export const buildInvoiceReportFilename = (startDate, endDate, extension) => {
   const stamp = `${moment(startDate).format("YYYY-MM-DD")}_to_${moment(endDate).format("YYYY-MM-DD")}`;
-  return `Invoice_Report_${stamp}.${extension}`;
+  return `Invoice_Journal_Report_${stamp}.${extension}`;
 };
 
-export const isInvoiceNumericColumn = (column) =>
-  column.includes("@") ||
-  column.includes("Amount") ||
-  column.includes("Levy") ||
-  column.includes("Taxable");
+export const buildCompanyDetailsHtml = (companyDetails = {}) => {
+  const lines = [
+    companyDetails.name
+      ? `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#0f172a;">${escapeHtml(
+          companyDetails.name
+        )}</p>`
+      : "",
+    companyDetails.tin
+      ? `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:10px;color:#64748b;">TIN: ${escapeHtml(
+          companyDetails.tin
+        )}</p>`
+      : "",
+    companyDetails.address
+      ? `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:10px;color:#64748b;">${escapeHtml(
+          companyDetails.address
+        )}</p>`
+      : "",
+    companyDetails.phone
+      ? `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:10px;color:#64748b;">Tel: ${escapeHtml(
+          companyDetails.phone
+        )}</p>`
+      : "",
+    companyDetails.email
+      ? `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:10px;color:#64748b;">Email: ${escapeHtml(
+          companyDetails.email
+        )}</p>`
+      : "",
+  ].filter(Boolean);
+
+  return lines.join("");
+};

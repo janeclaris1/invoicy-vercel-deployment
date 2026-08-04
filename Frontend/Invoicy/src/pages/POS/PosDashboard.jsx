@@ -523,7 +523,7 @@ const PosDashboard = () => {
                     name: row.description || "Item",
                     unitPrice: Number(row.unitPrice) || 0,
                     qty: Number(row.quantity) || 0,
-                    sku: inCat?.sku || "",
+                    sku: row.itemCode || inCat?.sku || "",
                     image: typeof inCat?.image === "string" ? inCat.image : "",
                 };
             });
@@ -600,6 +600,7 @@ const PosDashboard = () => {
 
         const itemsForApi = cart.map((l) => ({
             description: l.name,
+            itemCode: String(l.sku || l.itemCode || "").trim(),
             quantity: l.qty,
             unitPrice: l.unitPrice,
             itemId: itemIdForApi(l.itemId),

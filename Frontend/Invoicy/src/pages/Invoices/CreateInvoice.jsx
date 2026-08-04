@@ -117,6 +117,7 @@ const CreateInvoice = () => {
           return {
             sn: i + 1,
             catalogId: line.catalogId || null,
+            itemCode: line.itemCode || line.sku || "",
             itemDescription: line.itemDescription || line.name || "",
             quantity: qty,
             itemPrice: price,
@@ -556,7 +557,7 @@ const CreateInvoice = () => {
       ...prev,
       items: [
         ...prev.items,
-        { sn: prev.items.length + 1, itemDescription: "", quantity: 1, itemPrice: 0, amount: 0 },
+        { sn: prev.items.length + 1, itemDescription: "", itemCode: "", quantity: 1, itemPrice: 0, amount: 0 },
       ],
     }));
   };
@@ -596,6 +597,7 @@ const CreateInvoice = () => {
         {
           sn: prev.items.length + 1,
           catalogId: selected.id,
+          itemCode: selected.sku || "",
           itemDescription: selected.name || "",
           quantity: 1,
           itemPrice: numericPrice,
@@ -717,6 +719,7 @@ const CreateInvoice = () => {
       // Map items to API shape: backend expects description, unitPrice, and optional itemId for stock deduction
       const itemsForApi = (formData.items || []).map((item) => ({
         description: item.itemDescription ?? item.description ?? "",
+        itemCode: String(item.itemCode || item.sku || "").trim(),
         quantity: Number(item.quantity) || 0,
         unitPrice: Number(item.itemPrice ?? item.unitPrice ?? 0),
         ...(item.catalogId && { itemId: item.catalogId }),

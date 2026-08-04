@@ -101,6 +101,7 @@ exports.createInvoice = async (req, res) => {
                 return {
                     sn: i + 1,
                     description: item.description || item.itemDescription || "",
+                    itemCode: String(item.itemCode || item.sku || "").trim(),
                     unitPrice,
                     quantity,
                     vat: lineVat,
@@ -125,6 +126,7 @@ exports.createInvoice = async (req, res) => {
                 return {
                     sn: i + 1,
                     description: item.description || item.itemDescription || "",
+                    itemCode: String(item.itemCode || item.sku || "").trim(),
                     unitPrice,
                     quantity,
                     vat: Number(item.vat) || 0,
@@ -385,7 +387,8 @@ exports.getInvoiceById = async (req, res) => {
     try {
         const invoice = await Invoice.findById(req.params.id)
             .populate("user", "name email")
-            .populate("branch", "name");
+            .populate("branch", "name")
+            .populate("item.itemId", "sku name");
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
@@ -403,6 +406,16 @@ exports.getInvoiceById = async (req, res) => {
             : null;
         if (effectiveBranchId && invoiceBranchId !== effectiveBranchId) {
             return res.status(401).json({ message: 'Unauthorized access to this branch invoice' });
+        }
+
+        // Backfill itemCode from catalog SKU for older invoices
+        if (Array.isArray(invoice.item)) {
+            invoice.item.forEach((line) => {
+                if (!line) return;
+                if (!line.itemCode && line.itemId && typeof line.itemId === "object" && line.itemId.sku) {
+                    line.itemCode = String(line.itemId.sku).trim();
+                }
+            });
         }
 
         res.json(invoice);
@@ -571,6 +584,7 @@ exports.updateInvoice = async (req, res) => {
                     return {
                         sn: i + 1,
                         description: item.description || item.itemDescription || "",
+                        itemCode: String(item.itemCode || item.sku || "").trim(),
                         unitPrice,
                         quantity,
                         vat: lineVat,
@@ -589,6 +603,7 @@ exports.updateInvoice = async (req, res) => {
                     return {
                         sn: i + 1,
                         description: item.description || item.itemDescription || "",
+                        itemCode: String(item.itemCode || item.sku || "").trim(),
                         unitPrice,
                         quantity,
                         vat: Number(item.vat) || 0,

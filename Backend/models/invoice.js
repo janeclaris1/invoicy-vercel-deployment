@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const itemSchema = new mongoose.Schema({
     sn: { type: Number, required: true },
     description: { type: String, required: true },
+    itemCode: { type: String, default: '' },
     unitPrice: { type: Number, required: true },
     quantity: { type: Number, required: true },
     vat: { type: Number, required: true },

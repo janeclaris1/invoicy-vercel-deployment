@@ -104,6 +104,26 @@
     background-color: #ffffff;
   }
 
+  /* Billed invoice line items — screen + shared base (print overrides colors below) */
+  .invoice-line-items-table {
+    border-collapse: collapse;
+    border: 1px solid #c8c8c8;
+    width: 100%;
+  }
+
+  .invoice-line-items-table .invoice-line-items-th {
+    background-color: #e8e8e8;
+    color: #111111;
+    border: 1px solid #c8c8c8;
+    font-weight: 700;
+  }
+
+  .invoice-line-items-table .invoice-line-items-td {
+    border: 1px solid #c8c8c8;
+    background-color: #ffffff;
+    color: #111111;
+  }
+
   /* Print styles - hide layout elements when printing */
   @media print {
     /* Hide sidebar, navbar, and other layout elements */
@@ -154,37 +174,60 @@
       visibility: visible !important;
     }
 
-    /* Prefer economy ink for general invoice chrome; line-items header uses exact so navy fills reliably */
+    /* Prefer economy ink for general invoice chrome; line-item header uses exact gray fill */
     .invoice-print-container {
       -webkit-print-color-adjust: economy;
       print-color-adjust: economy;
     }
 
-    .invoice-print-container .invoice-line-items-table thead,
-    .invoice-print-container .invoice-line-items-table thead th {
+    .invoice-print-container .invoice-line-items-table {
+      page-break-inside: auto;
+    }
+
+    .invoice-print-container .invoice-line-items-table tbody tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+
+    .invoice-print-container .invoice-line-items-table thead th.invoice-line-items-th {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      background-color: #1a3263 !important;
-      color: #ffffff !important;
+      background-color: #e8e8e8 !important;
+      color: #111111 !important;
     }
 
     .invoice-line-items-table {
       border-collapse: collapse;
+      border: 1px solid #c8c8c8;
     }
 
     .invoice-line-items-table .invoice-line-items-th {
-      background-color: #1a3263;
-      border: none;
+      background-color: #e8e8e8;
+      color: #111111;
+      border: 1px solid #c8c8c8;
+      font-weight: 700;
     }
 
     .invoice-line-items-table .invoice-line-items-td {
-      border: 1px solid #e5e7eb;
+      border: 1px solid #c8c8c8;
+      background-color: #ffffff;
+      color: #111111;
+    }
+
+    .invoice-line-items-table tr.invoice-line-row-alt .invoice-line-items-td {
       background-color: #ffffff;
     }
 
     .invoice-print-container .invoice-line-items-table .invoice-line-items-td {
-      color: #6b7280 !important;
-      border-color: #e5e7eb !important;
+      color: #111111 !important;
+      border-color: #c8c8c8 !important;
+      background-color: #ffffff !important;
+    }
+
+    .invoice-print-container .invoice-line-items-table tr.invoice-line-row-alt .invoice-line-items-td {
+      background-color: #ffffff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     /* Reset body for printing */
@@ -373,3 +416,5 @@
   }
 }
 
+
+@import "./styles/reportTables.css";
