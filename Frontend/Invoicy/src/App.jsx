@@ -116,8 +116,8 @@ import ModeChooser from "./pages/Auth/ModeChooser";
 
 
 /* App.jsx file serves as the main component that sets up routing for the application. It uses React Router to define different routes for the app,
-including public routes for landing, signup, and login pages. It also includes a catch-all route
-to redirect any undefined paths back to the landing page. Additionally, it integrates the Toaster
+including public routes for login (landing), signup, and the marketing home page. It also includes a catch-all route
+to redirect any undefined paths back to the login page. Additionally, it integrates the Toaster
 component from react-hot-toast for displaying toast notifications throughout the app. */
 
 const App = () => {
@@ -128,7 +128,8 @@ const App = () => {
         <Routes>
 
           {/*Public Routes */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/home" element={<LandingPage />} />
           <Route path="/pos" element={<Navigate to="/dashboard" replace />} />
           <Route path="/sales/pos" element={<Navigate to="/dashboard" replace />} />
           <Route path="/signup" element={<SignUp />} />
