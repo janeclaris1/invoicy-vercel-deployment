@@ -18,6 +18,25 @@ export const INVOICE_REPORT_COLUMNS = [
   "Total Invoice Amount",
 ];
 
+/** Compact headers so all columns fit on screen / landscape print */
+export const INVOICE_REPORT_COLUMN_SHORT = [
+  "Created",
+  "Inv Date",
+  "Inv #",
+  "Receipt #",
+  "VSDC Sig",
+  "Customer",
+  "Exclusive",
+  "GETFund 2.5%",
+  "NHIL 2.5%",
+  "COVID 1%",
+  "CST 5%",
+  "Tourism",
+  "VAT Taxable",
+  "VAT 15%",
+  "Total",
+];
+
 const NUMERIC_FIELDS = [
   "exclusiveAmount",
   "getFund",

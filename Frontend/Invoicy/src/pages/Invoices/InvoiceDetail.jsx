@@ -651,7 +651,7 @@ const InvoiceDetail = () => {
           </div>
           <div className="mt-6 flex justify-center items-baseline">
             <span className="text-3xl sm:text-4xl font-black">VAT </span>
-            <span className="text-3xl sm:text-4xl font-black italic font-serif">IVOICE</span>
+            <span className="text-3xl sm:text-4xl font-black italic font-serif">INVOICE</span>
           </div>
         </div>
 
@@ -719,17 +719,16 @@ const InvoiceDetail = () => {
         </div>
 
         <div className="mt-4 overflow-x-auto -mx-1 px-1">
-          <table className="invoice-line-items-table w-full min-w-[520px] table-fixed border-separate border-spacing-0 text-[11px] sm:text-[12px]">
+          <table className="invoice-line-items-table w-full min-w-[480px] table-fixed border-collapse text-[11px] sm:text-[12px]">
             <colgroup>
-              <col style={{ width: "2.25rem" }} />
               <col />
-              <col style={{ width: "3rem" }} />
-              <col style={{ width: "5.75rem" }} />
-              <col style={{ width: "5.75rem" }} />
+              <col style={{ width: "4.5rem" }} />
+              <col style={{ width: "6.5rem" }} />
+              <col style={{ width: "6.5rem" }} />
             </colgroup>
             <thead className="bg-[#1A3263]">
               <tr className="invoice-print-repeat-row">
-                <th colSpan={5} className="invoice-print-repeat-cell px-0 py-0 border-b-0">
+                <th colSpan={4} className="invoice-print-repeat-cell px-0 py-0 border-b-0">
                   <div className="text-center py-2">
                     <div className="text-base font-black tracking-widest text-center text-black">
                       {displayBillFrom.businessName}
@@ -739,13 +738,13 @@ const InvoiceDetail = () => {
                     </div>
                     <div className="mt-2 flex justify-center items-baseline">
                       <span className="text-2xl font-black text-black">VAT </span>
-                      <span className="text-2xl font-black italic font-serif text-black">IVOICE</span>
+                      <span className="text-2xl font-black italic font-serif text-black">INVOICE</span>
                     </div>
                   </div>
                 </th>
               </tr>
               <tr className="invoice-print-repeat-row">
-                <th colSpan={5} className="invoice-print-repeat-cell px-2 py-2 border-b border-black">
+                <th colSpan={4} className="invoice-print-repeat-cell px-2 py-2 border-b border-gray-200">
                   <div className="invoice-bill-from-to text-left border-0 rounded-xl overflow-hidden">
                     <table className="w-full text-[11px] leading-[1.25] text-black table-fixed">
                       <colgroup>
@@ -811,25 +810,25 @@ const InvoiceDetail = () => {
                 </th>
               </tr>
               <tr>
-                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">#</th>
-                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">Description</th>
-                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">Qty</th>
-                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-r border-black border-b border-black">Price</th>
-                <th className="px-2 py-2 text-left text-[10px] font-medium text-white uppercase tracking-wide border-b border-black">Total</th>
+                <th className="invoice-line-items-th px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wide">Description</th>
+                <th className="invoice-line-items-th px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wide">Qty</th>
+                <th className="invoice-line-items-th px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wide">Price</th>
+                <th className="invoice-line-items-th px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wide">Total</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
               {lineItems.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-100 group transition-colors duration-150">
-                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.sn || index + 1}</td>
-                  <td className="px-2 py-1 align-top text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300 break-words min-w-0">
+                <tr key={index}>
+                  <td className="invoice-line-items-td px-4 py-3 align-middle text-left text-gray-500 dark:text-gray-500 break-words min-w-0">
                     {item.description || item.itemDescription || "-"}
                   </td>
-                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">{item.quantity ?? "-"}</td>
-                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-r border-black border-b border-gray-300">
+                  <td className="invoice-line-items-td px-4 py-3 align-middle text-center tabular-nums text-gray-500 dark:text-gray-500">
+                    {item.quantity ?? "-"}
+                  </td>
+                  <td className="invoice-line-items-td px-4 py-3 align-middle text-center tabular-nums text-gray-500 dark:text-gray-500">
                     {formatCurrency(item.unitPrice ?? item.itemPrice, userCurrency)}
                   </td>
-                  <td className="px-2 py-1 align-top tabular-nums text-black dark:text-black group-hover:text-black border-b border-gray-300">
+                  <td className="invoice-line-items-td px-4 py-3 align-middle text-center tabular-nums text-gray-500 dark:text-gray-500">
                     {formatCurrency(item.total ?? item.amount ?? 0, userCurrency)}
                   </td>
                 </tr>

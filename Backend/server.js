@@ -88,6 +88,10 @@ app.use(cors({
   origin: function (origin, callback) {
     // No Origin: native apps, curl, Postman, same-origin navigation
     if (!origin) return callback(null, true);
+    // Always allow local Vite/dev origins (even if NODE_ENV=production in a shared .env)
+    if (isLocalOrigin(origin)) {
+      return callback(null, true);
+    }
     // Development: allow any browser origin (LAN, alternate ports); production uses allowlist below
     if (!isProduction) {
       return callback(null, true);

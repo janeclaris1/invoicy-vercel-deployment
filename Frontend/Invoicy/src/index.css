@@ -167,6 +167,25 @@
       background-color: #1a3263 !important;
       color: #ffffff !important;
     }
+
+    .invoice-line-items-table {
+      border-collapse: collapse;
+    }
+
+    .invoice-line-items-table .invoice-line-items-th {
+      background-color: #1a3263;
+      border: none;
+    }
+
+    .invoice-line-items-table .invoice-line-items-td {
+      border: 1px solid #e5e7eb;
+      background-color: #ffffff;
+    }
+
+    .invoice-print-container .invoice-line-items-table .invoice-line-items-td {
+      color: #6b7280 !important;
+      border-color: #e5e7eb !important;
+    }
     
     /* Reset body for printing */
     body {

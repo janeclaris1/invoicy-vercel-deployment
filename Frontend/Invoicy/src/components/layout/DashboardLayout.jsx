@@ -262,7 +262,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
             : "ml-64";
 
     return (
-        <div className="min-h-screen min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-gray-50 dark:bg-slate-950 flex pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
+        <div className="min-h-screen min-h-[100dvh] w-full max-w-full overflow-x-auto bg-gray-50 dark:bg-slate-950 flex pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
             {/* Sidebar */}
             {!hideSidebar && (
             <aside
@@ -404,7 +404,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
                 </header>
 
                 {/* Main content area */}
-                <main className="flex-1 min-w-0 w-full max-w-full overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+                <main className="flex-1 min-w-0 w-full max-w-full overflow-y-auto overflow-x-auto p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
                     {children}
                 </main>
             </div>

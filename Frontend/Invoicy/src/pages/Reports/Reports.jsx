@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
 import {
   INVOICE_REPORT_COLUMNS,
+  INVOICE_REPORT_COLUMN_SHORT,
   buildInvoiceReportFilename,
   computeInvoiceReportGrandTotals,
   downloadInvoiceReportCsv,
@@ -411,6 +412,24 @@ const Reports = () => {
           background-color: inherit !important;
           border-color: inherit !important;
         }
+        #report-content,
+        #report-content .overflow-x-auto {
+          overflow: visible !important;
+          max-width: none !important;
+          width: 100% !important;
+        }
+        #report-content .invoice-report-table {
+          width: 100% !important;
+          min-width: 0 !important;
+          table-layout: fixed !important;
+          font-size: 9px !important;
+        }
+        #report-content .invoice-report-table th,
+        #report-content .invoice-report-table td {
+          white-space: normal !important;
+          word-break: break-word !important;
+          padding: 2px 3px !important;
+        }
       `;
       clonedDoc.head.appendChild(styleTag);
       
@@ -562,7 +581,7 @@ const Reports = () => {
           useCORS: true,
           logging: false,
           backgroundColor: "#ffffff",
-          windowWidth: Math.max(reportElement.scrollWidth, 1400),
+          windowWidth: Math.max(reportElement.scrollWidth, 1200),
           windowHeight: reportElement.scrollHeight,
           allowTaint: true,
           onclone: (clonedDoc) => {
@@ -670,7 +689,7 @@ const Reports = () => {
   };
 
   return (
-    <div className="p-6 print:p-0 print-report-wrapper">
+    <div className="min-w-0 w-full max-w-full p-6 print:p-0 print-report-wrapper">
       {/* Header */}
       <div className="mb-7 print:hidden no-print">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports & Analytics</h1>
@@ -799,14 +818,14 @@ const Reports = () => {
       </div>
 
       {/* Report Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 overflow-x-auto report-landscape-preview" id="report-content">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 w-full max-w-full min-w-0 overflow-x-auto report-landscape-preview" id="report-content">
         {loading && (
           <div className="text-sm text-gray-500 mb-4">Loading live data...</div>
         )}
         {/* Report Header */}
         <div className="border-b border-gray-200 pb-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {companyDetails.name && (
                 <p className="text-lg font-bold text-gray-900">{companyDetails.name}</p>
               )}
@@ -1209,15 +1228,16 @@ const Reports = () => {
                 <p className="text-gray-600">No invoices found for the selected period and filters.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1550px] border border-gray-300 text-sm">
+              <div className="w-full min-w-0">
+                <table className="w-full border border-gray-300 invoice-report-table">
                   <thead className="bg-gray-100">
                     <tr>
-                      {INVOICE_REPORT_COLUMNS.map((column) => (
+                      {INVOICE_REPORT_COLUMN_SHORT.map((column, index) => (
                         <th
-                          key={column}
-                          className={`py-2 px-3 text-xs font-semibold text-gray-700 uppercase border border-gray-300 whitespace-nowrap ${
-                            isInvoiceNumericColumn(column) ? "text-right" : "text-left"
+                          key={INVOICE_REPORT_COLUMNS[index]}
+                          title={INVOICE_REPORT_COLUMNS[index]}
+                          className={`py-1.5 px-1 font-semibold text-gray-700 uppercase border border-gray-300 ${
+                            isInvoiceNumericColumn(INVOICE_REPORT_COLUMNS[index]) ? "text-right" : "text-left"
                           }`}
                         >
                           {column}
@@ -1231,123 +1251,123 @@ const Reports = () => {
                         <tr className="bg-gray-200">
                           <td
                             colSpan={INVOICE_REPORT_COLUMNS.length}
-                            className="py-2 px-3 font-semibold text-gray-900 border border-gray-300"
+                            className="py-1.5 px-1.5 font-semibold text-gray-900 border border-gray-300"
                           >
                             VSDC #: {group.vsdcId} AT {group.branchName}
                           </td>
                         </tr>
                         {group.rows.map((row) => (
                           <tr key={row.invoiceId}>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200">
                               {formatReportDate(row.createdDate)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200">
                               {formatReportDate(row.invoiceDate)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 break-all">
                               {row.invoiceNumber}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 break-all">
                               {row.receiptNumber}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 break-all">
                               {row.vsdcSignature}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200">
                               {row.customerName}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.exclusiveAmount)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.getFund)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.nhil)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.covid)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.cst)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.tourism)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.vatTaxable)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right">
                               {formatReportAmount(row.vat)}
                             </td>
-                            <td className="py-2 px-3 text-gray-900 border border-gray-200 text-right whitespace-nowrap font-medium">
+                            <td className="py-1 px-1 text-gray-900 border border-gray-200 text-right font-medium">
                               {formatReportAmount(row.grandTotal)}
                             </td>
                           </tr>
                         ))}
                         <tr className="bg-gray-100 font-semibold">
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300" colSpan={6}>
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300" colSpan={6}>
                             Subtotal
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.exclusiveAmount)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.getFund)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.nhil)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.covid)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.cst)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.tourism)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.vatTaxable)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.vat)}
                           </td>
-                          <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                          <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                             {formatReportAmount(group.totals.grandTotal)}
                           </td>
                         </tr>
                       </Fragment>
                     ))}
                     <tr className="bg-amber-100 font-bold">
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300" colSpan={6}>
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300" colSpan={6}>
                         GRAND TOTAL
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.exclusiveAmount)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.getFund)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.nhil)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.covid)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.cst)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.tourism)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.vatTaxable)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.vat)}
                       </td>
-                      <td className="py-2 px-3 text-gray-900 border border-gray-300 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-1 text-gray-900 border border-gray-300 text-right">
                         {formatReportAmount(invoiceReportGrandTotals.grandTotal)}
                       </td>
                     </tr>
@@ -1516,11 +1536,29 @@ const Reports = () => {
       {/* Print Styles */}
       <style>{`
         .report-landscape-preview {
-          min-width: min(100%, 1100px);
+          max-width: 100%;
         }
 
-        .report-landscape-preview table {
-          min-width: 1000px;
+        .invoice-report-table {
+          width: 100% !important;
+          min-width: 0 !important;
+          table-layout: fixed;
+          border-collapse: collapse;
+          font-size: 10px;
+          line-height: 1.25;
+        }
+
+        .invoice-report-table th,
+        .invoice-report-table td {
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          white-space: normal;
+          vertical-align: top;
+        }
+
+        .invoice-report-table th {
+          font-size: 9px;
+          line-height: 1.2;
         }
 
         @media print {
@@ -1596,6 +1634,28 @@ const Reports = () => {
 
           #report-content table {
             min-width: 0 !important;
+            width: 100% !important;
+          }
+
+          #report-content .invoice-report-table {
+            min-width: 0 !important;
+            width: 100% !important;
+            table-layout: fixed !important;
+            font-size: 7pt !important;
+          }
+
+          #report-content .invoice-report-table th,
+          #report-content .invoice-report-table td {
+            padding: 3px 4px !important;
+            font-size: 7pt !important;
+            word-break: break-word !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+          }
+
+          #report-content .invoice-report-table th {
+            font-size: 6.5pt !important;
+            line-height: 1.15 !important;
           }
 
           /* Spreadsheet-style print look */
