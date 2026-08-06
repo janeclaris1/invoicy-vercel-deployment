@@ -22,6 +22,8 @@ const itemSchema = new mongoose.Schema({
   trackStock: { type: Boolean, default: false },
   quantityInStock: { type: Number, default: 0 },
   reorderLevel: { type: Number, default: 0 },
+  /** Display order in catalog (lower = earlier). Price-list items use 1..N. */
+  sortOrder: { type: Number, default: 999999 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Item', itemSchema);

@@ -92,6 +92,16 @@
     display: none;
   }
 
+  /* Invoice header — no enclosing box border */
+  .invoice-print-header-section,
+  .invoice-print-header-section .invoice-print-static-header,
+  .invoice-print-header-section .invoice-print-static-bill,
+  .invoice-print-header-section .invoice-bill-from-to {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
   /* Dashboard stat cards */
   .dashboard-stat-label {
     color: var(--dashboard-stat-label) !important;
@@ -104,11 +114,12 @@
     background-color: #ffffff;
   }
 
-  /* Billed invoice line items — screen + shared base (print overrides colors below) */
+  /* Billed invoice line items — match yesterday print reference */
   .invoice-line-items-table {
     border-collapse: collapse;
     border: 1px solid #c8c8c8;
     width: 100%;
+    table-layout: fixed;
   }
 
   .invoice-line-items-table .invoice-line-items-th {
@@ -116,12 +127,44 @@
     color: #111111;
     border: 1px solid #c8c8c8;
     font-weight: 700;
+    padding: 0.4rem 0.5rem;
+    vertical-align: middle;
   }
 
   .invoice-line-items-table .invoice-line-items-td {
     border: 1px solid #c8c8c8;
     background-color: #ffffff;
     color: #111111;
+    padding: 0.35rem 0.5rem;
+    vertical-align: middle;
+  }
+
+  .invoice-line-items-table .invoice-col-num {
+    text-align: center;
+    width: 5%;
+  }
+
+  .invoice-line-items-table .invoice-col-code {
+    text-align: left;
+    width: 14%;
+    word-break: break-word;
+  }
+
+  .invoice-line-items-table .invoice-col-desc {
+    text-align: left;
+    width: 42%;
+    word-break: break-word;
+  }
+
+  .invoice-line-items-table .invoice-col-qty {
+    text-align: center;
+    width: 13%;
+  }
+
+  .invoice-line-items-table .invoice-col-price,
+  .invoice-line-items-table .invoice-col-amount {
+    text-align: right;
+    width: 13%;
   }
 
   /* Print styles - hide layout elements when printing */
@@ -198,20 +241,46 @@
 
     .invoice-line-items-table {
       border-collapse: collapse;
-      border: 1px solid #c8c8c8;
+      border: 1px solid #c8c8c8 !important;
+      width: 100% !important;
+      table-layout: fixed !important;
     }
 
     .invoice-line-items-table .invoice-line-items-th {
-      background-color: #e8e8e8;
-      color: #111111;
-      border: 1px solid #c8c8c8;
-      font-weight: 700;
+      background-color: #e8e8e8 !important;
+      color: #111111 !important;
+      border: 1px solid #c8c8c8 !important;
+      font-weight: 700 !important;
+      padding: 0.3rem 0.4rem !important;
+      vertical-align: middle !important;
+      font-size: 11px !important;
     }
 
     .invoice-line-items-table .invoice-line-items-td {
-      border: 1px solid #c8c8c8;
-      background-color: #ffffff;
-      color: #111111;
+      border: 1px solid #c8c8c8 !important;
+      background-color: #ffffff !important;
+      color: #111111 !important;
+      padding: 0.22rem 0.4rem !important;
+      vertical-align: middle !important;
+      font-size: 11px !important;
+    }
+
+    .invoice-line-items-table .invoice-col-num {
+      text-align: center !important;
+    }
+
+    .invoice-line-items-table .invoice-col-code,
+    .invoice-line-items-table .invoice-col-desc {
+      text-align: left !important;
+    }
+
+    .invoice-line-items-table .invoice-col-qty {
+      text-align: center !important;
+    }
+
+    .invoice-line-items-table .invoice-col-price,
+    .invoice-line-items-table .invoice-col-amount {
+      text-align: right !important;
     }
 
     .invoice-line-items-table tr.invoice-line-row-alt .invoice-line-items-td {
@@ -243,9 +312,17 @@
       overflow: visible !important;
     }
     
-    /* Page margins — page size is set by print context (invoice portrait, reports landscape) */
+    /* Page margins — match yesterday invoice print density */
     @page {
-      margin: 0.5in;
+      size: A4 portrait;
+      margin: 0.45in 0.5in;
+    }
+
+    body.report-print-page {
+      @page {
+        size: A4 landscape;
+        margin: 0.5in;
+      }
     }
     
     /* Ensure tables don't break awkwardly */
@@ -294,22 +371,44 @@
       box-shadow: none !important;
     }
 
-    /* Repeat invoice header + bill-from/to at start of each printed page via table header groups. */
-    body.invoice-print-page .invoice-print-static-header,
+    body.invoice-print-page .invoice-print-static-header {
+      margin-bottom: 0 !important;
+    }
+
+    body.invoice-print-page .invoice-print-static-header .mt-6 {
+      margin-top: 0.75rem !important;
+    }
+
     body.invoice-print-page .invoice-print-static-bill {
-      display: none !important;
+      margin-top: 0.75rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    body.invoice-print-page .invoice-print-full {
+      font-size: 12px !important;
+    }
+
+    /* Use static header (no table thead wrap) — matches yesterday print, no header border box */
+    body.invoice-print-page .invoice-print-header-section {
+      display: block !important;
+      border: none !important;
+    }
+
+    body.invoice-print-page .invoice-print-static-header,
+    body.invoice-print-page .invoice-print-static-bill,
+    body.invoice-print-page .invoice-bill-from-to,
+    body.invoice-print-page .invoice-bill-from-to table,
+    body.invoice-print-page .invoice-bill-from-to td {
+      display: revert !important;
+      border: none !important;
     }
 
     body.invoice-print-page .invoice-line-items-table .invoice-print-repeat-row {
-      display: table-row !important;
+      display: none !important;
     }
 
-    body.invoice-print-page .invoice-line-items-table .invoice-print-repeat-cell {
-      background: #ffffff !important;
-      color: #000000 !important;
-      border-right: 0 !important;
-      text-transform: none !important;
-      letter-spacing: normal !important;
+    body.invoice-print-page .invoice-logo-wrap {
+      display: none !important;
     }
 
     /* Keep payment summary + notes + EVAT details + QR together.
@@ -321,10 +420,10 @@
       page-break-before: auto !important;
     }
 
-    /* Print a normal clean page border around the invoice card */
+    /* No page border around invoice card */
     body.invoice-print-page .invoice-print-card {
       box-shadow: none !important;
-      border: 1px solid #d1d5db !important;
+      border: none !important;
       outline: none !important;
     }
 

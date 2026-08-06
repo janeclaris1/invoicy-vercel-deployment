@@ -95,12 +95,22 @@ const InvoiceDetail = () => {
     fetchInvoice();
   }, [fetchInvoice]);
 
-  /* Isolate print output to the invoice card only (hide dashboard chrome, toolbars, hints). */
+  /* Apply print-only layout during print — not on normal screen view. */
   useEffect(() => {
-    if (!invoice) return undefined;
-    document.body.classList.add("invoice-print-page");
-    return () => document.body.classList.remove("invoice-print-page");
-  }, [invoice]);
+    const onBeforePrint = () => document.body.classList.add("invoice-print-page");
+    const onAfterPrint = () => {
+      document.body.classList.remove("invoice-print-page");
+      document.body.classList.remove("invoice-print-pos-receipt");
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+      document.body.classList.remove("invoice-print-page");
+      document.body.classList.remove("invoice-print-pos-receipt");
+    };
+  }, []);
 
   useEffect(() => {
     const handler = () => fetchInvoice();
@@ -111,12 +121,6 @@ const InvoiceDetail = () => {
       window.removeEventListener("invoicesUpdated", handler);
     };
   }, [fetchInvoice]);
-
-  useEffect(() => {
-    const clearPosReceiptMode = () => document.body.classList.remove("invoice-print-pos-receipt");
-    window.addEventListener("afterprint", clearPosReceiptMode);
-    return () => window.removeEventListener("afterprint", clearPosReceiptMode);
-  }, []);
 
   const lineItems = useMemo(() => {
     if (!invoice) return [];
@@ -179,7 +183,10 @@ const InvoiceDetail = () => {
 
   const handlePrintInvoice = () => {
     document.body.classList.remove("invoice-print-pos-receipt");
-    window.print();
+    document.body.classList.add("invoice-print-page");
+    requestAnimationFrame(() => {
+      window.print();
+    });
   };
 
   const handlePrintPosReceipt = () => {
@@ -643,18 +650,17 @@ const InvoiceDetail = () => {
 
         <div className="invoice-print-container bg-transparent dark:bg-transparent border-0 p-0 print:border-0 print:shadow-none shadow-none text-black dark:text-black">
         <div className="invoice-print-full text-[13px] sm:text-[14px] leading-snug">
-          {/* Logo centered at top */}
-        {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
-          <div className="invoice-logo-wrap flex justify-center mb-4">
+        <div className="invoice-print-header-section">
+          {((invoice.companyLogo && invoice.companyLogo.trim() !== "") || (user?.companyLogo && user.companyLogo.trim() !== "")) && (
+            <div className="invoice-logo-wrap flex justify-center mb-4 print:hidden">
               <img
                 src={invoice.companyLogo && invoice.companyLogo.trim() !== "" ? invoice.companyLogo : (user?.companyLogo || "")}
                 alt="Company logo"
                 className="h-14 w-14 object-contain rounded-xl bg-white p-2 invoice-print-logo"
               />
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Reference-style header inside the printable card */}
         <div className="invoice-print-static-header text-center">
           <div className="text-base sm:text-lg font-black tracking-widest text-center">
             {displayBillFrom.businessName}
@@ -679,12 +685,12 @@ const InvoiceDetail = () => {
             <tbody>
               <tr>
                 <td colSpan={2} className="px-1 py-1">
-                  <div className="bg-[#4A9B8E] text-white text-[9px] font-bold uppercase px-2 py-0.5 inline-block leading-none">
+                  <div className="invoice-bill-label text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none">
                     BILL FROM
                   </div>
                 </td>
                 <td colSpan={2} className="px-1 py-1 text-left">
-                  <div className="bg-[#4A9B8E] text-white text-[9px] font-bold uppercase px-2 py-0.5 inline-block leading-none">
+                  <div className="invoice-bill-label text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none">
                     BILL TO
                   </div>
                 </td>
@@ -730,107 +736,26 @@ const InvoiceDetail = () => {
             </tbody>
           </table>
         </div>
+        </div>
 
         <div className="mt-4 overflow-x-auto -mx-1 px-1">
-          <table className="invoice-line-items-table w-full min-w-[640px] table-fixed border-collapse text-[11px] sm:text-[12px]">
+          <table className="invoice-line-items-table w-full table-fixed border-collapse text-[11px] sm:text-[12px]">
             <colgroup>
-              <col style={{ width: "2.5rem" }} />
-              <col style={{ width: "8.5rem" }} />
-              <col />
-              <col style={{ width: "5.5rem" }} />
-              <col style={{ width: "6rem" }} />
-              <col style={{ width: "6.5rem" }} />
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "42%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "13%" }} />
             </colgroup>
             <thead>
-              <tr className="invoice-print-repeat-row">
-                <th colSpan={6} className="invoice-print-repeat-cell px-0 py-0 border-b-0">
-                  <div className="text-center py-2">
-                    <div className="text-base font-black tracking-widest text-center text-black">
-                      {displayBillFrom.businessName}
-                    </div>
-                    <div className="text-[10px] text-gray-500 tracking-widest text-center">
-                      {displayBillFrom.email}
-                    </div>
-                    <div className="mt-2 flex justify-center items-baseline">
-                      <span className="text-2xl font-black text-black">VAT </span>
-                      <span className="text-2xl font-black italic font-serif text-black">INVOICE</span>
-                    </div>
-                  </div>
-                </th>
-              </tr>
-              <tr className="invoice-print-repeat-row">
-                <th colSpan={6} className="invoice-print-repeat-cell px-2 py-2 border-b border-gray-200">
-                  <div className="invoice-bill-from-to text-left border-0 rounded-xl overflow-hidden">
-                    <table className="w-full text-[11px] leading-[1.25] text-black table-fixed">
-                      <colgroup>
-                        <col className="w-[24%]" />
-                        <col className="w-[26%]" />
-                        <col className="w-[24%]" />
-                        <col className="w-[26%]" />
-                      </colgroup>
-                      <tbody>
-                        <tr>
-                          <td colSpan={2} className="px-1 py-1">
-                            <div className="bg-[#4A9B8E] text-white text-[9px] font-bold uppercase px-2 py-0.5 inline-block leading-none">
-                              BILL FROM
-                            </div>
-                          </td>
-                          <td colSpan={2} className="px-1 py-1 text-left">
-                            <div className="bg-[#4A9B8E] text-white text-[9px] font-bold uppercase px-2 py-0.5 inline-block leading-none">
-                              BILL TO
-                            </div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="px-1 py-0.5 font-medium align-top">Customer Name:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.clientName || "-"}</td>
-                          <td className="px-1 py-0.5 font-medium text-left align-top">Vendor:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">
-                            {displayBillFrom.businessName}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="px-1 py-0.5 font-medium align-top">Customer TIN:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.tin || "-"}</td>
-                          <td className="px-1 py-0.5 font-medium text-left align-top">Vendor TIN:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{displayBillFrom.tin}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-1 py-0.5 font-medium align-top">Invoice No:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.invoiceNumber || "-"}</td>
-                          <td className="px-1 py-0.5 font-medium text-left align-top">Phone:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{displayBillFrom.phone}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-1 py-0.5 font-medium align-top">Invoice Date:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.invoiceDate ? moment(invoice.invoiceDate).format("MMM D, YYYY") : "-"}</td>
-                          <td className="px-1 py-0.5 font-medium text-left align-top">Currency:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{invoice.currency || userCurrency || "-"}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-1 py-0.5 font-medium align-top">Due Date:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.dueDate ? moment(invoice.dueDate).format("MMM D, YYYY") : "-"}</td>
-                          <td className="px-1 py-0.5 font-medium text-left align-top">Served By:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{user?.name || "-"}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-1 py-0.5 font-medium align-top">Address:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words align-top">{invoice.billTo?.address || "-"}</td>
-                          <td className="px-1 py-0.5 font-medium text-left align-top">Address:</td>
-                          <td className="px-1 py-0.5 whitespace-normal break-words text-left align-top">{displayBillFrom.address}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </th>
-              </tr>
               <tr>
-                <th className="invoice-line-items-th px-2 py-2 text-left text-xs font-bold text-black">#</th>
-                <th className="invoice-line-items-th px-2 py-2 text-left text-xs font-bold text-black">Item Code</th>
-                <th className="invoice-line-items-th px-2 py-2 text-left text-xs font-bold text-black">Item Description</th>
-                <th className="invoice-line-items-th px-2 py-2 text-right text-xs font-bold text-black">Quantity</th>
-                <th className="invoice-line-items-th px-2 py-2 text-right text-xs font-bold text-black">Item Price</th>
-                <th className="invoice-line-items-th px-2 py-2 text-right text-xs font-bold text-black">Amount</th>
+                <th className="invoice-line-items-th invoice-col-num px-2 py-1.5 text-left text-xs font-bold text-black">#</th>
+                <th className="invoice-line-items-th invoice-col-code px-2 py-1.5 text-left text-xs font-bold text-black">Item Code</th>
+                <th className="invoice-line-items-th invoice-col-desc px-2 py-1.5 text-left text-xs font-bold text-black">Item Description</th>
+                <th className="invoice-line-items-th invoice-col-qty px-2 py-1.5 text-xs font-bold text-black">Quantity</th>
+                <th className="invoice-line-items-th invoice-col-price px-2 py-1.5 text-xs font-bold text-black">Item Price</th>
+                <th className="invoice-line-items-th invoice-col-amount px-2 py-1.5 text-xs font-bold text-black">Amount</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-white">
@@ -838,22 +763,22 @@ const InvoiceDetail = () => {
                 const unitPrice = item.unitPrice ?? item.itemPrice ?? 0;
                 return (
                   <tr key={`${item.itemId || item._id || item.description || "line"}-${index}`}>
-                    <td className="invoice-line-items-td px-2 py-2 align-middle text-left tabular-nums text-black">
+                    <td className="invoice-line-items-td invoice-col-num px-2 py-1.5 align-middle tabular-nums text-black">
                       {item.sn || index + 1}
                     </td>
-                    <td className="invoice-line-items-td px-2 py-2 align-middle text-left text-black break-words">
+                    <td className="invoice-line-items-td invoice-col-code px-2 py-1.5 align-middle text-black break-words">
                       {resolveItemCode(item) || "-"}
                     </td>
-                    <td className="invoice-line-items-td px-2 py-2 align-middle text-left text-black break-words min-w-0">
+                    <td className="invoice-line-items-td invoice-col-desc px-2 py-1.5 align-middle text-black break-words min-w-0">
                       {item.description || item.itemDescription || "-"}
                     </td>
-                    <td className="invoice-line-items-td px-2 py-2 align-middle text-right tabular-nums text-black">
+                    <td className="invoice-line-items-td invoice-col-qty px-2 py-1.5 align-middle tabular-nums text-black">
                       {formatLineQty(item.quantity)}
                     </td>
-                    <td className="invoice-line-items-td px-2 py-2 align-middle text-right tabular-nums text-black">
+                    <td className="invoice-line-items-td invoice-col-price px-2 py-1.5 align-middle tabular-nums text-black">
                       {formatLinePrice(unitPrice)}
                     </td>
-                    <td className="invoice-line-items-td px-2 py-2 align-middle text-right tabular-nums text-black">
+                    <td className="invoice-line-items-td invoice-col-amount px-2 py-1.5 align-middle tabular-nums text-black">
                       {formatLineAmount(item.quantity, unitPrice)}
                     </td>
                   </tr>

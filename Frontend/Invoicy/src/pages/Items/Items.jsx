@@ -6,6 +6,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
 import { formatCurrency } from "../../utils/helper";
+import { compareCatalogItems } from "../../utils/catalogSort";
 
 const MAX_ITEM_IMAGE_BYTES = 1.5 * 1024 * 1024;
 const DEFAULT_UNITS = ["unit", "hour", "day", "month", "year", "project", "piece", "kg", "lb"];
@@ -415,16 +416,7 @@ const Items = () => {
       (item.category || "").toLowerCase().includes(term) ||
       (item.sku || "").toLowerCase().includes(term)
     );
-  }).sort((a, b) => {
-    const catA = String(a?.category || "").trim();
-    const catB = String(b?.category || "").trim();
-    const catAIsBend = catA.toLowerCase() === "bend";
-    const catBIsBend = catB.toLowerCase() === "bend";
-    if (catAIsBend !== catBIsBend) return catAIsBend ? -1 : 1;
-    const catCompare = catA.localeCompare(catB, undefined, { sensitivity: "base" });
-    if (catCompare !== 0) return catCompare;
-    return String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" });
-  });
+  }).sort(compareCatalogItems);
 
   const unitOptions = (() => {
     const seen = new Set();

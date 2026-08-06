@@ -29,7 +29,7 @@ const getTeamMemberIds = async (currentUserId) => {
 const getItems = async (req, res) => {
   try {
     const teamMemberIds = await getTeamMemberIds(req.user._id);
-    const items = await Item.find({ user: { $in: teamMemberIds } }).sort({ createdAt: -1 });
+    const items = await Item.find({ user: { $in: teamMemberIds } }).sort({ sortOrder: 1, name: 1 });
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -226,7 +226,7 @@ const getStockReport = async (req, res) => {
     const items = await Item.find({
       user: { $in: teamMemberIds },
       trackStock: true,
-    }).sort({ name: 1 });
+    }).sort({ sortOrder: 1, name: 1 });
 
     const itemIds = items.map((i) => i._id);
     const movements = await StockMovement.find({
